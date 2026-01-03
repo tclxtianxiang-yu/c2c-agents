@@ -137,9 +137,9 @@ supabase migration up
 
 ```typescript
 // ✅ 正确：从 shared 导入
-import { OrderStatus, TaskStatus } from '@c2c-agents/shared';
-import { assertTransition } from '@c2c-agents/shared/state-machine';
-import { PAIRING_TTL_HOURS } from '@c2c-agents/config';
+import { OrderStatus, TaskStatus } from "@c2c-agents/shared";
+import { assertTransition } from "@c2c-agents/shared/state-machine";
+import { PAIRING_TTL_HOURS } from "@c2c-agents/config";
 
 // 使用状态机验证
 assertTransition(currentStatus, targetStatus);
@@ -150,8 +150,8 @@ assertTransition(currentStatus, targetStatus);
 ```typescript
 // ❌ 禁止：复制枚举定义
 enum OrderStatus {
-  Standby = 'Standby',
-  Pairing = 'Pairing',
+  Standby = "Standby",
+  Pairing = "Pairing",
   // ...
 }
 
@@ -159,7 +159,7 @@ enum OrderStatus {
 const contract = new ethers.Contract(address, abi, provider);
 
 // ❌ 禁止：跨模块直接操作数据表
-await this.db.query('INSERT INTO queue_items ...');
+await this.db.query("INSERT INTO queue_items ...");
 ```
 
 ### 📁 目录归属（NestJS 模块）
@@ -222,10 +222,12 @@ apps/api/src/modules/
 ### AI 推荐配置
 
 **Cursor / Copilot 用户**：
+
 - 将 `docs/CONTEXT.md` 添加到工作区索引
 - 在 `.cursorrules` 或 `.github/copilot-instructions.md` 中引用 CONTEXT.md
 
 **Claude Code 用户**：
+
 - 每次对话开始时使用 `@docs/CONTEXT.md`
 - 配合 `@docs/PRD.md` 理解业务需求
 
@@ -346,6 +348,7 @@ export class ValidationError extends Error;
 ```
 
 **关键文件**：
+
 - `src/enums/` - 所有枚举定义
 - `src/state-machine/order-transitions.ts` - 订单状态机
 - `src/types/` - DTO 接口定义
@@ -368,6 +371,7 @@ export const env = envSchema.parse(process.env);
 ```
 
 **关键文件**：
+
 - `src/constants.ts` - 配置常量（来自 OWNER1.md）
 - `src/env.ts` - Zod 环境变量校验
 
@@ -384,11 +388,13 @@ npx shadcn@latest add <component-name>
 ### apps/web（Next.js 前端）
 
 **关键目录**：
+
 - `src/app/` - 页面路由（App Router）
 - `src/components/` - 可复用组件
 - `src/providers/` - 全局 Provider（Wagmi/RainbowKit）
 
 **容器页面归属**：
+
 - `src/app/page.tsx` - 首页 → Owner #2
 - `src/app/tasks/[id]/page.tsx` - 任务详情 → Owner #3
 - `src/app/(b)/workbench/**` - B 工作台 → Owner #5
@@ -396,10 +402,12 @@ npx shadcn@latest add <component-name>
 ### apps/api（NestJS 后端）
 
 **关键目录**：
+
 - `src/modules/` - 业务模块（按 Owner 分工）
 - `src/modules/core/` - 核心服务 → Owner #1 only
 
 **模块开发规则**：
+
 1. 只修改自己模块的 `controller/service/dto`
 2. DTO 必须引用自 `@c2c-agents/shared`
 3. 跨模块调用通过 Service 接口
@@ -408,6 +416,7 @@ npx shadcn@latest add <component-name>
 ### apps/contracts（Hardhat 智能合约）⚠️ Owner #1 only
 
 **关键文件**：
+
 - `contracts/MockUSDT.sol` - ERC-20 测试币（待实现）
 - `contracts/Escrow.sol` - 托管合约（待实现）
 - `typechain-types/` - 自动生成的类型
@@ -416,7 +425,7 @@ npx shadcn@latest add <component-name>
 
 ```typescript
 // ✅ 通过 shared 提供的封装
-import { getEscrowContract } from '@c2c-agents/shared/contracts';
+import { getEscrowContract } from "@c2c-agents/shared/contracts";
 
 // ❌ 禁止直连
 const contract = new ethers.Contract(address, abi, provider);
@@ -508,6 +517,7 @@ RETURNING *;
 ### 状态互斥
 
 进入以下状态后，自动验收路径**永久关闭**：
+
 - `RefundRequested`
 - `CancelRequested`
 - `Disputed`
@@ -520,6 +530,7 @@ RETURNING *;
 ### Q: 我需要添加一个新的订单状态，怎么做？
 
 **A**: 这涉及 `packages/shared` 的修改，你需要：
+
 1. 停止直接修改
 2. 提交 Issue：「变更提案：添加新状态 XYZ」
 3. 描述：状态名称、触发条件、允许的状态迁移
@@ -528,14 +539,16 @@ RETURNING *;
 ### Q: 我要在前端调用合约，怎么办？
 
 **A**: 不能直接 `new ethers.Contract`，应该：
+
 ```typescript
 // ✅ 使用 shared 提供的封装
-import { validatePayTx, executePayoutTx } from '@c2c-agents/shared/chain';
+import { validatePayTx, executePayoutTx } from "@c2c-agents/shared/chain";
 ```
 
 ### Q: 我需要操作队列，怎么办？
 
 **A**: 不能直接操作 `queue_items` 表，应该：
+
 ```typescript
 // ✅ 调用 QueueService
 import { QueueService } from '../queue/queue.service';
@@ -550,6 +563,7 @@ import { QueueService } from '../queue/queue.service';
 ### Q: AI 生成的代码重复定义了枚举，怎么办？
 
 **A**: 这说明你没有引用 `CONTEXT.md`！重新开始对话：
+
 ```
 @docs/CONTEXT.md 请重新生成代码，使用 shared 中的类型
 ```
@@ -557,6 +571,7 @@ import { QueueService } from '../queue/queue.service';
 ### Q: 我想改任务详情页的布局，怎么办？
 
 **A**: 检查页面归属：
+
 - `apps/web/src/app/tasks/[id]/page.tsx` → Owner #3 维护
 - 如果你不是 Owner #3：创建子组件提供给 Owner #3 集成
 
@@ -575,13 +590,13 @@ import { QueueService } from '../queue/queue.service';
 
 ## 文档索引
 
-| 文档 | 用途 | 读者 |
-|------|------|------|
-| [README.md](README.md) | 项目概览与开发指南 | 开发人员 |
-| [CONTEXT.md](docs/CONTEXT.md) | 🔴 **AI 开发必读**：全局约束与硬性规则 | AI + 开发人员 |
-| [PRD.md](docs/PRD.md) | 完整产品需求文档 | 开发人员 |
-| [OWNER1.md](docs/OWNER1.md) | Core 模块文档与配置清单 | Owner #1 |
-| [CONTRACT.md](docs/CONTRACT.md) | 智能合约接口规范 | 合约开发 |
+| 文档                             | 用途                                   | 读者          |
+| -------------------------------- | -------------------------------------- | ------------- |
+| [README.md](README.md)           | 项目概览与开发指南                     | 开发人员      |
+| [CONTEXT.md](docs/CONTEXT.md)    | 🔴 **AI 开发必读**：全局约束与硬性规则 | AI + 开发人员 |
+| [PRD.md](docs/PRD.md)            | 完整产品需求文档                       | AI + 开发人员 |
+| [ownerx/\*.md](docs/ownerx/*.md) | Owner 的提示词工程                     | Owner         |
+| [CONTRACT.md](docs/CONTRACT.md)  | 智能合约接口规范                       | 合约开发      |
 
 ---
 
