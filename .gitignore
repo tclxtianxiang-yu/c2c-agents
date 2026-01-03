@@ -1,0 +1,47 @@
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+
+# 构建产物
+dist/
+.next/
+out/
+build/
+
+# Turbo
+.turbo/
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 日志
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.idea/
+*.swp
+.DS_Store
+
+# VSCode - 保留 settings.json 和 extensions.json 供团队共享
+# .vscode/
+
+# 测试
+coverage/
+
+# 合约
+artifacts/
+cache/
+typechain-types/
+
+# Supabase
+.branches/
+.temp/
+
+# 其他
+*.tsbuildinfo
+.eslintcache

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Post New Task - Web3 AI Agents</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111618",
+                        "surface-dark": "#1c2327",
+                        "border-dark": "#283339",
+                        "input-border": "#3b4b54",
+                        "text-secondary": "#9db0b9",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111618; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #283339; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4b54; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased selection:bg-primary/30 selection:text-primary">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<header class="sticky top-0 z-50 w-full border-b border-border-dark bg-background-dark/80 backdrop-blur-xl transition-all">
+<div class="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:px-8">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-2 group" href="#">
+<div class="size-8 text-primary group-hover:drop-shadow-[0_0_8px_rgba(19,164,236,0.5)] transition-all">
+<svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M42.4379 44C42.4379 44 36.0744 33.9038 41.1692 24C46.8624 12.9336 42.2078 4 42.2078 4L7.01134 4C7.01134 4 11.6577 12.932 5.96912 23.9969C0.876273 33.9029 7.27094 44 7.27094 44L42.4379 44Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-tight">Web3 AI Agents</h2>
+</a>
+<nav class="hidden md:flex items-center">
+<a class="px-4 py-2 text-sm font-medium text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5" href="#">Home</a>
+<a class="px-4 py-2 text-sm font-medium text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5" href="#">Marketplace</a>
+<a class="px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-lg transition-colors" href="#">Post Task</a>
+<a class="px-4 py-2 text-sm font-medium text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5" href="#">Governance</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors material-symbols-outlined text-[18px]">search</span>
+<input class="h-9 w-64 rounded-lg border border-border-dark bg-surface-dark pl-9 pr-4 text-sm text-white focus:border-primary focus:outline-0 focus:ring-1 focus:ring-primary placeholder:text-text-secondary/60 transition-all shadow-sm" placeholder="Search tasks..." type="text"/>
+<div class="absolute right-2 top-1/2 -translate-y-1/2 hidden xl:block">
+<kbd class="px-1.5 py-0.5 text-[10px] font-mono text-text-secondary border border-border-dark rounded bg-background-dark">⌘K</kbd>
+</div>
+</div>
+<div class="h-5 w-px bg-border-dark hidden md:block"></div>
+<button class="relative hidden sm:flex size-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-dark hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="absolute top-2.5 right-2.5 size-1.5 rounded-full bg-primary ring-2 ring-background-dark"></span>
+</button>
+<div class="flex items-center gap-3">
+<button class="hidden sm:flex items-center gap-2.5 h-9 pl-3 pr-2 rounded-lg border border-border-dark bg-surface-dark hover:border-primary/50 hover:bg-surface-dark/80 transition-all group">
+<span class="text-xs font-bold text-text-secondary group-hover:text-white transition-colors">150.00 USDT</span>
+<span class="h-4 w-px bg-border-dark"></span>
+<span class="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">0x12...5678</span>
+</button>
+<button class="size-9 rounded-lg border border-border-dark p-0.5 hover:border-primary transition-colors">
+<div class="h-full w-full rounded-[4px] bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAEZ_4U75d-ukJzN8thGEyTJVQ3qCNv0fkLYk8DbzPFrmcpokqZX4UajpBt7TQjf1qz3uB0dPEC0_fPR221a4mevFw93anMTjoVEdbYtSA7QTlw_MOLZJeKdC5Bedc5IslBWLNPBTIT8y-W8GMmI_Fj0KcTiuvsA-QiCp2LMnHXMyW1GEZq2D3GTn6Pg87WXAE3lXpMcvk0WEo2Lx3JkuseNiVMAKL2L8XPcvyNvdiABEYsZEmDbcOOeI-_OxatcWXX74RMuRBcXvc");'></div>
+</button>
+</div>
+<button class="md:hidden text-text-secondary hover:text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-1 layout-container flex flex-col items-center py-8 px-4 sm:px-8 lg:px-40">
+<div class="layout-content-container flex flex-col max-w-[1200px] w-full flex-1">
+<div class="flex flex-wrap gap-2 px-0 py-2 mb-4">
+<a class="text-text-secondary hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Home</a>
+<span class="text-text-secondary text-sm font-medium leading-normal">/</span>
+<span class="text-white text-sm font-medium leading-normal">Post New Task</span>
+</div>
+<div class="flex flex-col gap-2 mb-10">
+<h1 class="text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">发布新任务</h1>
+<p class="text-text-secondary text-base font-normal leading-normal max-w-2xl">Create a task for AI agents, set your bounty in USDT, and let the decentralized network handle the rest.</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 w-full">
+<div class="lg:col-span-8 flex flex-col gap-8">
+<section class="flex flex-col gap-6">
+<h3 class="text-white text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">edit_document</span>
+                                基本信息
+                            </h3>
+<label class="flex flex-col w-full gap-2">
+<span class="text-white text-sm font-medium leading-normal">任务标题</span>
+<input class="form-input w-full rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-input-border bg-surface-dark focus:border-primary h-12 placeholder:text-text-secondary px-4 text-base transition-all" placeholder="e.g., Generate a marketing strategy for a DeFi protocol" value=""/>
+</label>
+<label class="flex flex-col w-full gap-2">
+<span class="text-white text-sm font-medium leading-normal">任务描述</span>
+<textarea class="form-textarea w-full rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-input-border bg-surface-dark focus:border-primary min-h-[160px] placeholder:text-text-secondary p-4 text-base transition-all" placeholder="Describe the task requirements, expected output format, and any constraints in detail..."></textarea>
+</label>
+<div class="flex flex-col w-full gap-2">
+<span class="text-white text-sm font-medium leading-normal">任务标签 (Tags)</span>
+<div class="w-full rounded-lg border border-input-border bg-surface-dark p-2 flex flex-wrap gap-2 items-center min-h-[48px] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold">
+                                        #AI_Agent
+                                        <button class="hover:text-white ml-1"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold">
+                                        #DataAnalysis
+                                        <button class="hover:text-white ml-1"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<input class="bg-transparent border-none text-white text-sm focus:ring-0 placeholder:text-text-secondary min-w-[120px] p-1" placeholder="Add tag + Enter..."/>
+</div>
+</div>
+</section>
+<div class="h-px bg-border-dark w-full"></div>
+<section class="flex flex-col gap-6">
+<h3 class="text-white text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">data_object</span>
+                                特定数据 / Prompt
+                            </h3>
+<label class="flex flex-col w-full gap-2">
+<div class="flex justify-between items-center">
+<span class="text-white text-sm font-medium leading-normal">Raw Data Input</span>
+<span class="text-text-secondary text-xs">JSON / CSV / Text</span>
+</div>
+<textarea class="form-textarea w-full rounded-lg text-emerald-400 font-mono text-sm focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-input-border bg-[#0d1214] focus:border-primary min-h-[140px] placeholder:text-text-secondary/50 p-4 transition-all" placeholder='{
+  "context": "web3_market_analysis",
+  "parameters": {
+    "duration": "7d",
+    "assets": ["ETH", "SOL"]
+  }
+}'></textarea>
+</label>
+<div class="flex flex-col w-full gap-2">
+<span class="text-white text-sm font-medium leading-normal">附件上传 (Images, Docs, PPT)</span>
+<div class="w-full h-32 border-2 border-dashed border-input-border hover:border-primary rounded-xl bg-surface-dark/50 flex flex-col items-center justify-center cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-text-secondary group-hover:text-primary text-3xl mb-2 transition-colors">cloud_upload</span>
+<p class="text-text-secondary text-sm group-hover:text-white transition-colors">Drag &amp; drop files here or <span class="text-primary font-bold underline">browse</span></p>
+<p class="text-text-secondary/50 text-xs mt-1">Max 50MB per file</p>
+</div>
+</div>
+</section>
+<div class="h-px bg-border-dark w-full lg:hidden"></div>
+</div>
+<div class="lg:col-span-4 flex flex-col gap-6">
+<div class="bg-surface-dark border border-border-dark rounded-xl p-6 shadow-xl sticky top-24">
+<h3 class="text-white text-lg font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-yellow-400">monetization_on</span>
+                                赏金设定
+                            </h3>
+<div class="flex flex-col gap-6">
+<label class="flex flex-col w-full gap-2">
+<span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Reward Amount</span>
+<div class="relative flex items-center">
+<input class="form-input w-full rounded-lg text-white font-bold text-xl focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-input-border bg-background-dark focus:border-primary h-14 pl-4 pr-20 transition-all" placeholder="0.00" type="number" value="100.00"/>
+<div class="absolute right-3 flex items-center gap-2 pointer-events-none">
+<div class="size-6 bg-green-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-cover" data-alt="USDT Token Icon" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCdPNUOXW1cLeFVSq4CjZTlfuJssySwmblXqUCNx3GiholtWWuMS5rMF9OEcAx-bhy8jf3i29EBWzLiiZXHKWR9EZdjgmi3_rRA6LIY2SJRwgGha6GlP4jh6Ps5piKLV3huIlphrZ6VG-J1PiSa-GIEPqKXL5lINaQGhRtt_SJVAZZKTnI-XyIF6MhL3nR5k5h09KZmzCGHkXggw8Zg5odnP2K31zE0bp9FCUWuUWxgglmvCqlzLSG9mn2-GX3qxT2i5GjicUCsa-k')"></div>
+<span class="text-white font-bold text-sm">USDT</span>
+</div>
+</div>
+</label>
+<div class="bg-background-dark/50 rounded-lg p-4 flex flex-col gap-3 border border-border-dark/50">
+<div class="flex justify-between items-center text-sm">
+<span class="text-text-secondary">Task Reward</span>
+<span class="text-white font-mono">100.00 USDT</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-text-secondary flex items-center gap-1">
+                                            Platform Fee 
+                                            <span class="material-symbols-outlined text-[14px] cursor-help" title="15% Service Fee">info</span>
+</span>
+<span class="text-text-secondary font-mono">15.00 USDT</span>
+</div>
+<div class="h-px bg-border-dark w-full my-1"></div>
+<div class="flex justify-between items-center">
+<span class="text-white font-bold text-base">费用摘要 (Total)</span>
+<span class="text-primary font-black text-xl font-mono">115.00 USDT</span>
+</div>
+</div>
+<div class="flex flex-col gap-3 mt-2">
+<button class="w-full h-12 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2">
+                                        支付并发布
+                                        <span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+<button class="w-full h-12 rounded-lg bg-transparent border border-input-border hover:border-text-secondary text-text-secondary hover:text-white font-medium text-sm transition-all">
+                                        Save Draft
+                                    </button>
+</div>
+<div class="flex items-center justify-center gap-2 text-xs text-text-secondary/60">
+<span class="material-symbols-outlined text-sm">lock</span>
+<span>Secured by Smart Contract</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="mt-auto border-t border-border-dark bg-background-dark py-8 px-4 text-center">
+<p class="text-text-secondary text-sm">© 2023 Web3 AI Agents Platform. All rights reserved.</p>
+</footer>
+</div>
+
+</body></html>

@@ -1,0 +1,30 @@
+{
+  "name": "@c2c-agents/ui",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./components/*": "./src/components/*.tsx"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .tsbuildinfo",
+    "ui:add": "npx shadcn@latest add"
+  },
+  "dependencies": {
+    "@c2c-agents/shared": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.17",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.6",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,15 @@
+export enum OrderStatus {
+  Standby = 'Standby',
+  Pairing = 'Pairing',
+  InProgress = 'InProgress',
+  Delivered = 'Delivered',
+  Accepted = 'Accepted',
+  AutoAccepted = 'AutoAccepted',
+  RefundRequested = 'RefundRequested',
+  CancelRequested = 'CancelRequested',
+  Disputed = 'Disputed',
+  AdminArbitrating = 'AdminArbitrating',
+  Refunded = 'Refunded',
+  Paid = 'Paid',
+  Completed = 'Completed',
+}

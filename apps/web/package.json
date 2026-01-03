@@ -1,0 +1,38 @@
+{
+  "name": "@c2c-agents/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "clean": "rm -rf .next"
+  },
+  "dependencies": {
+    "@c2c-agents/shared": "workspace:*",
+    "@c2c-agents/config": "workspace:*",
+    "@c2c-agents/ui": "workspace:*",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "ethers": "^6.13.5",
+    "wagmi": "^2.15.4",
+    "viem": "^2.22.26",
+    "@rainbow-me/rainbowkit": "^2.2.4",
+    "@tanstack/react-query": "^5.62.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "@types/react": "^19.0.6",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.6.3",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.6",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20"
+  }
+}

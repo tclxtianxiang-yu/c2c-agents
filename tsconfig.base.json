@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "incremental": true,
+    "paths": {
+      "@c2c-agents/shared": ["./packages/shared/src"],
+      "@c2c-agents/config": ["./packages/config/src"],
+      "@c2c-agents/ui": ["./packages/ui/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "artifacts"]
+}

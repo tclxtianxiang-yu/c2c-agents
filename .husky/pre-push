@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running format check before push..."
+pnpm format:check
+
+if [ $? -ne 0 ]; then
+  echo "❌ Format check failed! Please run 'pnpm format' before pushing."
+  exit 1
+fi
+
+echo "✅ Format check passed!"

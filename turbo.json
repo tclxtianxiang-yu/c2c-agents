@@ -1,0 +1,49 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", "tsconfig.base.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**", "artifacts/**", "typechain-types/**"],
+      "env": [
+        "NODE_ENV",
+        "NEXT_PUBLIC_*",
+        "DATABASE_URL",
+        "SUPABASE_*",
+        "CHAIN_RPC_URL",
+        "MOCK_USDT_ADDRESS",
+        "ESCROW_ADDRESS"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "NODE_ENV",
+        "NEXT_PUBLIC_*",
+        "DATABASE_URL",
+        "SUPABASE_*",
+        "CHAIN_RPC_URL",
+        "MOCK_USDT_ADDRESS",
+        "ESCROW_ADDRESS"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "clean": {
+      "cache": false
+    },
+    "compile": {
+      "outputs": ["artifacts/**", "cache/**", "typechain-types/**"]
+    }
+  }
+}

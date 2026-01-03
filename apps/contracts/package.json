@@ -1,0 +1,27 @@
+{
+  "name": "@c2c-agents/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.ts --network sepolia",
+    "typecheck": "tsc --noEmit",
+    "clean": "hardhat clean && rm -rf artifacts cache typechain-types"
+  },
+  "dependencies": {
+    "@c2c-agents/shared": "workspace:*",
+    "@c2c-agents/config": "workspace:*",
+    "@openzeppelin/contracts": "^5.2.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "hardhat": "^2.22.19",
+    "ethers": "^6.13.5",
+    "typescript": "^5.6.3",
+    "typechain": "^8.3.2"
+  }
+}

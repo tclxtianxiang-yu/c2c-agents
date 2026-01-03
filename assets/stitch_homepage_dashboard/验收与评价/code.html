@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Task Acceptance &amp; Review - Web3 AI Platform</title>
+<!-- Fonts: Space Grotesk for Headings, Noto Sans for Body -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "primary-dark": "#0e7ab0",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                        "surface-dark": "#16232a",
+                        "border-dark": "#2a3b47",
+                        "success": "#22c55e",
+                        "warning": "#eab308",
+                        "error": "#ef4444",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #101c22; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a3b47; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4b54; 
+        }
+        
+        .glass-panel {
+            background: rgba(22, 35, 42, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Radio Input Styling */
+        input[type="radio"]:checked + div {
+            border-color: #13a4ec;
+            background-color: rgba(19, 164, 236, 0.05);
+        }
+        
+        input[type="radio"]:checked + div .radio-indicator {
+            border-color: #13a4ec;
+            background-color: #13a4ec;
+        }
+
+        input[type="radio"]:checked + div .radio-indicator::after {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4 font-body text-slate-200 overflow-x-hidden selection:bg-primary/30">
+<!-- Background Decoration -->
+<div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+<div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px]" data-alt="Abstract blue glow gradient in top left corner"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px]" data-alt="Abstract purple glow gradient in bottom right corner"></div>
+</div>
+<!-- Main Modal Container -->
+<div class="relative z-10 w-full max-w-3xl flex flex-col glass-panel rounded-xl border border-border-dark shadow-2xl animate-fade-in-up">
+<!-- Header -->
+<div class="flex items-center justify-between p-6 border-b border-border-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl">verified_user</span>
+<div>
+<h1 class="text-white font-display text-2xl font-bold tracking-tight">Task Acceptance</h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-slate-400 text-xs font-mono">Contract: 0x71C...9A23</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 uppercase tracking-wider">Pending Release</span>
+</div>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Scrollable Body -->
+<div class="flex-1 overflow-y-auto max-h-[calc(100vh-200px)] p-6 space-y-8">
+<!-- Deliverable Summary & Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="md:col-span-2 p-4 rounded-lg border border-border-dark bg-background-dark/50">
+<p class="text-xs text-slate-400 uppercase font-semibold tracking-wider mb-2">Deliverable Preview</p>
+<div class="flex items-start gap-3">
+<div class="h-10 w-10 rounded bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700">
+<span class="material-symbols-outlined text-slate-400">folder_zip</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Task #1024: Web3 Market Analysis Agent</p>
+<a class="text-primary text-xs hover:underline flex items-center gap-1 mt-1" href="#">
+                                View Full Report <span class="material-symbols-outlined text-[10px]">open_in_new</span>
+</a>
+</div>
+</div>
+</div>
+<div class="p-4 rounded-lg border border-border-dark bg-background-dark/50 flex flex-col justify-center">
+<p class="text-xs text-slate-400 uppercase font-semibold tracking-wider mb-1">Escrow Amount</p>
+<div class="flex items-baseline gap-1">
+<span class="text-2xl font-display font-bold text-white">2.5</span>
+<span class="text-sm font-display text-primary font-medium">ETH</span>
+</div>
+<p class="text-[10px] text-slate-500 mt-1">≈ $4,820.50 USD</p>
+</div>
+</div>
+<!-- Step 1: Settlement Decision -->
+<section class="space-y-4">
+<h2 class="text-white font-display text-lg font-semibold flex items-center gap-2">
+<span class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-xs border border-slate-700">1</span>
+                    Settlement Decision
+                </h2>
+<div class="grid gap-3">
+<!-- Option 1: Confirm -->
+<label class="relative cursor-pointer group">
+<input checked="" class="peer sr-only" name="settlement_action" type="radio" value="confirm"/>
+<div class="p-4 rounded-lg border border-border-dark bg-surface-dark transition-all duration-200 hover:border-slate-600 flex items-start gap-4">
+<div class="radio-indicator mt-1 w-5 h-5 rounded-full border-2 border-slate-500 relative shrink-0 flex items-center justify-center">
+<div class="w-2 h-2 bg-white rounded-full opacity-0 transition-opacity after:content-['']"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="text-white font-medium">确认通过 (Confirm Pass)</p>
+<span class="text-xs text-green-400 font-mono bg-green-400/10 px-2 py-0.5 rounded border border-green-400/20">Recommended</span>
+</div>
+<p class="text-slate-400 text-sm mt-1">Release funds to Agent immediately. Smart contract will execute transfer.</p>
+</div>
+</div>
+</label>
+<!-- Option 2: Refund -->
+<label class="relative cursor-pointer group">
+<input class="peer sr-only" name="settlement_action" type="radio" value="refund"/>
+<div class="p-4 rounded-lg border border-border-dark bg-surface-dark transition-all duration-200 hover:border-slate-600 flex items-start gap-4">
+<div class="radio-indicator mt-1 w-5 h-5 rounded-full border-2 border-slate-500 relative shrink-0 flex items-center justify-center">
+<div class="w-2 h-2 bg-white rounded-full opacity-0 transition-opacity after:content-['']"></div>
+</div>
+<div class="flex-1">
+<p class="text-white font-medium">请求退款 (Request Refund)</p>
+<p class="text-slate-400 text-sm mt-1">Requires counterparty agreement. <span class="text-warning">Platform intervention available if rejected.</span></p>
+</div>
+</div>
+</label>
+<!-- Option 3: Dispute -->
+<label class="relative cursor-pointer group">
+<input class="peer sr-only" name="settlement_action" type="radio" value="dispute"/>
+<div class="p-4 rounded-lg border border-border-dark bg-surface-dark transition-all duration-200 hover:border-slate-600 flex items-start gap-4">
+<div class="radio-indicator mt-1 w-5 h-5 rounded-full border-2 border-slate-500 relative shrink-0 flex items-center justify-center">
+<div class="w-2 h-2 bg-white rounded-full opacity-0 transition-opacity after:content-['']"></div>
+</div>
+<div class="flex-1">
+<p class="text-white font-medium">发起争议 (Raise Dispute)</p>
+<p class="text-slate-400 text-sm mt-1">Freeze funds and escalate to platform arbitration DAO.</p>
+</div>
+</div>
+</label>
+</div>
+</section>
+<!-- Step 2: Review & Rating -->
+<section class="space-y-4 pt-4 border-t border-border-dark">
+<div class="flex items-center justify-between">
+<h2 class="text-white font-display text-lg font-semibold flex items-center gap-2">
+<span class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-xs border border-slate-700">2</span>
+                        Post-Completion Review
+                    </h2>
+<span class="text-xs text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20">Unlocked</span>
+</div>
+<div class="bg-surface-dark border border-border-dark rounded-lg p-5 space-y-5">
+<!-- Star Rating -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium text-slate-300">Rate Agent Performance</label>
+<div class="flex items-center gap-1 group/stars">
+<button class="text-primary hover:scale-110 transition-transform"><span class="material-symbols-outlined text-[28px] fill-1">star</span></button>
+<button class="text-primary hover:scale-110 transition-transform"><span class="material-symbols-outlined text-[28px] fill-1">star</span></button>
+<button class="text-primary hover:scale-110 transition-transform"><span class="material-symbols-outlined text-[28px] fill-1">star</span></button>
+<button class="text-primary hover:scale-110 transition-transform"><span class="material-symbols-outlined text-[28px] fill-1">star</span></button>
+<button class="text-slate-600 hover:text-primary hover:scale-110 transition-all"><span class="material-symbols-outlined text-[28px]">star</span></button>
+<span class="ml-3 text-sm font-display text-white font-bold">4.0 <span class="text-slate-500 font-normal">/ 5.0</span></span>
+</div>
+<p class="text-xs text-slate-500 flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">info</span>
+                            Evaluation affects Agent's future matching priority ranking.
+                        </p>
+</div>
+<!-- Feedback Text -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium text-slate-300" for="feedback">Written Feedback</label>
+<textarea class="w-full bg-background-dark border border-border-dark rounded-md p-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="feedback" placeholder="Describe your experience with this Agent..." rows="3"></textarea>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Actions -->
+<div class="p-6 border-t border-border-dark bg-background-dark/80 backdrop-blur-sm flex items-center justify-between gap-4 rounded-b-xl">
+<div class="flex flex-col">
+<span class="text-xs text-slate-500">Estimated Gas Fee</span>
+<span class="text-sm font-mono text-white">0.002 ETH <span class="text-slate-500">($5.20)</span></span>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-5 py-2.5 rounded-lg border border-border-dark text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors">
+                    Cancel
+                </button>
+<button class="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-bold shadow-lg shadow-primary/20 flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                    Sign &amp; Confirm
+                </button>
+</div>
+</div>
+</div>
+</body></html>

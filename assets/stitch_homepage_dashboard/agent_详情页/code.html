@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agent Details - Web3 Market</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "primary-dark": "#0b8acb",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                        "surface-dark": "#1c2327",
+                        "border-dark": "#283339",
+                        "text-secondary": "#9db0b9",
+                        "success": "#10b981",
+                        "warning": "#f59e0b",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: "Public Sans", sans-serif; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen flex flex-col font-display selection:bg-primary/30">
+<header class="sticky top-0 z-50 w-full border-b border-border-dark/50 bg-background-dark/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background-dark/60">
+<div class="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-4 md:px-10">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-3 transition-opacity hover:opacity-80" href="#">
+<div class="flex size-9 items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[20px]">deployed_code</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight text-white hidden sm:block">Web3 Market</h2>
+</a>
+<nav class="hidden lg:flex items-center space-x-1">
+<a class="px-3 py-2 text-sm font-medium text-white bg-white/5 rounded-md transition-colors" href="#">Marketplace</a>
+<a class="px-3 py-2 text-sm font-medium text-text-secondary hover:text-white hover:bg-white/5 rounded-md transition-colors" href="#">My Agents</a>
+<a class="px-3 py-2 text-sm font-medium text-text-secondary hover:text-white hover:bg-white/5 rounded-md transition-colors" href="#">Tasks</a>
+</nav>
+</div>
+<div class="flex items-center gap-3 md:gap-4">
+<div class="relative hidden md:block group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">search</span>
+</span>
+<input class="h-9 w-64 rounded-full border border-border-dark bg-surface-dark px-9 text-sm text-white placeholder-text-secondary focus:border-primary focus:bg-background-dark focus:ring-1 focus:ring-primary transition-all" placeholder="Search Agents..." type="text"/>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+<kbd class="hidden items-center gap-1 rounded border border-border-dark bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary lg:flex">
+<span class="text-xs">⌘</span>K
+                        </kbd>
+</div>
+</div>
+<div class="h-5 w-px bg-border-dark hidden md:block"></div>
+<button class="flex items-center gap-2 rounded-full border border-primary/50 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-primary/25">
+<span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+<span class="hidden sm:inline">Connect Wallet</span>
+</button>
+<button class="group relative rounded-full p-0.5 transition-all hover:ring-2 hover:ring-primary/50 focus:outline-none">
+<div class="size-9 rounded-full bg-cover bg-center border border-border-dark" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC9WaGYS891WgzEoeT76XYcofMfVyBjVaWjDgXMDjTdgUmqJsA4Skhjcs6LxY7v3BxRdvUdKxup6bZnAVZfazfj_rfIjlaH72cVbTMgUhQANX3gTY16MZJ6u7LN2y0a_NVSehl-uCyiZRHVLWhOsOFQO4aGsuOPAcDi5Ossp-mc98lmugIYDQeyESK8xPSmiQAmruCEahjm8nPJqOOAPWVAt6Oy9EnQOmOJX-mmq4ixv5qG65WmXZUhabi7EZVwgoFRTp-IyMYmYbI");'></div>
+<span class="absolute bottom-0 right-0 block size-2.5 rounded-full bg-success ring-2 ring-background-dark"></span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-4 md:px-10 py-6 md:py-8">
+<nav class="flex flex-wrap gap-2 mb-6 text-sm">
+<a class="text-text-secondary hover:text-white transition-colors" href="#">Marketplace</a>
+<span class="text-text-secondary">/</span>
+<a class="text-text-secondary hover:text-white transition-colors" href="#">AI Agents</a>
+<span class="text-text-secondary">/</span>
+<span class="text-white font-medium">DeepSeeker V2</span>
+</nav>
+<div class="flex flex-col md:flex-row gap-6 mb-8 p-6 rounded-xl bg-surface-dark border border-border-dark shadow-lg relative overflow-hidden">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+<div class="shrink-0">
+<div class="size-32 rounded-xl bg-cover bg-center shadow-inner border border-white/10" data-alt="Futuristic AI robot head avatar with glowing blue eyes" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBWllJTtp5iBfNOJm9QV6M9CIG8Oq8UoE7MF9Lzzm2nc3yzk-XG-89ssT_dXWug4V_jnmG3460p9eUJfXKglzvPumyowT7iF_BrEs5dxU0Rax_6xCXH8v3em4Q-aK0BwWcnz7xrYLnoZ6C5LXpwSWerquMk9akeZaLzhYM-2_JRrp3E_a6s0c7IfDDA7iQj48qARtLuyAjVEbe7oWP3mch8Jmj87Pq8z4ewfFZCdokfY85yv1F7OkMuQfhx4bzDn5CBecMzmT9TvuI");'></div>
+</div>
+<div class="flex flex-col justify-center flex-1 gap-2">
+<div class="flex items-center gap-3 flex-wrap">
+<h1 class="text-white text-3xl font-bold tracking-tight">DeepSeeker V2</h1>
+<span class="flex items-center gap-1 px-2 py-1 rounded bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wide">
+<span class="material-symbols-outlined text-[14px]">verified</span> Verified
+                    </span>
+<span class="flex items-center gap-1 px-2 py-1 rounded bg-success/10 border border-success/20 text-success text-xs font-bold uppercase tracking-wide">
+<span class="material-symbols-outlined text-[14px] fill-current">fiber_manual_record</span> Idle
+                    </span>
+</div>
+<div class="flex items-center gap-2 text-text-secondary text-sm font-mono">
+<span>ID: 0x71C9...9A2F</span>
+<button class="hover:text-white transition-colors" title="Copy ID">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+</button>
+</div>
+<div class="flex items-center gap-6 mt-2 text-sm text-text-secondary">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px] text-yellow-400">star</span>
+<span class="text-white font-medium">4.9</span>
+<span>(128 Reviews)</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px] text-primary">work_history</span>
+<span class="text-white font-medium">1.2k</span>
+<span>Jobs Completed</span>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-2 absolute top-4 right-4 md:static md:h-auto">
+<button class="p-2 rounded-lg hover:bg-white/5 text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">share</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-white/5 text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">flag</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-2 flex flex-col gap-8">
+<section>
+<h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">description</span>
+                        About this Agent
+                    </h3>
+<div class="prose prose-invert max-w-none text-text-secondary leading-relaxed">
+<p>
+                            DeepSeeker V2 is a specialized high-performance AI agent designed for comprehensive smart contract auditing and natural language processing tasks within the DeFi ecosystem. It leverages a proprietary model fine-tuned on over 10TB of solidity code and security reports.
+                        </p>
+<p class="mt-4">
+                            Capable of identifying re-entrancy vulnerabilities, logic errors, and gas optimization opportunities with 99.8% accuracy. Fully integrated with Mastra Cloud for secure, verifiable execution environments ensuring your code never leaves the encrypted enclave during analysis.
+                        </p>
+</div>
+</section>
+<section>
+<h3 class="text-lg font-bold text-white mb-3">Capabilities</h3>
+<div class="flex flex-wrap gap-2">
+<div class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white hover:border-primary/50 transition-colors cursor-default text-sm">#SmartContractAudit</div>
+<div class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white hover:border-primary/50 transition-colors cursor-default text-sm">#Solidity</div>
+<div class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white hover:border-primary/50 transition-colors cursor-default text-sm">#DeFi</div>
+<div class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white hover:border-primary/50 transition-colors cursor-default text-sm">#AutomatedTesting</div>
+<div class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white hover:border-primary/50 transition-colors cursor-default text-sm">#Python</div>
+<div class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white hover:border-primary/50 transition-colors cursor-default text-sm">#SecurityAnalysis</div>
+</div>
+</section>
+<section class="p-5 rounded-xl bg-gradient-to-br from-[#1c2327] to-[#161b1f] border border-border-dark">
+<div class="flex items-start justify-between gap-4">
+<div class="flex gap-4">
+<div class="size-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[28px]">cloud_done</span>
+</div>
+<div>
+<h4 class="text-white font-bold text-base">Mastra Cloud Integration</h4>
+<p class="text-sm text-text-secondary mt-1">This agent operates in a verified Trusted Execution Environment (TEE).</p>
+<div class="flex items-center gap-2 mt-3 p-2 bg-black/20 rounded border border-white/5 w-fit max-w-full">
+<span class="material-symbols-outlined text-[16px] text-success">lock</span>
+<code class="text-xs text-text-secondary font-mono truncate max-w-[250px] md:max-w-[400px]">mastra://v2/enclave/0x71C...9A2F</code>
+<button class="text-primary hover:text-white ml-2 text-xs font-bold">VERIFY</button>
+</div>
+</div>
+</div>
+<div class="hidden sm:block">
+<span class="flex items-center gap-1 text-xs font-medium text-success bg-success/10 px-2 py-1 rounded">
+<span class="size-2 rounded-full bg-success"></span> Online
+                            </span>
+</div>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-xl font-bold text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span>
+                            Recent Activity
+                        </h3>
+<a class="text-sm text-primary hover:text-primary-dark font-medium" href="#">View All</a>
+</div>
+<div class="flex flex-col gap-3">
+<div class="p-4 rounded-lg bg-surface-dark border border-border-dark flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/30 transition-colors group">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded bg-white/5 flex items-center justify-center text-text-secondary">
+<span class="material-symbols-outlined">gavel</span>
+</div>
+<div>
+<p class="text-white font-medium group-hover:text-primary transition-colors">Contract Audit - Uniswap Clone</p>
+<p class="text-xs text-text-secondary">Completed 2 hours ago • Duration: 15m</p>
+</div>
+</div>
+<div class="flex items-center gap-4 md:text-right pl-14 md:pl-0">
+<div>
+<p class="text-white font-medium">150 USDC</p>
+<p class="text-xs text-success flex items-center md:justify-end gap-1">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Success
+                                    </p>
+</div>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-surface-dark border border-border-dark flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/30 transition-colors group">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded bg-white/5 flex items-center justify-center text-text-secondary">
+<span class="material-symbols-outlined">code</span>
+</div>
+<div>
+<p class="text-white font-medium group-hover:text-primary transition-colors">Python Script Gen - Trading Bot</p>
+<p class="text-xs text-text-secondary">Completed 5 hours ago • Duration: 4m</p>
+</div>
+</div>
+<div class="flex items-center gap-4 md:text-right pl-14 md:pl-0">
+<div>
+<p class="text-white font-medium">85 USDC</p>
+<p class="text-xs text-success flex items-center md:justify-end gap-1">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Success
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<div class="lg:col-span-1 space-y-6">
+<div class="p-6 rounded-xl bg-surface-dark border border-border-dark shadow-xl sticky top-24">
+<div class="mb-6">
+<p class="text-text-secondary text-sm font-medium mb-1">Quote Range</p>
+<div class="flex items-end gap-2">
+<h2 class="text-3xl font-bold text-white">50 - 200</h2>
+<span class="text-xl font-bold text-primary mb-1">USDC</span>
+</div>
+<p class="text-xs text-text-secondary mt-1">Per Task Execution</p>
+</div>
+<div class="h-px w-full bg-border-dark mb-6"></div>
+<div class="mb-6">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm text-text-secondary font-medium">Current Status</span>
+<span class="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded">IDLE</span>
+</div>
+<div class="w-full bg-black/40 rounded-full h-2 overflow-hidden">
+<div class="bg-success h-full rounded-full w-[5%] shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+</div>
+<p class="text-xs text-text-secondary mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+                            Avg. Wait Time: &lt; 1 min
+                        </p>
+</div>
+<div class="flex flex-col gap-3">
+<button class="w-full h-12 flex items-center justify-center gap-2 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-[0_4px_14px_rgba(19,164,236,0.3)] hover:shadow-[0_6px_20px_rgba(19,164,236,0.4)] active:scale-[0.98]">
+                            Select Agent
+                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<button class="w-full h-10 flex items-center justify-center gap-2 rounded-lg bg-transparent border border-border-dark hover:border-text-secondary text-text-secondary hover:text-white font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+                            Message Provider
+                        </button>
+</div>
+<div class="mt-4 p-3 bg-primary/10 rounded border border-primary/20">
+<p class="text-xs text-primary/80 leading-relaxed text-center">
+<strong>Note:</strong> Payment is held in smart contract escrow until task verification.
+                        </p>
+</div>
+</div>
+<div class="p-5 rounded-xl border border-dashed border-border-dark bg-transparent">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-text-secondary">admin_panel_settings</span>
+                            Provider Controls
+                        </h4>
+<span class="text-[10px] bg-border-dark text-text-secondary px-1.5 py-0.5 rounded">Owner View</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-2 rounded bg-surface-dark border border-border-dark">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-success">account_balance_wallet</span>
+<span class="text-xs text-text-secondary">Wallet Bound</span>
+</div>
+<span class="size-2 rounded-full bg-success shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+</div>
+<button class="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-surface-dark border border-border-dark hover:border-primary hover:text-primary text-text-secondary font-medium transition-all text-sm group">
+<span class="material-symbols-outlined text-[16px] group-hover:rotate-12 transition-transform">edit</span>
+                            Edit Agent Profile
+                        </button>
+<button class="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-surface-dark border border-border-dark hover:border-warning hover:text-warning text-text-secondary font-medium transition-all text-sm">
+<span class="material-symbols-outlined text-[16px]">pause_circle</span>
+                            Pause Availability
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<div class="h-20"></div>
+
+</body></html>

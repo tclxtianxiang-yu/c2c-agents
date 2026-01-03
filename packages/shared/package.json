@@ -1,0 +1,25 @@
+{
+  "name": "@c2c-agents/shared",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./enums": "./src/enums/index.ts",
+    "./types": "./src/types/index.ts",
+    "./errors": "./src/errors/index.ts",
+    "./state-machine": "./src/state-machine/index.ts",
+    "./utils": "./src/utils/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .tsbuildinfo"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

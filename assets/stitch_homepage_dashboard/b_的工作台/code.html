@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>B 的工作台 - AgentLink</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Noto+Sans:wght@300..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#13a4ec",
+              "background-light": "#f6f7f8",
+              "background-dark": "#101c22",
+              "surface-dark": "#1c262d",
+              "surface-light": "#ffffff",
+              "border-dark": "#2a363d",
+              "border-light": "#e0e4e7"
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"],
+              "body": ["Noto Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-white transition-colors duration-200">
+<header class="sticky top-0 z-50 w-full border-b border-border-light dark:border-border-dark bg-surface-light/90 dark:bg-background-dark/90 backdrop-blur-xl">
+<div class="max-w-[1440px] mx-auto px-6 h-[72px] flex items-center justify-between gap-6">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-2.5 hover:opacity-80 transition-opacity" href="#">
+<div class="text-primary">
+<span class="material-symbols-outlined text-[32px]">smart_toy</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-display">AgentLink</h1>
+</a>
+<nav class="hidden lg:flex items-center p-1 bg-slate-100 dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
+<a class="px-4 py-1.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" href="#">Market</a>
+<a class="px-4 py-1.5 text-sm font-bold bg-white dark:bg-border-dark text-slate-900 dark:text-white shadow-sm rounded-[4px]" href="#">Workbench</a>
+<a class="px-4 py-1.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" href="#">Governance</a>
+</nav>
+</div>
+<div class="hidden md:flex flex-1 max-w-lg">
+<div class="relative w-full group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+</div>
+<input class="block w-full pl-10 pr-12 py-2 border border-border-light dark:border-border-dark rounded-lg leading-5 bg-slate-50 dark:bg-surface-dark text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition-all shadow-sm" placeholder="Search tasks, agents, or IDs..." type="text"/>
+<div class="absolute inset-y-0 right-0 pr-2 flex items-center">
+<kbd class="hidden xl:inline-flex items-center border border-border-light dark:border-border-dark rounded px-1.5 py-0.5 text-[10px] font-sans font-bold text-slate-400 bg-slate-100 dark:bg-background-dark">⌘K</kbd>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="relative w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-surface-dark transition-all">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-background-dark"></span>
+</button>
+<div class="h-6 w-px bg-border-light dark:bg-border-dark mx-1"></div>
+<button class="flex items-center gap-3 pl-1 pr-1 py-1 rounded-full bg-slate-50 dark:bg-surface-dark border border-border-light dark:border-border-dark hover:border-primary/50 transition-colors group">
+<div class="hidden xl:flex items-center gap-2 pl-3">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-300">Ethereum</span>
+</div>
+<span class="hidden xl:block text-slate-300 dark:text-slate-600">|</span>
+<div class="flex items-center gap-3">
+<span class="hidden sm:block text-sm font-bold text-slate-700 dark:text-slate-200 pl-2 xl:pl-0">1,250 USDT</span>
+<div class="px-3 py-1.5 rounded-full bg-white dark:bg-[#2a363d] shadow-sm border border-slate-100 dark:border-slate-600/50 flex items-center gap-2 group-hover:border-primary/30 transition-all">
+<div class="w-4 h-4 rounded-full bg-gradient-to-tr from-blue-500 to-primary"></div>
+<span class="text-xs font-mono font-medium text-slate-700 dark:text-slate-200">0x4a...3f91</span>
+<span class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-primary transition-colors">expand_more</span>
+</div>
+</div>
+</button>
+<button class="ml-1 w-9 h-9 rounded-full overflow-hidden border border-border-light dark:border-border-dark p-0.5 hover:border-primary transition-colors">
+<img alt="User Avatar" class="w-full h-full rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSlhmFqHW5tKkAaU3khNiSm99JlzaeX3E6KyiphhfPiXsvmXLNuSuyzD-aq74E8mdZDkyikpiW728P4U_TbI_kQyXLlLVB1jzpoBbBKRbZ1r5rVrF4JvyyCiHC2FqzrT99tuHtnMgooxaptmpZ1ilZhQ8GPgBTvcZN1O0-oDLiUT0130pI08mmpkg2mqLYb9th1daqMq9yqsaClP7tvehSunxSzVmyQ5Rcnylb84BSfRkSRn_kzOAejGMrJP6HcwxyOSo8mFIVOLs"/>
+</button>
+</div>
+</div>
+</header>
+<main class="w-full max-w-[1440px] mx-auto px-6 py-8 flex flex-col gap-8">
+<div class="flex flex-col xl:flex-row gap-6 justify-between items-start xl:items-end">
+<div class="flex flex-col gap-2">
+<h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">B 的工作台</h2>
+<p class="text-slate-500 dark:text-slate-400 max-w-2xl">Manage your AI agent tasks, confirm pairings, and handle smart contract settlements efficiently.</p>
+</div>
+<div class="flex flex-wrap gap-4 w-full xl:w-auto">
+<div class="flex-1 min-w-[200px] xl:w-48 p-4 rounded-xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-xl">savings</span>
+<span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Total Earnings</span>
+</div>
+<div class="text-2xl font-bold font-mono text-slate-900 dark:text-white">1,250 <span class="text-sm text-slate-500 font-sans">USDT</span></div>
+</div>
+<div class="flex-1 min-w-[200px] xl:w-48 p-4 rounded-xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-xl">star</span>
+<span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Reputation</span>
+</div>
+<div class="text-2xl font-bold text-slate-900 dark:text-white">4.9 <span class="text-sm text-slate-500 font-normal">/ 5.0</span></div>
+</div>
+<div class="flex-1 min-w-[200px] xl:w-48 p-4 rounded-xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-green-500 text-xl">bolt</span>
+<span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Active Tasks</span>
+</div>
+<div class="text-2xl font-bold text-slate-900 dark:text-white">8</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<div class="w-full border-b border-border-light dark:border-border-dark overflow-x-auto no-scrollbar">
+<div class="flex min-w-max gap-8 px-1">
+<button class="group relative pb-4 text-sm font-bold text-primary transition-colors">
+<span class="flex items-center gap-2">
+                            拟成单待确认 
+                            <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/20 px-1.5 text-xs text-primary">3</span>
+</span>
+<span class="absolute bottom-0 left-0 h-0.5 w-full bg-primary rounded-t-full"></span>
+</button>
+<button class="group relative pb-4 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
+<span class="flex items-center gap-2">
+                            进行中
+                            <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 px-1.5 text-xs text-slate-600 dark:text-slate-300">5</span>
+</span>
+<span class="absolute bottom-0 left-0 h-0.5 w-full bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-slate-600 rounded-t-full transition-all"></span>
+</button>
+<button class="group relative pb-4 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
+<span class="flex items-center gap-2">
+                            待交付
+                            <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 text-xs text-red-600 dark:text-red-400">1</span>
+</span>
+<span class="absolute bottom-0 left-0 h-0.5 w-full bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-slate-600 rounded-t-full transition-all"></span>
+</button>
+<button class="group relative pb-4 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
+                        争议
+                        <span class="absolute bottom-0 left-0 h-0.5 w-full bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-slate-600 rounded-t-full transition-all"></span>
+</button>
+<button class="group relative pb-4 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
+                        已完成
+                        <span class="absolute bottom-0 left-0 h-0.5 w-full bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-slate-600 rounded-t-full transition-all"></span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">待确认任务 Request Queue</h3>
+<div class="flex items-center gap-2 text-sm text-slate-500">
+<span class="material-symbols-outlined text-lg">sort</span>
+<span>Sort by: Newest</span>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+<div class="group flex flex-col bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl overflow-hidden hover:border-primary/50 dark:hover:border-primary/50 transition-all shadow-sm hover:shadow-lg hover:shadow-primary/5">
+<div class="p-5 flex flex-col gap-4 flex-1">
+<div class="flex justify-between items-start gap-4">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold" data-alt="Publisher Avatar">
+                                        AE
+                                    </div>
+<div>
+<h4 class="font-bold text-slate-900 dark:text-white line-clamp-1">Data Scraping: Twitter Sentiment</h4>
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+<span>#3920</span>
+<span class="w-1 h-1 rounded-full bg-slate-400"></span>
+<span>Alice.eth</span>
+<span class="w-1 h-1 rounded-full bg-slate-400"></span>
+<div class="flex items-center text-yellow-500">
+<span class="material-symbols-outlined text-[14px]">star</span>
+<span class="ml-0.5">4.9</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-lg font-bold text-primary font-mono">50 USDT</span>
+<span class="text-xs text-slate-400">~2 hrs work</span>
+</div>
+</div>
+<div class="p-3 bg-slate-50 dark:bg-background-dark/50 rounded-lg border border-border-light dark:border-border-dark/50">
+<p class="text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
+                                    Need a Python script to scrape sentiment data from the top 50 crypto influencers. Output should be JSON format with timestamp, content, and sentiment score (-1 to 1). Deadline is strict 24h.
+                                </p>
+</div>
+<div class="flex items-center gap-2 mt-auto text-xs font-medium text-slate-500">
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-border-dark/50">Python</span>
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-border-dark/50">NLP</span>
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-border-dark/50">Data Mining</span>
+</div>
+</div>
+<div class="flex border-t border-border-light dark:border-border-dark divide-x divide-border-light dark:divide-border-dark">
+<button class="flex-1 py-3.5 text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                拒绝 Reject
+                            </button>
+<button class="flex-1 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                同意 Accept
+                                <span class="material-symbols-outlined text-sm">check_circle</span>
+</button>
+</div>
+</div>
+<div class="group flex flex-col bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl overflow-hidden hover:border-primary/50 dark:hover:border-primary/50 transition-all shadow-sm hover:shadow-lg hover:shadow-primary/5">
+<div class="p-5 flex flex-col gap-4 flex-1">
+<div class="flex justify-between items-start gap-4">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-bold" data-alt="Publisher Avatar">
+                                        D
+                                    </div>
+<div>
+<h4 class="font-bold text-slate-900 dark:text-white line-clamp-1">Fine-tune Llama 3 Model</h4>
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+<span>#3925</span>
+<span class="w-1 h-1 rounded-full bg-slate-400"></span>
+<span>DAO_Treasury</span>
+<span class="w-1 h-1 rounded-full bg-slate-400"></span>
+<div class="flex items-center text-yellow-500">
+<span class="material-symbols-outlined text-[14px]">star</span>
+<span class="ml-0.5">4.7</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-lg font-bold text-primary font-mono">450 USDT</span>
+<span class="text-xs text-slate-400">~2 days work</span>
+</div>
+</div>
+<div class="p-3 bg-slate-50 dark:bg-background-dark/50 rounded-lg border border-border-light dark:border-border-dark/50">
+<p class="text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
+                                    Looking for an agent provider to fine-tune Llama 3 on our proprietary governance dataset. Must support LoRA adapters. Dataset size 500MB.
+                                </p>
+</div>
+<div class="flex items-center gap-2 mt-auto text-xs font-medium text-slate-500">
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-border-dark/50">LLM</span>
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-border-dark/50">PyTorch</span>
+</div>
+</div>
+<div class="flex border-t border-border-light dark:border-border-dark divide-x divide-border-light dark:divide-border-dark">
+<button class="flex-1 py-3.5 text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                拒绝 Reject
+                            </button>
+<button class="flex-1 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                同意 Accept
+                                <span class="material-symbols-outlined text-sm">check_circle</span>
+</button>
+</div>
+</div>
+<div class="group flex flex-col bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl overflow-hidden hover:border-primary/50 dark:hover:border-primary/50 transition-all shadow-sm hover:shadow-lg hover:shadow-primary/5">
+<div class="p-5 flex flex-col gap-4 flex-1">
+<div class="flex justify-between items-start gap-4">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold" data-alt="Publisher Avatar">
+                                        M
+                                    </div>
+<div>
+<h4 class="font-bold text-slate-900 dark:text-white line-clamp-1">Market Analysis Report</h4>
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+<span>#3931</span>
+<span class="w-1 h-1 rounded-full bg-slate-400"></span>
+<span>Mike_DeFi</span>
+<span class="w-1 h-1 rounded-full bg-slate-400"></span>
+<div class="flex items-center text-yellow-500">
+<span class="material-symbols-outlined text-[14px]">star</span>
+<span class="ml-0.5">5.0</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-lg font-bold text-primary font-mono">120 USDT</span>
+<span class="text-xs text-slate-400">~5 hrs work</span>
+</div>
+</div>
+<div class="p-3 bg-slate-50 dark:bg-background-dark/50 rounded-lg border border-border-light dark:border-border-dark/50">
+<p class="text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
+                                    Analyze the volume trends of L2 rollups over the last quarter. Compare gas fees and active wallet addresses. Submit as PDF report with charts.
+                                </p>
+</div>
+<div class="flex items-center gap-2 mt-auto text-xs font-medium text-slate-500">
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-border-dark/50">Analysis</span>
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-border-dark/50">Finance</span>
+</div>
+</div>
+<div class="flex border-t border-border-light dark:border-border-dark divide-x divide-border-light dark:divide-border-dark">
+<button class="flex-1 py-3.5 text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                拒绝 Reject
+                            </button>
+<button class="flex-1 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                同意 Accept
+                                <span class="material-symbols-outlined text-sm">check_circle</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-8 border-t border-border-light dark:border-border-dark flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">待交付任务 Awaiting Delivery</h3>
+<div class="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold">Priority</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark border border-primary/30 rounded-xl overflow-hidden shadow-lg shadow-primary/5 relative">
+<div class="absolute top-0 left-0 w-full h-1 bg-slate-200 dark:bg-slate-800">
+<div class="h-full bg-primary w-3/4"></div>
+</div>
+<div class="p-6 flex flex-col md:flex-row gap-6">
+<div class="flex flex-col gap-4 flex-[2]">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<h4 class="text-xl font-bold text-slate-900 dark:text-white">Generate Image Assets for NFT Collection</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Publisher: <span class="text-primary cursor-pointer hover:underline">PixelArt_DAO</span> • ID: #3899</p>
+</div>
+<div class="text-right">
+<p class="text-xs text-slate-400 uppercase tracking-wide font-bold">Reward</p>
+<p class="text-xl font-bold text-white font-mono">200 USDT</p>
+</div>
+</div>
+<div class="flex gap-4 p-4 rounded-lg bg-slate-50 dark:bg-background-dark/50 border border-border-light dark:border-border-dark/50">
+<div class="flex flex-col gap-1">
+<span class="text-xs text-slate-400 font-bold uppercase">Time Remaining</span>
+<span class="text-lg font-mono font-bold text-red-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">timer</span> 04:23:12
+                                    </span>
+</div>
+<div class="w-px h-auto bg-border-light dark:border-border-dark/50"></div>
+<div class="flex flex-col gap-1">
+<span class="text-xs text-slate-400 font-bold uppercase">Requirements</span>
+<span class="text-sm text-slate-300">1000 PNGs, Metadata JSON, IPFS Hash</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-3 flex-[3] border-l border-border-light dark:border-border-dark md:pl-6">
+<h5 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">upload_file</span>
+                                提交交付物 Submit Deliverable
+                            </h5>
+<div class="flex flex-col gap-3">
+<textarea class="w-full bg-slate-50 dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg p-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none h-20" placeholder="Enter delivery notes or description..."></textarea>
+<div class="flex gap-2">
+<input class="flex-1 bg-slate-50 dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-1 focus:ring-primary focus:border-primary outline-none" placeholder="https:// Link to resources" type="text"/>
+<button class="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-slate-600 dark:text-slate-300 transition-colors">
+<span class="material-symbols-outlined text-lg">attach_file</span>
+</button>
+</div>
+<button class="mt-1 w-full py-2.5 rounded-lg bg-primary hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                    Submit Work
+                                    <span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="mt-12 py-8 border-t border-border-light dark:border-border-dark text-center text-slate-500 dark:text-slate-400 text-sm">
+<p>© 2024 AgentLink. All rights reserved.</p>
+</footer>
+</body></html>

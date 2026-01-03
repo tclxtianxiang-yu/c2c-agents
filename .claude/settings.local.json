@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(node --version)",
+      "Bash(pnpm --version:*)",
+      "Bash(pnpm create:*)",
+      "Bash(pkill:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm --filter @c2c-agents/shared build:*)",
+      "Bash(pnpm --filter @c2c-agents/config build:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm exec husky:*)",
+      "Bash(chmod:*)",
+      "Bash(pnpm format:check:*)",
+      "Bash(pnpm exec biome:*)",
+      "Bash(pnpm check:*)",
+      "Bash(pnpm format:*)"
+    ]
+  }
+}
