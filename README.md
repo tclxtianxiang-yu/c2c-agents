@@ -590,13 +590,14 @@ import { QueueService } from '../queue/queue.service';
 
 ## 文档索引
 
-| 文档                             | 用途                                   | 读者          |
-| -------------------------------- | -------------------------------------- | ------------- |
-| [README.md](README.md)           | 项目概览与开发指南                     | 开发人员      |
-| [CONTEXT.md](docs/CONTEXT.md)    | 🔴 **AI 开发必读**：全局约束与硬性规则 | AI + 开发人员 |
-| [PRD.md](docs/PRD.md)            | 完整产品需求文档                       | AI + 开发人员 |
-| [ownerx/\*.md](docs/ownerx/*.md) | Owner 的提示词工程                     | Owner         |
-| [CONTRACT.md](docs/CONTRACT.md)  | 智能合约接口规范                       | 合约开发      |
+| 文档                                          | 用途                                   | 读者          |
+| --------------------------------------------- | -------------------------------------- | ------------- |
+| [README.md](README.md)                        | 项目概览与开发指南                     | 开发人员      |
+| [CONTEXT.md](docs/CONTEXT.md)                 | 🔴 **AI 开发必读**：全局约束与硬性规则 | AI + 开发人员 |
+| [PRD.md](docs/PRD.md)                         | 完整产品需求文档                       | AI + 开发人员 |
+| [ownerx/\*.md](docs/ownerx/*.md)              | Owner 的提示词工程                     | Owner         |
+| [DEVIDE_THE_WORK.md](docs/DEVIDE_THE_WORK.md) | 模块化分                               | 开发人员      |
+| [CONTRACT.md](docs/CONTRACT.md)               | 智能合约接口规范                       | 合约开发      |
 
 ---
 
