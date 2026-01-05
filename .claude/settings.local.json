@@ -20,7 +20,10 @@
       "Bash(pnpm format:*)",
       "Bash(cat:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm --filter @c2c-agents/shared typecheck:*)"
+      "Bash(pnpm --filter @c2c-agents/shared typecheck:*)",
+      "Bash(pnpm --filter @c2c-agents/shared test:*)",
+      "Bash(pnpm --filter @c2c-agents/shared test:coverage:*)",
+      "Bash(pnpm --filter @c2c-agents/shared clean:*)"
     ]
   }
 }
