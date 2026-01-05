@@ -45,3 +45,8 @@ typechain-types/
 # 其他
 *.tsbuildinfo
 .eslintcache
+
+# AI
+CLAUDE.md
+AGENTS.md
+GEMINI.md
