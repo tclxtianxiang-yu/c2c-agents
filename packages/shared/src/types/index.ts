@@ -186,6 +186,8 @@ export interface QueueItem {
   status: QueueItemStatus; // queued | consumed | canceled
 
   createdAt: string; // timestamptz → ISO 8601（FIFO 排序依据）
+  consumedAt: string | null; // timestamptz → ISO 8601（消费时间）
+  canceledAt: string | null; // timestamptz → ISO 8601（取消时间）
 }
 
 // ============================================================

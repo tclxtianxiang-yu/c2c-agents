@@ -10,6 +10,7 @@ import {
   shouldAutoAccept,
   toMinUnit,
   uuidToBytes32,
+  validateDeliveryContent,
 } from './index';
 
 describe('金额转换工具', () => {
@@ -68,6 +69,12 @@ describe('金额转换工具', () => {
         'Invalid decimals: must be a non-negative integer'
       );
     });
+
+    it('应该拒绝负数金额', () => {
+      expect(() => toMinUnit('-123.45', 6)).toThrow('Amount must be non-negative');
+      expect(() => toMinUnit('-0.000001', 6)).toThrow('Amount must be non-negative');
+      expect(() => toMinUnit('-1', 18)).toThrow('Amount must be non-negative');
+    });
   });
 
   describe('fromMinUnit', () => {
@@ -120,37 +127,65 @@ describe('金额转换工具', () => {
         'Invalid decimals: must be a non-negative integer'
       );
     });
+
+    it('应该拒绝负数金额', () => {
+      expect(() => fromMinUnit('-123450000', 6)).toThrow('Amount must be non-negative');
+      expect(() => fromMinUnit('-1', 6)).toThrow('Amount must be non-negative');
+      expect(() => fromMinUnit('-1000000000000000000', 18)).toThrow('Amount must be non-negative');
+    });
   });
 
   describe('calculateFee', () => {
-    it('应该正确计算手续费', () => {
-      const result = calculateFee('1000000', '0.15');
+    it('应该正确计算手续费（使用 number 类型费率）', () => {
+      const result = calculateFee('1000000', 0.15);
       expect(result.feeAmount).toBe('150000');
       expect(result.netAmount).toBe('850000');
     });
 
     it('应该向下取整手续费', () => {
-      const result = calculateFee('1000001', '0.15');
+      const result = calculateFee('1000001', 0.15);
       expect(result.feeAmount).toBe('150000'); // 150000.15 向下取整
       expect(result.netAmount).toBe('850001');
     });
 
     it('应该处理零手续费率', () => {
-      const result = calculateFee('1000000', '0');
+      const result = calculateFee('1000000', 0);
       expect(result.feeAmount).toBe('0');
       expect(result.netAmount).toBe('1000000');
     });
 
-    it('应该处理100%手续费率', () => {
-      const result = calculateFee('1000000', '1');
+    it('应该处理 100% 手续费率', () => {
+      const result = calculateFee('1000000', 1);
       expect(result.feeAmount).toBe('1000000');
       expect(result.netAmount).toBe('0');
     });
 
     it('应该避免浮点精度问题', () => {
-      // 0.15 在二进制浮点中有精度问题，使用 string 避免
-      const result = calculateFee('1000000', '0.15');
+      // 0.15 在二进制浮点中有精度问题，Decimal.js 确保精确计算
+      const result = calculateFee('1000000', 0.15);
       expect(result.feeAmount).toBe('150000'); // 精确值
+    });
+
+    it('应该拒绝负数总金额', () => {
+      expect(() => calculateFee('-1000000', 0.15)).toThrow('Gross amount must be non-negative');
+    });
+
+    it('应该拒绝负数费率', () => {
+      expect(() => calculateFee('1000000', -0.15)).toThrow('Fee rate must be between 0 and 1');
+    });
+
+    it('应该拒绝大于 1 的费率', () => {
+      expect(() => calculateFee('1000000', 1.5)).toThrow('Fee rate must be between 0 and 1');
+      expect(() => calculateFee('1000000', 2)).toThrow('Fee rate must be between 0 and 1');
+    });
+
+    it('应该拒绝 NaN 费率', () => {
+      expect(() => calculateFee('1000000', NaN)).toThrow('Fee rate must be between 0 and 1');
+    });
+
+    it('应该拒绝 Infinity 费率', () => {
+      expect(() => calculateFee('1000000', Infinity)).toThrow('Fee rate must be between 0 and 1');
+      expect(() => calculateFee('1000000', -Infinity)).toThrow('Fee rate must be between 0 and 1');
     });
   });
 });
@@ -273,20 +308,48 @@ describe('地址验证工具', () => {
   });
 
   describe('normalizeAddress', () => {
-    it('应该转换为小写', () => {
-      expect(normalizeAddress('0xAbCdEf0123456789AbCdEf0123456789AbCdEf01')).toBe(
-        '0xabcdef0123456789abcdef0123456789abcdef01'
-      );
+    it('应该返回 EIP-55 checksum 格式地址', () => {
+      // viem getAddress 返回正确的 checksum 格式
+      const result = normalizeAddress('0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed');
+      expect(result).toBe('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed');
+    });
+
+    it('应该接受全小写地址并转换为 checksum', () => {
+      const result = normalizeAddress('0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed');
+      expect(result).toBe('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed');
+    });
+
+    it('应该接受全大写地址并转换为 checksum', () => {
+      const result = normalizeAddress('0x5AAEB6053F3E94C9B9A09F33669435E7EF1BEAED');
+      expect(result).toBe('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed');
+    });
+
+    it('应该接受已经是 checksum 格式的地址', () => {
+      const checksumAddress = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed';
+      expect(normalizeAddress(checksumAddress)).toBe(checksumAddress);
+    });
+
+    it('应该修正错误的 checksum（viem 会自动修正）', () => {
+      // viem 会将错误的 checksum 修正为正确的
+      const result = normalizeAddress('0x5aAEb6053f3E94C9b9A09f33669435E7Ef1BeAed');
+      expect(result).toBe('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed');
     });
 
     it('应该在无效地址时抛错', () => {
       expect(() => normalizeAddress('0xinvalid')).toThrow('Invalid EVM address');
       expect(() => normalizeAddress('invalid')).toThrow('Invalid EVM address');
+      expect(() => normalizeAddress('0x123')).toThrow('Invalid EVM address');
     });
 
     it('应该保留 0x 前缀', () => {
-      const result = normalizeAddress('0xABC0000000000000000000000000000000000000');
+      const result = normalizeAddress('0xabc0000000000000000000000000000000000000');
       expect(result).toMatch(/^0x/);
+      expect(result).toHaveLength(42); // 0x + 40 characters
+    });
+
+    it('应该处理零地址', () => {
+      const result = normalizeAddress('0x0000000000000000000000000000000000000000');
+      expect(result).toBe('0x0000000000000000000000000000000000000000');
     });
   });
 
@@ -311,36 +374,226 @@ describe('地址验证工具', () => {
 
 describe('UUID 转换工具', () => {
   describe('uuidToBytes32', () => {
-    it('应该正确转换标准 UUID', () => {
+    it('应该使用 keccak256(abi.encodePacked(uuid)) 算法', () => {
+      // 验证返回格式：0x + 64 位十六进制（keccak256 hash）
       const result = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
-      expect(result).toBe('0x00000000000000000000000000000000550e8400e29b41d4a716446655440000');
-    });
-
-    it('应该使用 padStart（左侧补零）', () => {
-      const result = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
-      expect(result.startsWith('0x000000000000')).toBe(true);
-      expect(result.endsWith('550e8400e29b41d4a716446655440000')).toBe(true);
-    });
-
-    it('应该返回 64 位十六进制（加 0x 前缀）', () => {
-      const result = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
+      expect(result).toMatch(/^0x[0-9a-f]{64}$/);
       expect(result).toHaveLength(66); // 0x + 64 位
+    });
+
+    it('应该返回确定性的 hash（相同 UUID 返回相同结果）', () => {
+      const uuid = '550e8400-e29b-41d4-a716-446655440000';
+      const result1 = uuidToBytes32(uuid);
+      const result2 = uuidToBytes32(uuid);
+      expect(result1).toBe(result2);
+    });
+
+    it('应该为不同 UUID 返回不同 hash', () => {
+      const result1 = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
+      const result2 = uuidToBytes32('650e8400-e29b-41d4-a716-446655440000');
+      expect(result1).not.toBe(result2);
+    });
+
+    it('应该在无效 UUID 格式时抛错', () => {
+      expect(() => uuidToBytes32('invalid-uuid')).toThrow('Invalid UUID format');
+      expect(() => uuidToBytes32('550e8400-e29b-41d4')).toThrow('Invalid UUID format');
+      expect(() => uuidToBytes32('not-a-uuid')).toThrow('Invalid UUID format');
+    });
+
+    it('应该支持小写 UUID', () => {
+      const result = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
       expect(result).toMatch(/^0x[0-9a-f]{64}$/);
     });
 
-    it('应该在无效 UUID 时抛错', () => {
-      expect(() => uuidToBytes32('invalid-uuid')).toThrow('Invalid UUID format');
-      expect(() => uuidToBytes32('550e8400-e29b-41d4')).toThrow('Invalid UUID format');
+    it('应该支持大写 UUID', () => {
+      const result = uuidToBytes32('550E8400-E29B-41D4-A716-446655440000');
+      expect(result).toMatch(/^0x[0-9a-f]{64}$/);
     });
 
     it('应该正确处理全零 UUID', () => {
       const result = uuidToBytes32('00000000-0000-0000-0000-000000000000');
-      expect(result).toBe('0x' + '0'.repeat(64));
+      expect(result).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(result).toHaveLength(66);
     });
 
     it('应该正确处理全 F UUID', () => {
       const result = uuidToBytes32('ffffffff-ffff-ffff-ffff-ffffffffffff');
-      expect(result).toBe('0x' + '0'.repeat(32) + 'f'.repeat(32));
+      expect(result).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(result).toHaveLength(66);
+    });
+  });
+});
+
+describe('Delivery 验证工具', () => {
+  describe('validateDeliveryContent', () => {
+    it('应该接受非空文本内容', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: 'Task completed',
+          externalUrl: null,
+          attachments: [],
+        })
+      ).toBe(true);
+    });
+
+    it('应该接受非空外链', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: 'https://example.com/result',
+          attachments: [],
+        })
+      ).toBe(true);
+    });
+
+    it('应该接受仅附件交付', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: null,
+          attachments: [{ id: 'file-1', name: 'report.pdf' }],
+        })
+      ).toBe(true);
+    });
+
+    it('应该接受多项内容同时存在', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: 'See attached files',
+          externalUrl: 'https://example.com/demo',
+          attachments: [{ id: 'file-1' }],
+        })
+      ).toBe(true);
+    });
+
+    it('应该拒绝空白文本（仅空格）', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: '   ',
+          externalUrl: null,
+          attachments: [],
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该拒绝空白文本（制表符和换行）', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: '\t\n  \n\t',
+          externalUrl: null,
+          attachments: [],
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该拒绝空字符串文本', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: '',
+          externalUrl: null,
+          attachments: [],
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该拒绝所有内容为空', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: null,
+          attachments: [],
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该拒绝空字符串外链（视为无效）', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: '',
+          attachments: [],
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该正确处理 contentText 有空格但有有效字符的情况', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: '  Task done  ',
+          externalUrl: null,
+          attachments: [],
+        })
+      ).toBe(true);
+    });
+
+    it('应该接受 attachments 为 undefined', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: 'Task completed',
+          externalUrl: null,
+          attachments: undefined,
+        })
+      ).toBe(true);
+    });
+
+    it('应该接受 attachments 为 null', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: 'Task completed',
+          externalUrl: null,
+          attachments: null,
+        })
+      ).toBe(true);
+    });
+
+    it('应该拒绝所有内容为空（attachments 为 undefined）', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: null,
+          attachments: undefined,
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该拒绝所有内容为空（attachments 为 null）', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: null,
+          attachments: null,
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该拒绝空白 externalUrl（仅空格）', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: '   ',
+          attachments: [],
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该拒绝空白 externalUrl（制表符和换行）', () => {
+      expect(() =>
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: '\t\n  \n\t',
+          attachments: [],
+        })
+      ).toThrow('Delivery content validation failed');
+    });
+
+    it('应该接受带空格的有效 externalUrl', () => {
+      expect(
+        validateDeliveryContent({
+          contentText: null,
+          externalUrl: '  https://example.com/result  ',
+          attachments: [],
+        })
+      ).toBe(true);
     });
   });
 });

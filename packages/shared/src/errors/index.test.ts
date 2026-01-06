@@ -180,14 +180,15 @@ describe('IdempotencyViolationError', () => {
 });
 
 describe('toApiError', () => {
-  it('应该转换 AppError 为 API 响应', () => {
+  it('应该转换 AppError 为 API 响应（PLAN 标准格式）', () => {
     const error = new ValidationError('Invalid input', { field: 'email' });
     const apiError = toApiError(error);
 
     expect(apiError.statusCode).toBe(400);
-    expect(apiError.error.code).toBe(ErrorCode.VALIDATION_FAILED);
-    expect(apiError.error.message).toBe('Invalid input');
-    expect(apiError.error.details).toEqual({ field: 'email' });
+    expect(apiError.code).toBe(ErrorCode.VALIDATION_FAILED);
+    expect(apiError.message).toBe('Invalid input');
+    // PLAN 标准：不包含 details 字段
+    expect(apiError).not.toHaveProperty('details');
   });
 
   it('应该转换标准 Error 为 API 响应', () => {
@@ -195,34 +196,24 @@ describe('toApiError', () => {
     const apiError = toApiError(error);
 
     expect(apiError.statusCode).toBe(500);
-    expect(apiError.error.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
-    expect(apiError.error.message).toBe('Something went wrong');
-    expect(apiError.error.details).toBeUndefined();
+    expect(apiError.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
+    expect(apiError.message).toBe('Something went wrong');
   });
 
-  it('应该转换未知错误为 API 响应（默认不包含 details）', () => {
+  it('应该转换未知错误为 API 响应', () => {
     const error = { unexpected: 'error object' };
     const apiError = toApiError(error);
 
     expect(apiError.statusCode).toBe(500);
-    expect(apiError.error.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
-    expect(apiError.error.message).toBe('An unknown error occurred');
-    expect(apiError.error.details).toBeUndefined();
-  });
-
-  it('应该在 includeUnknownDetails=true 时包含未知错误 details', () => {
-    const error = { unexpected: 'error object', stack: 'sensitive info' };
-    const apiError = toApiError(error, { includeUnknownDetails: true });
-
-    expect(apiError.statusCode).toBe(500);
-    expect(apiError.error.details).toEqual(error);
+    expect(apiError.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
+    expect(apiError.message).toBe('An unknown error occurred');
   });
 
   it('应该不包含 stack（避免泄露敏感信息）', () => {
     const error = new Error('Test error');
     const apiError = toApiError(error);
 
-    expect(apiError.error).not.toHaveProperty('stack');
+    expect(apiError).not.toHaveProperty('stack');
   });
 
   it('应该处理字符串错误', () => {
@@ -230,31 +221,42 @@ describe('toApiError', () => {
     const apiError = toApiError(error);
 
     expect(apiError.statusCode).toBe(500);
-    expect(apiError.error.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
-    expect(apiError.error.message).toBe('An unknown error occurred');
+    expect(apiError.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
+    expect(apiError.message).toBe('An unknown error occurred');
   });
 
   it('应该处理 null/undefined 错误', () => {
     const apiError1 = toApiError(null);
     expect(apiError1.statusCode).toBe(500);
+    expect(apiError1.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
 
     const apiError2 = toApiError(undefined);
     expect(apiError2.statusCode).toBe(500);
+    expect(apiError2.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
   });
 
-  it('应该保留 AppError 的所有字段', () => {
+  it('应该返回 PLAN 标准的扁平结构（code、message、statusCode）', () => {
     const error = new PaymentVerificationError('TX not found', {
       txHash: '0x123',
       expectedAmount: '1000000',
     });
     const apiError = toApiError(error);
 
+    // PLAN 标准：{ code, message } + statusCode（实用扩展）
     expect(apiError.statusCode).toBe(400);
-    expect(apiError.error.code).toBe(ErrorCode.PAYMENT_VERIFICATION_FAILED);
-    expect(apiError.error.message).toBe('TX not found');
-    expect(apiError.error.details).toEqual({
-      txHash: '0x123',
-      expectedAmount: '1000000',
-    });
+    expect(apiError.code).toBe(ErrorCode.PAYMENT_VERIFICATION_FAILED);
+    expect(apiError.message).toBe('TX not found');
+    // 不应该有嵌套的 error 对象
+    expect(apiError).not.toHaveProperty('error');
+  });
+
+  it('应该符合 ApiErrorResponse 接口定义', () => {
+    const error = new ValidationError('Test');
+    const apiError = toApiError(error);
+
+    // 验证返回值符合 ApiErrorResponse & { statusCode: number }
+    expect(typeof apiError.code).toBe('string');
+    expect(typeof apiError.message).toBe('string');
+    expect(typeof apiError.statusCode).toBe('number');
   });
 });

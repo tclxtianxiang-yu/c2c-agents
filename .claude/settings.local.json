@@ -23,7 +23,13 @@
       "Bash(pnpm --filter @c2c-agents/shared typecheck:*)",
       "Bash(pnpm --filter @c2c-agents/shared test:*)",
       "Bash(pnpm --filter @c2c-agents/shared test:coverage:*)",
-      "Bash(pnpm --filter @c2c-agents/shared clean:*)"
+      "Bash(pnpm --filter @c2c-agents/shared clean:*)",
+      "Bash(pnpm --filter @c2c-agents/config test:*)",
+      "Bash(pnpm --filter @c2c-agents/config typecheck:*)",
+      "Bash(pnpm:*)",
+      "Bash(node -e:*)",
+      "Bash(git add:*)",
+      "Bash(node:*)"
     ]
   }
 }

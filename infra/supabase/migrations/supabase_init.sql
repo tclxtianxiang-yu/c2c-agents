@@ -477,7 +477,7 @@ alter table public.orders
   add constraint chk_orders_amounts_nonneg
   check (
     reward_amount >= 0 and
-    (platform_fee_rate >= 0) and
+    (platform_fee_rate >= 0 and platform_fee_rate <= 1) and
     (platform_fee_amount is null or platform_fee_amount >= 0) and
     (escrow_amount is null or escrow_amount >= 0)
   );
@@ -512,10 +512,16 @@ create table if not exists public.deliveries (
   external_url text,
 
   submitted_at timestamptz not null default now()
+
+  -- ⚠️ 注意：至少一项内容非空（contentText/externalUrl/attachments）的校验在应用层进行
+  -- 原因：
+  --   1. DB 无法直接检查 delivery_attachments 关联表，强制 CHECK 会禁止"仅附件交付"场景
+  --   2. 空白字符串（如 '  '）的校验也应在应用层通过 trim() 统一处理
+  --   3. 应用层应确保：btrim(content_text) <> '' OR external_url IS NOT NULL OR 存在附件
 );
 
 comment on table public.deliveries is
-'交付表：B 提交交付（文本/链接/附件至少一项非空）。附件用 delivery_attachments 关联。';
+'交付表：B 提交交付（contentText/externalUrl/attachments 至少一项非空，在应用层校验）。附件用 delivery_attachments 关联。';
 
 comment on column public.deliveries.id is 'Delivery ID';
 comment on column public.deliveries.order_id is '所属 Order ID';
@@ -552,7 +558,9 @@ create table if not exists public.queue_items (
   order_id uuid not null references public.orders(id) on delete cascade,
 
   status public.queue_item_status not null default 'queued',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  consumed_at timestamptz,
+  canceled_at timestamptz
 );
 
 comment on table public.queue_items is
@@ -564,12 +572,20 @@ comment on column public.queue_items.task_id is '所属 Task（冗余便于查�
 comment on column public.queue_items.order_id is '所属 Order（同一个 agent+order 只允许一个 queued）';
 comment on column public.queue_items.status is '队列项状态：queued/consumed/canceled';
 comment on column public.queue_items.created_at is '入队时间（FIFO 排序依据）';
+comment on column public.queue_items.consumed_at is '消费时间（consume-next 原子更新时写入）';
+comment on column public.queue_items.canceled_at is '取消时间（取消排队时写入，可选）';
 
 create index if not exists idx_queue_items_agent_created_at
 on public.queue_items(agent_id, created_at);
 
 create index if not exists idx_queue_items_order
 on public.queue_items(order_id);
+
+create index if not exists idx_queue_items_consumed_at
+on public.queue_items(consumed_at);
+
+create index if not exists idx_queue_items_canceled_at
+on public.queue_items(canceled_at);
 
 -- 去重：同一 (agent_id, order_id) 同时最多存在一条 queued
 create unique index if not exists uq_queue_items_agent_order_queued

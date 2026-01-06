@@ -37,10 +37,28 @@ export enum ErrorCode {
   BUSINESS_IDEMPOTENCY_VIOLATION = 'BUSINESS_IDEMPOTENCY_VIOLATION',
   BUSINESS_RESOURCE_NOT_FOUND = 'BUSINESS_RESOURCE_NOT_FOUND',
   BUSINESS_OPERATION_NOT_ALLOWED = 'BUSINESS_OPERATION_NOT_ALLOWED',
+  BUSINESS_QUEUE_FULL = 'BUSINESS_QUEUE_FULL',
+  BUSINESS_QUEUE_ITEM_NOT_FOUND = 'BUSINESS_QUEUE_ITEM_NOT_FOUND',
 
   // 系统错误 (9000-9999)
   SYSTEM_INTERNAL_ERROR = 'SYSTEM_INTERNAL_ERROR',
   SYSTEM_DATABASE_ERROR = 'SYSTEM_DATABASE_ERROR',
+
+  // ============================================================
+  // PLAN 兼容别名（向后兼容）
+  // ============================================================
+  /** @deprecated 使用 VALIDATION_INVALID_TRANSITION */
+  INVALID_TRANSITION = 'VALIDATION_INVALID_TRANSITION',
+  /** @deprecated 使用 PAYMENT_INSUFFICIENT_BALANCE */
+  INSUFFICIENT_BALANCE = 'PAYMENT_INSUFFICIENT_BALANCE',
+  /** @deprecated 使用 BUSINESS_IDEMPOTENCY_VIOLATION */
+  DUPLICATE_OPERATION = 'BUSINESS_IDEMPOTENCY_VIOLATION',
+  /** @deprecated 使用 VALIDATION_FAILED */
+  VALIDATION_ERROR = 'VALIDATION_FAILED',
+  /** @deprecated 使用 BUSINESS_QUEUE_FULL */
+  QUEUE_FULL = 'BUSINESS_QUEUE_FULL',
+  /** @deprecated 使用 BUSINESS_QUEUE_ITEM_NOT_FOUND */
+  QUEUE_ITEM_NOT_FOUND = 'BUSINESS_QUEUE_ITEM_NOT_FOUND',
 }
 
 // ============================================================
@@ -159,23 +177,18 @@ export class IdempotencyViolationError extends AppError {
 // ============================================================
 
 /**
- * API 错误响应格式
+ * API 错误响应格式（PLAN 标准）
  */
 export interface ApiErrorResponse {
-  error: {
-    code: ErrorCode;
-    message: string;
-    details?: unknown;
-  };
+  code: string;
+  message: string;
 }
 
 /**
  * 将错误转换为 API 响应格式
  *
  * @param error - 原始错误对象
- * @param options - 可选配置
- * @param options.includeUnknownDetails - 是否在未知错误中包含 details（仅用于开发/调试环境）
- * @returns API 错误响应对象
+ * @returns API 错误响应对象（PLAN 标准格式：{ code, message, statusCode }）
  *
  * @example
  * ```typescript
@@ -186,49 +199,30 @@ export interface ApiErrorResponse {
  *   return Response.json(apiError, { status: apiError.statusCode });
  * }
  * ```
- *
- * @example
- * ```typescript
- * // 开发环境启用详细错误信息
- * const isDev = process.env.NODE_ENV === 'development';
- * const apiError = toApiError(error, { includeUnknownDetails: isDev });
- * ```
  */
-export function toApiError(
-  error: unknown,
-  options?: { includeUnknownDetails?: boolean }
-): ApiErrorResponse & { statusCode: number } {
+export function toApiError(error: unknown): ApiErrorResponse & { statusCode: number } {
   // AppError 子类
   if (error instanceof AppError) {
     return {
+      code: error.code,
+      message: error.message,
       statusCode: error.statusCode,
-      error: {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-      },
     };
   }
 
   // 标准 Error
   if (error instanceof Error) {
     return {
+      code: ErrorCode.SYSTEM_INTERNAL_ERROR,
+      message: error.message,
       statusCode: 500,
-      error: {
-        code: ErrorCode.SYSTEM_INTERNAL_ERROR,
-        message: error.message,
-        // 不包含 stack，避免泄露内部实现细节
-      },
     };
   }
 
-  // 未知错误（生产环境不返回 details，避免泄露敏感信息）
+  // 未知错误
   return {
+    code: ErrorCode.SYSTEM_INTERNAL_ERROR,
+    message: 'An unknown error occurred',
     statusCode: 500,
-    error: {
-      code: ErrorCode.SYSTEM_INTERNAL_ERROR,
-      message: 'An unknown error occurred',
-      ...(options?.includeUnknownDetails && { details: error }),
-    },
   };
 }
