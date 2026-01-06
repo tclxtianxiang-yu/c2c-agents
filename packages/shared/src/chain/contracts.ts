@@ -1,9 +1,9 @@
-import { JsonRpcProvider, type Provider, type Signer } from 'ethers';
 import { DEFAULT_SEPOLIA_RPC_URL } from '@c2c-agents/config/constants';
-import { Escrow__factory } from '@c2c-agents/contracts/typechain-types/factories/contracts/Escrow__factory';
-import { MockUSDT__factory } from '@c2c-agents/contracts/typechain-types/factories/contracts/MockUSDT__factory';
 import type { Escrow } from '@c2c-agents/contracts/typechain-types/contracts/Escrow';
 import type { MockUSDT } from '@c2c-agents/contracts/typechain-types/contracts/MockUSDT';
+import { Escrow__factory } from '@c2c-agents/contracts/typechain-types/factories/contracts/Escrow__factory';
+import { MockUSDT__factory } from '@c2c-agents/contracts/typechain-types/factories/contracts/MockUSDT__factory';
+import { JsonRpcProvider, type Provider, type Signer } from 'ethers';
 
 import { ValidationError } from '../errors';
 import { normalizeAddress } from '../utils';

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ValidationError } from '../errors';
 import {
   calculateFee,
   formatAddress,
@@ -12,7 +13,6 @@ import {
   uuidToBytes32,
   validateDeliveryContent,
 } from './index';
-import { ValidationError } from '../errors';
 
 describe('金额转换工具', () => {
   describe('toMinUnit', () => {

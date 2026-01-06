@@ -33,9 +33,7 @@ export const AUTO_ACCEPT_HOURS = env.AUTO_ACCEPT_HOURS ?? 24;
  * const { feeAmount, netAmount } = calculateFee('1000000', PLATFORM_FEE_RATE);
  * ```
  */
-export const PLATFORM_FEE_RATE = env.PLATFORM_FEE_RATE
-  ? Number(env.PLATFORM_FEE_RATE)
-  : 0.15;
+export const PLATFORM_FEE_RATE = env.PLATFORM_FEE_RATE ? Number(env.PLATFORM_FEE_RATE) : 0.15;
 
 /** 最小确认数（链上交易确认数） */
 export const MIN_CONFIRMATIONS = env.MIN_CONFIRMATIONS ?? 1;

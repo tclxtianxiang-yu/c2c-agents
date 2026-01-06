@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Supabase 数据库连接测试脚本
  *
@@ -9,10 +10,10 @@
  * 4. 枚举类型测试
  */
 
-import * as dotenv from 'dotenv';
-import { resolve } from 'path';
-import { createClient } from '@supabase/supabase-js';
+import { resolve } from 'node:path';
 import { getEnv } from '@c2c-agents/config';
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
 
 // 加载项目根目录的 .env 文件
 dotenv.config({ path: resolve(__dirname, '../.env') });
@@ -35,9 +36,7 @@ async function testDatabaseConnection() {
   }
 
   console.log(`✅ SUPABASE_URL: ${env.SUPABASE_URL}`);
-  console.log(
-    `✅ SUPABASE_SERVICE_ROLE_KEY: ${env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...`
-  );
+  console.log(`✅ SUPABASE_SERVICE_ROLE_KEY: ${env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...`);
   console.log();
 
   // ========== Step 2: 初始化 Supabase 客户端 ==========
@@ -114,7 +113,7 @@ async function testDatabaseConnection() {
     } else {
       console.log('✅ task_status 枚举值:', enums);
     }
-  } catch (error) {
+  } catch (_error) {
     console.log('   (枚举测试跳过)');
   }
 
@@ -127,7 +126,7 @@ async function testDatabaseConnection() {
     // 注意：需要先有 user_id（可以使用 Supabase Auth 创建用户）
     // 这里仅测试表结构，不实际插入
     console.log('   (跳过插入测试，避免脏数据)');
-  } catch (error) {
+  } catch (_error) {
     console.log('   (插入测试跳过)');
   }
 

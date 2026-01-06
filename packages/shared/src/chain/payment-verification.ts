@@ -1,6 +1,6 @@
-import type { Log, Provider } from 'ethers';
 import { MIN_CONFIRMATIONS } from '@c2c-agents/config/constants';
 import { MockUSDT__factory } from '@c2c-agents/contracts/typechain-types/factories/contracts/MockUSDT__factory';
+import type { Log, Provider } from 'ethers';
 
 import { ContractInteractionError, PaymentVerificationError } from '../errors';
 import { normalizeAddress } from '../utils';
@@ -80,15 +80,15 @@ function findMatchingTransferLog(params: {
   return { matched: false, actualAmount: firstActual };
 }
 
-export async function verifyPayment(params: VerifyPaymentParams): Promise<PaymentVerificationResult> {
+export async function verifyPayment(
+  params: VerifyPaymentParams
+): Promise<PaymentVerificationResult> {
   const provider = params.provider ?? getProvider();
   if (!params.tokenAddress) {
     return {
       success: false,
       txHash: params.txHash,
-      error: new PaymentVerificationError(
-        'Missing tokenAddress: 必须显式传入 tokenAddress'
-      ),
+      error: new PaymentVerificationError('Missing tokenAddress: 必须显式传入 tokenAddress'),
     };
   }
   const tokenAddress = params.tokenAddress;

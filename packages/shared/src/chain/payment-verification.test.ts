@@ -1,11 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { Provider } from 'ethers';
 import { MockUSDT__factory } from '@c2c-agents/contracts/typechain-types/factories/contracts/MockUSDT__factory';
-
-import { verifyPayment } from './payment-verification';
+import type { Provider } from 'ethers';
+import { describe, expect, it, vi } from 'vitest';
 import { PaymentVerificationError } from '../errors';
+import { verifyPayment } from './payment-verification';
 
-const TX_HASH = '0x' + '11'.repeat(32);
+const TX_HASH = `0x${'11'.repeat(32)}`;
 const TOKEN_ADDRESS = '0x0000000000000000000000000000000000000011';
 const FROM = '0x0000000000000000000000000000000000000022';
 const TO = '0x0000000000000000000000000000000000000033';
