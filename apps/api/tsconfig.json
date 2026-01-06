@@ -6,12 +6,14 @@
     "target": "ES2021",
     "lib": ["ES2021"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../..",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "paths": {
       "@c2c-agents/shared": ["../../packages/shared/src"],
-      "@c2c-agents/config": ["../../packages/config/src"]
+      "@c2c-agents/shared/*": ["../../packages/shared/src/*"],
+      "@c2c-agents/config": ["../../packages/config/src"],
+      "@c2c-agents/config/*": ["../../packages/config/src/*"]
     }
   },
   "include": ["src/**/*"],

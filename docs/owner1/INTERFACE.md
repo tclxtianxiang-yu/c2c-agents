@@ -8,17 +8,68 @@
 
 ## 📋 目录
 
-- [1. 链上交互网关 (待实现)](#1-链上交互网关-待实现)
+- [1. 链上交互网关 (已落地)](#1-链上交互网关-已落地)
 - [2. 队列系统 API (Owner #4 专用)](#2-队列系统-api-owner-4-专用)
 - [3. 核心共享服务 (待实现)](#3-核心共享服务-待实现)
 - [4. 测试数据工厂 (开发环境)](#4-测试数据工厂-开发环境)
 
 ---
 
-## 1. 链上交互网关 (待实现)
+## 1. 链上交互网关 (已落地)
 
-> **状态**: 🟡 待实现 (Phase 3)
+> **状态**: ✅ 已落地 (Phase 4)
 > **依赖**: ✅ MockUSDT.sol, Escrow.sol 已实现并部署
+
+### 1.x Phase 4 已落地能力清单
+
+- SupabaseService：Service Role 单例 client（方案 A，RLS policy 暂未启用）
+- ChainService：封装 verifyPayment/recordEscrow/executePayout/executeRefund
+- HttpExceptionFilter：统一错误结构
+- `/api/health`：DB + RPC 健康检查
+
+> 提醒：调用 verifyPayment 时必须显式传入 tokenAddress。
+
+### 1.1 API Core ChainService（推荐）
+
+ChainService 已在 `apps/api/src/modules/core` 落地并全局注入，可直接在任意模块中依赖注入使用。
+
+**签名摘要**:
+
+```typescript
+class ChainService {
+  verifyPayment(params: {
+    txHash: string;
+    expectedFrom: string;
+    expectedTo: string;
+    expectedAmount: string;
+    minConfirmations?: number;
+  }): Promise<PaymentVerificationResult>;
+
+  recordEscrow(params: {
+    orderId: string;
+    amount: string;
+  }): Promise<RecordEscrowResult>;
+
+  executePayout(params: {
+    orderId: string;
+    creatorAddress: string;
+    providerAddress: string;
+    grossAmount: string;
+  }): Promise<PayoutResult>;
+
+  executeRefund(params: {
+    orderId: string;
+    creatorAddress: string;
+    amount: string;
+  }): Promise<RefundResult>;
+}
+```
+
+**注意点**:
+- ChainService 内部自动注入 `CHAIN_RPC_URL`、`MOCK_USDT_ADDRESS`、`ESCROW_ADDRESS`
+- 如果直接调用 `@c2c-agents/shared/chain` 的 `verifyPayment`，必须显式传 `tokenAddress`
+- Owner #2 必须在 Task 模块“支付确认成功且 Order 创建成功”后调用 `recordEscrow`，失败必须阻断后续流转
+- 幂等条件：`escrowedAmounts[orderId] == 0`，重复调用必须返回幂等错误
 
 ### 1.0 合约已落地信息（Phase 2）
 
@@ -54,13 +105,13 @@ PATH=/Users/yutianxiang/.nvm/versions/node/v22.18.0/bin:$PATH pnpm --filter @c2c
 
 **合约能力摘要**:
 - MockUSDT: `decimals()=6`, `mint()`(onlyOwner), `faucet()`(public)
-- Escrow: `payout/refund`(operator/admin), `pause/unpause`, `setFeeReceiver`, `grant/revokeOperator`, `sweep`
+- Escrow: `recordEscrow/payout/refund`(operator/admin), `pause/unpause`, `setFeeReceiver`, `grant/revokeOperator`, `sweep`
 
 **事件**:
 - `Paid(orderId, token, provider, netAmount, feeReceiver, feeAmount)`
 - `Refunded(orderId, token, creator, amount)`
 
-### 1.1 支付确认校验
+### 1.2 支付确认校验
 
 ```typescript
 // 从 @c2c-agents/shared/chain 导入
@@ -128,7 +179,7 @@ async verifyTaskPayment(taskId: string, txHash: string) {
 
 > 如果改为在创建 Order 后再校验，则使用 `order.escrowAmount` 作为 expectedAmount。
 
-### 1.2 执行 Payout (结算给 Agent)
+### 1.3 执行 Payout (结算给 Agent)
 
 ```typescript
 // 从 @c2c-agents/shared/chain 导入
@@ -192,7 +243,7 @@ async settleOrder(orderId: string) {
 }
 ```
 
-### 1.3 执行 Refund (退款给 Task 创建者)
+### 1.4 执行 Refund (退款给 Task 创建者)
 
 ```typescript
 // 从 @c2c-agents/shared/chain 导入

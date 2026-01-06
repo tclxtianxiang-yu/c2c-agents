@@ -22,6 +22,8 @@ API 启动时在 `apps/api/src/main.ts` 调用 `validateApiEnv()` 执行校验�
 - `MOCK_USDT_ADDRESS`
 - `ESCROW_ADDRESS`
 - `PLATFORM_OPERATOR_PRIVATE_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ---
 
@@ -30,6 +32,13 @@ API 启动时在 `apps/api/src/main.ts` 调用 `validateApiEnv()` 执行校验�
 - `CHAIN_RPC_URL` 必须是 `http/https` 的合法 URL
 - `MOCK_USDT_ADDRESS` / `ESCROW_ADDRESS` 必须是合法 EVM 地址，且 **不能为零地址**
 - `PLATFORM_OPERATOR_PRIVATE_KEY` 允许无 `0x` 前缀，内部会自动补全
+- `SUPABASE_URL` 必须是 `http/https` 的合法 URL
+- `SUPABASE_SERVICE_ROLE_KEY` 必填（方案 A：Service Role 绕过 RLS）
+
+## Supabase 连接策略
+
+当前采用 **方案 A（Service Role）**，API 通过 `SUPABASE_SERVICE_ROLE_KEY` 连接 Supabase，
+用于绕过 RLS，RLS policy 暂不启用。
 
 ---
 

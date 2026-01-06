@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import hre from 'hardhat';
+import { describe, it } from 'mocha';
 
 import type { Escrow } from '../typechain-types/contracts/Escrow';
 import type { MockUSDT } from '../typechain-types/contracts/MockUSDT';
@@ -18,7 +19,7 @@ describe('Escrow', () => {
     const escrow = (await Escrow.connect(admin).deploy(
       await token.getAddress(),
       feeReceiver.address,
-      admin.address,
+      admin.address
     )) as unknown as Escrow;
 
     await escrow.connect(admin).grantOperator(operator.address);
@@ -52,10 +53,19 @@ describe('Escrow', () => {
     token: Awaited<ReturnType<typeof deploy>>['token'],
     creator: Awaited<ReturnType<typeof deploy>>['creator'],
     escrowAddress: string,
-    amount: bigint,
+    amount: bigint
   ) {
     await token.mint(creator.address, amount);
     await token.connect(creator).transfer(escrowAddress, amount);
+  }
+
+  async function recordEscrow(
+    escrow: Awaited<ReturnType<typeof deploy>>['escrow'],
+    operator: Awaited<ReturnType<typeof deploy>>['operator'],
+    orderId: string,
+    amount: bigint
+  ) {
+    await escrow.connect(operator).recordEscrow(orderId, amount);
   }
 
   it('payout transfers net and fee and records settlement', async () => {
@@ -66,6 +76,7 @@ describe('Escrow', () => {
     const netAmount = grossAmount - feeAmount;
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
 
     await escrow
       .connect(operator)
@@ -92,12 +103,13 @@ describe('Escrow', () => {
     const netAmount = ethers.parseUnits('80', DECIMALS);
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
 
     await expectRevert(
       escrow
         .connect(operator)
         .payout(orderId, creator.address, provider.address, grossAmount, netAmount, feeAmount),
-      /amount mismatch/,
+      /amount mismatch/
     );
   });
 
@@ -109,19 +121,20 @@ describe('Escrow', () => {
     const netAmount = grossAmount - feeAmount;
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
 
     await expectRevert(
       escrow
         .connect(operator)
         .payout(orderId, ethers.ZeroAddress, provider.address, grossAmount, netAmount, feeAmount),
-      /creator is zero/,
+      /creator is zero/
     );
 
     await expectRevert(
       escrow
         .connect(operator)
         .payout(orderId, creator.address, ethers.ZeroAddress, grossAmount, netAmount, feeAmount),
-      /provider is zero/,
+      /provider is zero/
     );
   });
 
@@ -131,21 +144,18 @@ describe('Escrow', () => {
 
     await expectRevert(
       escrow.connect(operator).payout(orderId, creator.address, provider.address, 0, 0, 0),
-      /grossAmount is zero/,
+      /grossAmount is zero/
     );
   });
 
   it('reverts payout when escrow balance is insufficient', async () => {
-    const { escrow, operator, creator, provider } = await deploy();
+    const { escrow, operator } = await deploy();
     const orderId = ethers.keccak256(ethers.toUtf8Bytes('order-insufficient'));
     const grossAmount = ethers.parseUnits('10', DECIMALS);
-    const feeAmount = ethers.parseUnits('2', DECIMALS);
-    const netAmount = grossAmount - feeAmount;
 
     await expectRevert(
-      escrow
-        .connect(operator)
-        .payout(orderId, creator.address, provider.address, grossAmount, netAmount, feeAmount),
+      escrow.connect(operator).recordEscrow(orderId, grossAmount),
+      /insufficient balance/
     );
   });
 
@@ -157,6 +167,7 @@ describe('Escrow', () => {
     const netAmount = grossAmount - feeAmount;
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
 
     await escrow
       .connect(operator)
@@ -166,24 +177,25 @@ describe('Escrow', () => {
       escrow
         .connect(operator)
         .payout(orderId, creator.address, provider.address, grossAmount, netAmount, feeAmount),
-      /already settled/,
+      /already settled/
     );
   });
 
   it('reverts payout from non-operator', async () => {
-    const { escrow, token, creator, provider, outsider } = await deploy();
+    const { escrow, token, operator, creator, provider, outsider } = await deploy();
     const orderId = ethers.keccak256(ethers.toUtf8Bytes('order-no-role'));
     const grossAmount = ethers.parseUnits('10', DECIMALS);
     const feeAmount = ethers.parseUnits('2', DECIMALS);
     const netAmount = grossAmount - feeAmount;
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
 
     await expectRevert(
       escrow
         .connect(outsider)
         .payout(orderId, creator.address, provider.address, grossAmount, netAmount, feeAmount),
-      /missing operator\/admin role/,
+      /missing operator\/admin role/
     );
   });
 
@@ -193,6 +205,7 @@ describe('Escrow', () => {
     const amount = ethers.parseUnits('25', DECIMALS);
 
     await fundEscrow(token, creator, await escrow.getAddress(), amount);
+    await recordEscrow(escrow, operator, orderId, amount);
 
     await escrow.connect(operator).refund(orderId, creator.address, amount);
 
@@ -206,7 +219,7 @@ describe('Escrow', () => {
 
     await expectRevert(
       escrow.connect(operator).refund(orderId, ethers.ZeroAddress, 1),
-      /creator is zero/,
+      /creator is zero/
     );
   });
 
@@ -216,7 +229,7 @@ describe('Escrow', () => {
 
     await expectRevert(
       escrow.connect(operator).refund(orderId, creator.address, 0),
-      /amount is zero/,
+      /amount is zero/
     );
   });
 
@@ -228,6 +241,7 @@ describe('Escrow', () => {
     const netAmount = grossAmount - feeAmount;
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
 
     await escrow
       .connect(operator)
@@ -235,7 +249,7 @@ describe('Escrow', () => {
 
     await expectRevert(
       escrow.connect(operator).refund(orderId, creator.address, grossAmount),
-      /already settled/,
+      /already settled/
     );
   });
 
@@ -247,13 +261,14 @@ describe('Escrow', () => {
     const netAmount = grossAmount - feeAmount;
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
     await escrow
       .connect(operator)
       .payout(orderId, creator.address, provider.address, grossAmount, netAmount, feeAmount);
 
     await expectRevert(
       escrow.connect(operator).refund(orderId, creator.address, grossAmount),
-      /already settled/,
+      /already settled/
     );
   });
 
@@ -263,22 +278,20 @@ describe('Escrow', () => {
     const amount = ethers.parseUnits('8', DECIMALS);
 
     await fundEscrow(token, creator, await escrow.getAddress(), amount);
+    await recordEscrow(escrow, operator, orderId, amount);
     await escrow.connect(operator).refund(orderId, creator.address, amount);
 
     await expectRevert(
       escrow
         .connect(operator)
         .payout(orderId, creator.address, provider.address, amount, amount, 0),
-      /already settled/,
+      /already settled/
     );
   });
 
   it('requires admin for fee receiver changes', async () => {
     const { escrow, outsider } = await deploy();
-    await expectRevert(
-      escrow.connect(outsider).setFeeReceiver(outsider.address),
-      /AccessControl/,
-    );
+    await expectRevert(escrow.connect(outsider).setFeeReceiver(outsider.address), /AccessControl/);
   });
 
   it('requires admin for pause and unpause', async () => {
@@ -292,7 +305,7 @@ describe('Escrow', () => {
 
     await expectRevert(
       escrow.connect(admin).setFeeReceiver(ethers.ZeroAddress),
-      /feeReceiver is zero/,
+      /feeReceiver is zero/
     );
     await expectRevert(escrow.connect(admin).grantOperator(ethers.ZeroAddress), /operator is zero/);
     await expectRevert(escrow.connect(admin).sweep(ethers.ZeroAddress, 1), /sweep to zero/);
@@ -307,12 +320,13 @@ describe('Escrow', () => {
     const netAmount = grossAmount - feeAmount;
 
     await fundEscrow(token, creator, await escrow.getAddress(), grossAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
     await escrow.connect(admin).pause();
 
     await expectRevert(
       escrow
         .connect(operator)
-        .payout(orderId, creator.address, provider.address, grossAmount, netAmount, feeAmount),
+        .payout(orderId, creator.address, provider.address, grossAmount, netAmount, feeAmount)
     );
 
     await escrow.connect(admin).unpause();
@@ -323,12 +337,29 @@ describe('Escrow', () => {
   });
 
   it('allows admin to sweep tokens', async () => {
-    const { escrow, token, admin, creator } = await deploy();
+    const { escrow, token, admin, creator, operator } = await deploy();
+    const orderId = ethers.keccak256(ethers.toUtf8Bytes('order-sweep-allowed'));
+    const grossAmount = ethers.parseUnits('6', DECIMALS);
+    const sweepAmount = ethers.parseUnits('4', DECIMALS);
+
+    await fundEscrow(token, creator, await escrow.getAddress(), grossAmount + sweepAmount);
+    await recordEscrow(escrow, operator, orderId, grossAmount);
+    await escrow.connect(admin).sweep(admin.address, sweepAmount);
+
+    expect(await token.balanceOf(admin.address)).to.equal(sweepAmount);
+  });
+
+  it('blocks sweep from withdrawing escrowed funds', async () => {
+    const { escrow, token, admin, creator, operator } = await deploy();
+    const orderId = ethers.keccak256(ethers.toUtf8Bytes('order-sweep-blocked'));
     const amount = ethers.parseUnits('5', DECIMALS);
 
     await fundEscrow(token, creator, await escrow.getAddress(), amount);
-    await escrow.connect(admin).sweep(admin.address, amount);
+    await recordEscrow(escrow, operator, orderId, amount);
 
-    expect(await token.balanceOf(admin.address)).to.equal(amount);
+    await expectRevert(
+      escrow.connect(admin).sweep(admin.address, amount),
+      /sweep exceeds available/
+    );
   });
 });

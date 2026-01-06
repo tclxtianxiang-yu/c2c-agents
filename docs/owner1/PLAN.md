@@ -17,6 +17,7 @@
 - 定义并维护全局幂等与并发策略
 - 提供全局共享类型与错误码（DTO/types、错误码、统一校验规则）
 - 提供链上统一网关（支付确认校验、payout、refund）
+- 提供链上统一网关（支付确认校验、recordEscrow、payout、refund）
 - 提供后端共享中间件（requestId、auth、错误映射）
 
 ### 独占修改权限
@@ -37,7 +38,7 @@ apps/contracts/**           - 智能合约 + ABI + typechain
 ### ✅ 已完成
 
 1. **packages/shared 核心框架**
-   - ✅ 订单状态机（14 个状态 + 转移矩阵）
+   - ✅ 订单状态机（13 个状态 + 转移矩阵）
    - ✅ 4 个核心枚举（OrderStatus、AgentStatus、TaskStatus、QueueItemStatus）
    - ✅ 基础错误类（InvalidTransitionError、ValidationError）
    - ✅ 工具函数（formatAddress）
@@ -62,6 +63,14 @@ apps/contracts/**           - 智能合约 + ABI + typechain
 2. 智能合约实现（MockUSDT + Escrow）
 3. 链上交互工具（`packages/shared/src/chain/`）
 4. API 核心模块（`apps/api/src/modules/core/`）
+
+### 🔁 状态机路径补充（争议协商）
+
+- 拒绝后进入 Disputed（平台介入但允许继续协商）
+- 争议撤回：
+  - 退款争议撤回：Disputed → Delivered
+  - 中断争议撤回：Disputed → InProgress
+- 管理员仲裁：Disputed → AdminArbitrating
 
 ---
 
@@ -307,10 +316,14 @@ apps/contracts/**           - 智能合约 + ABI + typechain
    ```
 
 2. 权限控制（OpenZeppelin AccessControl）：
-   - `OPERATOR_ROLE` - 后端操作员（可调用 payout/refund）
+   - `OPERATOR_ROLE` - 后端操作员（可调用 recordEscrow / payout / refund）
    - `ADMIN_ROLE` - 管理员（可修改 feeReceiver、暂停合约）
 
 3. 核心函数：
+   - `recordEscrow(orderId, amount)`
+     - 链下支付确认成功后登记托管金额
+     - 幂等：同一 orderId 只能记录一次
+     - `totalEscrowed` 递增，用于 sweep guard
    - `payout(orderId, creator, provider, grossAmount, netAmount, feeAmount)`
      - 检查幂等（status == None）
      - 验证 `netAmount + feeAmount == grossAmount`
@@ -323,15 +336,16 @@ apps/contracts/**           - 智能合约 + ABI + typechain
 
 4. 安全功能（OpenZeppelin Pausable）：
    - `pause()` / `unpause()` - 紧急暂停
-   - `sweep()` - 紧急提款
+   - `sweep()` - 紧急提款（仅可转出 balance - totalEscrowed）
 
 5. 事件定义：
    - `Paid(orderId, token, provider, netAmount, feeReceiver, feeAmount)`
    - `Refunded(orderId, token, creator, amount)`
+   - `EscrowRecorded(orderId, amount)`
 
 **关键决策**:
 
-- ✅ 资金模型：方案 A（池子模式）- 简化实现，快速交付
+- ✅ 资金模型：记账式锁仓（recordEscrow）- 以 totalEscrowed 做 sweep guard
 - ✅ orderId 类型：`bytes32`（后端通过 `keccak256(abi.encodePacked(uuid))` 生成）
 
 **依赖**: MockUSDT 部署地址
@@ -354,13 +368,14 @@ apps/contracts/**           - 智能合约 + ABI + typechain
 
 **测试覆盖**（参考 CONTRACT.md 第 329-338 行）:
 
-1. 基础流程
+1. 基础流程（包含 recordEscrow）
 2. payout 测试（7 个场景）
 3. refund 测试（4 个场景）
 4. 幂等性测试（3 个场景）
-5. 权限测试（2 个场景）
-6. 参数验证测试（3 个场景）
-7. 暂停功能测试（2 个场景）
+5. sweep guard（totalEscrowed 保护）
+6. 权限测试（2 个场景）
+7. 参数验证测试（3 个场景）
+8. 暂停功能测试（2 个场景）
 
 **验收标准**:
 
@@ -874,9 +889,9 @@ Phase 4 (API 核心) ← 必须等待 Phase 3 完成
 
 ### 2. 合约资金模型
 
-- **采用方案 A（池子模式）**: Escrow 不区分订单子账户
-- **优点**: 实现简单，MVP 快速交付
-- **风险**: 依赖链下对账，需要运营监控
+- **采用记账式锁仓（recordEscrow）**: Escrow 通过 recordEscrow 记账锁仓
+- **优点**: sweep 仅可转出 balance - totalEscrowed，不影响已托管订单
+- **风险**: 必须确保支付确认成功后调用 recordEscrow，否则 sweep guard 失效
 
 ### 3. 链上幂等策略
 

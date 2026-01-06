@@ -1,4 +1,3 @@
-import type { Provider, Signer } from 'ethers';
 import {
   GAS_LIMITS,
   GAS_PRICE_MULTIPLIER,
@@ -6,15 +5,11 @@ import {
   MIN_CONFIRMATIONS,
   PLATFORM_FEE_RATE,
 } from '@c2c-agents/config/constants';
-
-import { calculateFee, normalizeAddress, uuidToBytes32 } from '../utils';
-import {
-  ContractInteractionError,
-  IdempotencyViolationError,
-  ValidationError,
-} from '../errors';
-import { getEscrowContract, getProvider } from './contracts';
 import type { Escrow } from '@c2c-agents/contracts/typechain-types/contracts/Escrow';
+import type { Provider, Signer } from 'ethers';
+import { ContractInteractionError, IdempotencyViolationError, ValidationError } from '../errors';
+import { calculateFee, normalizeAddress, uuidToBytes32 } from '../utils';
+import { getEscrowContract, getProvider } from './contracts';
 
 export interface GasOverrides {
   gasLimit?: bigint;
@@ -51,6 +46,19 @@ export interface ExecuteRefundParams {
   };
 }
 
+export interface ExecuteRecordEscrowParams {
+  orderId: string;
+  amount: string;
+  signer: Signer;
+  escrowAddress?: string;
+  gas?: GasOverrides;
+  provider?: Provider;
+  rpcUrl?: string;
+  deps?: {
+    escrowContract?: Escrow;
+  };
+}
+
 export interface SettlementSuccess {
   success: true;
   orderKey: string;
@@ -68,6 +76,10 @@ export interface RefundSuccess extends SettlementSuccess {
   amount: string;
 }
 
+export interface RecordEscrowSuccess extends SettlementSuccess {
+  amount: string;
+}
+
 export interface SettlementFailure {
   success: false;
   orderKey: string;
@@ -76,6 +88,7 @@ export interface SettlementFailure {
 
 export type PayoutResult = PayoutSuccess | SettlementFailure;
 export type RefundResult = RefundSuccess | SettlementFailure;
+export type RecordEscrowResult = RecordEscrowSuccess | SettlementFailure;
 
 function scaleBigInt(value: bigint, multiplier: number): bigint {
   const scale = 1000;
@@ -152,7 +165,8 @@ export async function executePayout(params: ExecutePayoutParams): Promise<Payout
     const fee = BigInt(feeAmount);
     const net = BigInt(netAmount);
 
-    const provider = params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
+    const provider =
+      params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
     const overrides = await buildGasOverrides(provider, GAS_LIMITS.PAYOUT, params.gas);
 
     const tx = await escrow.payout(
@@ -191,12 +205,13 @@ export async function executePayout(params: ExecutePayoutParams): Promise<Payout
     return {
       success: false,
       orderKey,
-      error: error instanceof ContractInteractionError
-        ? error
-        : new ContractInteractionError('Payout execution failed', {
-            orderId: params.orderId,
-            error,
-          }),
+      error:
+        error instanceof ContractInteractionError
+          ? error
+          : new ContractInteractionError('Payout execution failed', {
+              orderId: params.orderId,
+              error,
+            }),
     };
   }
 }
@@ -236,15 +251,11 @@ export async function executeRefund(params: ExecuteRefundParams): Promise<Refund
     }
 
     const amount = BigInt(params.amount);
-    const provider = params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
+    const provider =
+      params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
     const overrides = await buildGasOverrides(provider, GAS_LIMITS.REFUND, params.gas);
 
-    const tx = await escrow.refund(
-      orderKey,
-      creatorAddress,
-      amount,
-      overrides
-    );
+    const tx = await escrow.refund(orderKey, creatorAddress, amount, overrides);
     const receipt = await tx.wait(MIN_CONFIRMATIONS);
     if (!receipt) {
       throw new ContractInteractionError('Refund transaction not confirmed', {
@@ -270,12 +281,104 @@ export async function executeRefund(params: ExecuteRefundParams): Promise<Refund
     return {
       success: false,
       orderKey,
-      error: error instanceof ContractInteractionError
-        ? error
-        : new ContractInteractionError('Refund execution failed', {
-            orderId: params.orderId,
-            error,
-          }),
+      error:
+        error instanceof ContractInteractionError
+          ? error
+          : new ContractInteractionError('Refund execution failed', {
+              orderId: params.orderId,
+              error,
+            }),
+    };
+  }
+}
+
+export async function executeRecordEscrow(
+  params: ExecuteRecordEscrowParams
+): Promise<RecordEscrowResult> {
+  const orderKey = uuidToBytes32(params.orderId);
+  const escrow =
+    params.deps?.escrowContract ??
+    getEscrowContract({
+      signer: params.signer,
+      escrowAddress: params.escrowAddress,
+      provider: params.provider,
+      rpcUrl: params.rpcUrl,
+    });
+
+  try {
+    const status = await resolveStatus(escrow, orderKey);
+    if (status !== 0n) {
+      return {
+        success: false,
+        orderKey,
+        error: new IdempotencyViolationError('Order already settled', {
+          orderId: params.orderId,
+          status: status.toString(),
+        }),
+      };
+    }
+
+    const reserved = await escrow.escrowedAmounts(orderKey);
+    if (reserved > 0n) {
+      return {
+        success: false,
+        orderKey,
+        error: new IdempotencyViolationError('Escrow already recorded', {
+          orderId: params.orderId,
+          amount: reserved.toString(),
+        }),
+      };
+    }
+
+    const amount = BigInt(params.amount);
+    if (amount <= 0n) {
+      return {
+        success: false,
+        orderKey,
+        error: new ValidationError('Escrow amount must be > 0', {
+          orderId: params.orderId,
+          amount: params.amount,
+        }),
+      };
+    }
+
+    const provider =
+      params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
+    const overrides = await buildGasOverrides(provider, GAS_LIMITS.DEPOSIT, params.gas);
+
+    const tx = await escrow.recordEscrow(orderKey, amount, overrides);
+    const receipt = await tx.wait(MIN_CONFIRMATIONS);
+    if (!receipt) {
+      throw new ContractInteractionError('Record escrow transaction not confirmed', {
+        orderId: params.orderId,
+      });
+    }
+
+    const latestBlock = await provider.getBlockNumber();
+    const confirmations = latestBlock - receipt.blockNumber + 1;
+
+    return {
+      success: true,
+      orderKey,
+      txHash: tx.hash,
+      confirmations,
+      amount: params.amount,
+    };
+  } catch (error) {
+    if (error instanceof IdempotencyViolationError || error instanceof ValidationError) {
+      return { success: false, orderKey, error };
+    }
+
+    return {
+      success: false,
+      orderKey,
+      error:
+        error instanceof ContractInteractionError
+          ? error
+          : new ContractInteractionError('Record escrow execution failed', {
+              orderId: params.orderId,
+              error,
+            }),
     };
   }
 }
@@ -303,11 +406,13 @@ export async function executePayoutWithRetry(
     if (lastResult.error instanceof IdempotencyViolationError) return lastResult;
   }
 
-  return lastResult ?? {
-    success: false,
-    orderKey: uuidToBytes32(params.orderId),
-    error: new ContractInteractionError('Payout execution failed after retries'),
-  };
+  return (
+    lastResult ?? {
+      success: false,
+      orderKey: uuidToBytes32(params.orderId),
+      error: new ContractInteractionError('Payout execution failed after retries'),
+    }
+  );
 }
 
 export async function executeRefundWithRetry(
@@ -333,9 +438,11 @@ export async function executeRefundWithRetry(
     if (lastResult.error instanceof IdempotencyViolationError) return lastResult;
   }
 
-  return lastResult ?? {
-    success: false,
-    orderKey: uuidToBytes32(params.orderId),
-    error: new ContractInteractionError('Refund execution failed after retries'),
-  };
+  return (
+    lastResult ?? {
+      success: false,
+      orderKey: uuidToBytes32(params.orderId),
+      error: new ContractInteractionError('Refund execution failed after retries'),
+    }
+  );
 }

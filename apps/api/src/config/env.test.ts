@@ -5,6 +5,8 @@ const validEnv = {
   MOCK_USDT_ADDRESS: `0x${'1'.repeat(40)}`,
   ESCROW_ADDRESS: `0x${'2'.repeat(40)}`,
   PLATFORM_OPERATOR_PRIVATE_KEY: `${'a'.repeat(64)}`,
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
 };
 
 describe('validateApiEnv', () => {

@@ -55,6 +55,18 @@ export function validateApiEnv(): ApiEnv {
     errors.push('PLATFORM_OPERATOR_PRIVATE_KEY is invalid');
   }
 
+  const supabaseUrl = process.env.SUPABASE_URL ?? '';
+  if (!supabaseUrl) {
+    errors.push('SUPABASE_URL is required');
+  } else if (!isHttpUrl(supabaseUrl)) {
+    errors.push('SUPABASE_URL must be a valid http/https URL');
+  }
+
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  if (!supabaseServiceRoleKey) {
+    errors.push('SUPABASE_SERVICE_ROLE_KEY is required');
+  }
+
   if (errors.length > 0) {
     throw new Error(`API env validation failed: ${errors.join('; ')}`);
   }

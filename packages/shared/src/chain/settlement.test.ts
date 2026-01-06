@@ -1,13 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { Provider, Signer } from 'ethers';
-
+import { describe, expect, it, vi } from 'vitest';
+import { ContractInteractionError, IdempotencyViolationError } from '../errors';
 import {
   executePayout,
-  executeRefund,
   executePayoutWithRetry,
+  executeRecordEscrow,
+  executeRefund,
   executeRefundWithRetry,
 } from './settlement';
-import { ContractInteractionError, IdempotencyViolationError } from '../errors';
 
 const ORDER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const CREATOR = '0x0000000000000000000000000000000000000101';
@@ -174,6 +174,58 @@ describe('executeRefund', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBeInstanceOf(ContractInteractionError);
+    }
+  });
+});
+
+describe('executeRecordEscrow', () => {
+  it('should block when escrow already recorded', async () => {
+    const escrow = {
+      getStatus: vi.fn().mockResolvedValue(0n),
+      escrowedAmounts: vi.fn().mockResolvedValue(1n),
+      recordEscrow: vi.fn(),
+    };
+    const provider = buildProvider();
+
+    const result = await executeRecordEscrow({
+      orderId: ORDER_ID,
+      amount: '1000000',
+      signer: buildSigner(provider),
+      deps: { escrowContract: escrow as never },
+      provider,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBeInstanceOf(IdempotencyViolationError);
+      expect(escrow.recordEscrow).not.toHaveBeenCalled();
+    }
+  });
+
+  it('should record escrow successfully', async () => {
+    const tx = {
+      hash: '0xaaa',
+      wait: vi.fn().mockResolvedValue({ confirmations: 1 }),
+    };
+    const escrow = {
+      getStatus: vi.fn().mockResolvedValue(0n),
+      escrowedAmounts: vi.fn().mockResolvedValue(0n),
+      recordEscrow: vi.fn().mockResolvedValue(tx),
+    };
+    const provider = buildProvider();
+
+    const result = await executeRecordEscrow({
+      orderId: ORDER_ID,
+      amount: '1000000',
+      signer: buildSigner(provider),
+      deps: { escrowContract: escrow as never },
+      provider,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.txHash).toBe('0xaaa');
+      expect(result.amount).toBe('1000000');
     }
   });
 });

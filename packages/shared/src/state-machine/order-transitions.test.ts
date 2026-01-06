@@ -69,6 +69,11 @@ describe('订单状态机', () => {
       ).not.toThrow();
     });
 
+    it('应该允许合法的 Disputed -> Delivered/InProgress 撤回', () => {
+      expect(() => assertTransition(OrderStatus.Disputed, OrderStatus.Delivered)).not.toThrow();
+      expect(() => assertTransition(OrderStatus.Disputed, OrderStatus.InProgress)).not.toThrow();
+    });
+
     it('应该允许合法的 AdminArbitrating -> Paid/Refunded 转换', () => {
       expect(() => assertTransition(OrderStatus.AdminArbitrating, OrderStatus.Paid)).not.toThrow();
       expect(() =>
@@ -132,6 +137,8 @@ describe('订单状态机', () => {
       expect(canTransition(OrderStatus.Standby, OrderStatus.Pairing)).toBe(true);
       expect(canTransition(OrderStatus.Pairing, OrderStatus.InProgress)).toBe(true);
       expect(canTransition(OrderStatus.InProgress, OrderStatus.Delivered)).toBe(true);
+      expect(canTransition(OrderStatus.Disputed, OrderStatus.Delivered)).toBe(true);
+      expect(canTransition(OrderStatus.Disputed, OrderStatus.InProgress)).toBe(true);
     });
 
     it('应该对非法转换返回 false', () => {
@@ -154,6 +161,8 @@ describe('订单状态机', () => {
         [OrderStatus.InProgress, OrderStatus.Standby, false],
         [OrderStatus.Delivered, OrderStatus.Paid, false],
         [OrderStatus.Delivered, OrderStatus.Accepted, true],
+        [OrderStatus.Disputed, OrderStatus.Delivered, true],
+        [OrderStatus.Disputed, OrderStatus.InProgress, true],
       ];
 
       for (const [from, to, expected] of testCases) {
@@ -215,7 +224,11 @@ describe('订单状态机', () => {
 
     it('应该返回 Disputed 的允许转换', () => {
       const allowed = getAllowedTransitions(OrderStatus.Disputed);
-      expect(allowed).toEqual([OrderStatus.AdminArbitrating]);
+      expect(allowed).toEqual([
+        OrderStatus.Delivered,
+        OrderStatus.InProgress,
+        OrderStatus.AdminArbitrating,
+      ]);
     });
 
     it('应该返回 AdminArbitrating 的允许转换', () => {
@@ -373,6 +386,32 @@ describe('订单状态机', () => {
 
       for (let i = 0; i < disputeFlow.length - 1; i++) {
         expect(() => assertTransition(disputeFlow[i], disputeFlow[i + 1])).not.toThrow();
+      }
+    });
+
+    it('争议撤回（退款）：Delivered -> RefundRequested -> Disputed -> Delivered', () => {
+      const withdrawalFlow = [
+        OrderStatus.Delivered,
+        OrderStatus.RefundRequested,
+        OrderStatus.Disputed,
+        OrderStatus.Delivered,
+      ];
+
+      for (let i = 0; i < withdrawalFlow.length - 1; i++) {
+        expect(() => assertTransition(withdrawalFlow[i], withdrawalFlow[i + 1])).not.toThrow();
+      }
+    });
+
+    it('争议撤回（中断）：InProgress -> CancelRequested -> Disputed -> InProgress', () => {
+      const withdrawalFlow = [
+        OrderStatus.InProgress,
+        OrderStatus.CancelRequested,
+        OrderStatus.Disputed,
+        OrderStatus.InProgress,
+      ];
+
+      for (let i = 0; i < withdrawalFlow.length - 1; i++) {
+        expect(() => assertTransition(withdrawalFlow[i], withdrawalFlow[i + 1])).not.toThrow();
       }
     });
 

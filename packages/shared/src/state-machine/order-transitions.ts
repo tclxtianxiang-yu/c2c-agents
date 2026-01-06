@@ -14,7 +14,11 @@ const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.AutoAccepted]: [OrderStatus.Paid],
   [OrderStatus.RefundRequested]: [OrderStatus.Disputed, OrderStatus.Refunded],
   [OrderStatus.CancelRequested]: [OrderStatus.Disputed, OrderStatus.Refunded],
-  [OrderStatus.Disputed]: [OrderStatus.AdminArbitrating],
+  [OrderStatus.Disputed]: [
+    OrderStatus.Delivered,
+    OrderStatus.InProgress,
+    OrderStatus.AdminArbitrating,
+  ],
   [OrderStatus.AdminArbitrating]: [OrderStatus.Paid, OrderStatus.Refunded],
   [OrderStatus.Paid]: [OrderStatus.Completed],
   [OrderStatus.Refunded]: [OrderStatus.Completed],

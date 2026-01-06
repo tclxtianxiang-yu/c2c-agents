@@ -251,6 +251,8 @@ RefundRequested → Disputed
 RefundRequested → Refunded
 CancelRequested → Disputed
 CancelRequested → Refunded
+Disputed → Delivered (退款争议撤回)
+Disputed → InProgress (中断争议撤回)
 Disputed → AdminArbitrating (管理员仲裁中)
 AdminArbitrating → Paid
 AdminArbitrating → Refunded
@@ -261,7 +263,8 @@ Refunded → Completed
 **重要规则**:
 
 1. 进入 `RefundRequested`, `CancelRequested`, `Disputed`, `AdminArbitrating` 后，**永久关闭**自动验收路径
-2. **唯一终态是 `Completed`**，`Paid` / `Refunded` 仅为中间态，必须继续流转到 `Completed`
+2. Disputed 允许撤回，按来源回到 `Delivered` 或 `InProgress`
+3. **唯一终态是 `Completed`**，`Paid` / `Refunded` 仅为中间态，必须继续流转到 `Completed`
 
 ---
 
@@ -525,7 +528,9 @@ NEXT_PUBLIC_ESCROW_ADDRESS=0x...
 
 ### 7.3 常用交互（概念级）
 
+- 支付闭环：Transfer → 链下校验 → recordEscrow → payout/refund
 - A 支付：前端将 MockUSDT `transfer` 到 `ESCROW_ADDRESS`
+- 支付确认成功后：后端 operator 调用 Escrow `recordEscrow(orderId, amount)`
 - 后端结算：operator 调用 Escrow `payout(orderId, creator, provider, gross, net, fee)`
 - 后端退款：operator 调用 Escrow `refund(orderId, creator, amount)`
 
@@ -533,6 +538,7 @@ NEXT_PUBLIC_ESCROW_ADDRESS=0x...
 
 - `Paid(orderId, token, provider, netAmount, feeReceiver, feeAmount)`
 - `Refunded(orderId, token, creator, amount)`
+- `EscrowRecorded(orderId, amount)`
 
 ---
 

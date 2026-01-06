@@ -31,8 +31,10 @@ contract Escrow is AccessControl, Pausable, ReentrancyGuard {
 
     IERC20 public immutable token;
     address public feeReceiver;
+    uint256 public totalEscrowed;
 
     mapping(bytes32 => Settlement) private settlements;
+    mapping(bytes32 => uint256) public escrowedAmounts;
 
     event Paid(
         bytes32 indexed orderId,
@@ -43,6 +45,7 @@ contract Escrow is AccessControl, Pausable, ReentrancyGuard {
         uint256 feeAmount
     );
     event Refunded(bytes32 indexed orderId, address indexed token, address indexed creator, uint256 amount);
+    event EscrowRecorded(bytes32 indexed orderId, uint256 amount);
     event FeeReceiverChanged(address indexed oldReceiver, address indexed newReceiver);
     event OperatorGranted(address indexed operator);
     event OperatorRevoked(address indexed operator);
@@ -87,6 +90,21 @@ contract Escrow is AccessControl, Pausable, ReentrancyGuard {
         emit OperatorRevoked(operator);
     }
 
+    function recordEscrow(bytes32 orderId, uint256 amount) external whenNotPaused nonReentrant returns (bool) {
+        _assertOperatorOrAdmin();
+        require(amount > 0, 'Escrow: escrow amount is zero');
+        require(escrowedAmounts[orderId] == 0, 'Escrow: escrow already recorded');
+
+        uint256 balance = token.balanceOf(address(this));
+        require(balance >= totalEscrowed + amount, 'Escrow: insufficient balance for escrow');
+
+        escrowedAmounts[orderId] = amount;
+        totalEscrowed += amount;
+
+        emit EscrowRecorded(orderId, amount);
+        return true;
+    }
+
     function payout(
         bytes32 orderId,
         address creator,
@@ -103,6 +121,7 @@ contract Escrow is AccessControl, Pausable, ReentrancyGuard {
 
         Settlement storage existing = settlements[orderId];
         require(existing.status == SettlementStatus.None, 'Escrow: already settled');
+        _consumeEscrowed(orderId, grossAmount);
 
         token.safeTransfer(provider, netAmount);
         token.safeTransfer(feeReceiver, feeAmount);
@@ -133,6 +152,7 @@ contract Escrow is AccessControl, Pausable, ReentrancyGuard {
 
         Settlement storage existing = settlements[orderId];
         require(existing.status == SettlementStatus.None, 'Escrow: already settled');
+        _consumeEscrowed(orderId, amount);
 
         token.safeTransfer(creator, amount);
 
@@ -163,7 +183,18 @@ contract Escrow is AccessControl, Pausable, ReentrancyGuard {
         require(to != address(0), 'Escrow: sweep to zero');
         require(amount > 0, 'Escrow: sweep amount is zero');
 
+        uint256 balance = token.balanceOf(address(this));
+        require(balance >= totalEscrowed, 'Escrow: escrow exceeds balance');
+        require(amount <= balance - totalEscrowed, 'Escrow: sweep exceeds available');
+
         token.safeTransfer(to, amount);
+    }
+
+    function _consumeEscrowed(bytes32 orderId, uint256 amount) private {
+        uint256 reserved = escrowedAmounts[orderId];
+        require(reserved == amount, 'Escrow: escrowed amount mismatch');
+        totalEscrowed -= reserved;
+        delete escrowedAmounts[orderId];
     }
 
     function _assertOperatorOrAdmin() private view {
