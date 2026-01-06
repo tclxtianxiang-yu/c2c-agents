@@ -63,26 +63,30 @@ PATH=/Users/yutianxiang/.nvm/versions/node/v22.18.0/bin:$PATH pnpm --filter @c2c
 ### 1.1 支付确认校验
 
 ```typescript
-// 从 @c2c-agents/shared/chain 导入 (未来)
-import { validatePayTx } from '@c2c-agents/shared/chain';
+// 从 @c2c-agents/shared/chain 导入
+import { verifyPayment } from '@c2c-agents/shared/chain';
 
 /**
  * 校验用户的支付交易是否有效
  *
  * @param txHash - 交易哈希
- * @param expectedAmount - 期望的金额 (最小单位,string)
- * @param expectedRecipient - 期望的接收地址 (escrow 合约地址)
- * @returns 校验结果 { valid: boolean, confirmations: number }
+ * @param expectedFrom - 期望付款地址（A 当前钱包地址）
+ * @param expectedTo - 期望收款地址（Escrow 合约地址）
+ * @param expectedAmount - 期望金额 (最小单位,string)
+ * @param tokenAddress - MockUSDT 合约地址
+ * @returns 校验结果 { success: boolean, confirmations?: number }
  */
-async validatePayTx(
-  txHash: string,
-  expectedAmount: string,
-  expectedRecipient: string
-): Promise<{
-  valid: boolean;
-  confirmations: number;
+async verifyPayment(params: {
+  txHash: string;
+  expectedFrom: string;
+  expectedTo: string;
+  expectedAmount: string;
+  tokenAddress: string;
+}): Promise<{
+  success: boolean;
+  confirmations?: number;
   actualAmount?: string;
-  error?: string;
+  error?: Error;
 }>;
 ```
 
@@ -90,21 +94,28 @@ async validatePayTx(
 
 ```typescript
 // Owner #2 使用示例
-import { validatePayTx } from '@c2c-agents/shared/chain';
+import { verifyPayment } from '@c2c-agents/shared/chain';
 import { MIN_CONFIRMATIONS } from '@c2c-agents/config/constants';
 import { validateApiEnv } from '@/config/env';
 
 async verifyTaskPayment(taskId: string, txHash: string) {
   const task = await this.findById(taskId);
+  const creatorWalletAddress = await this.walletBindingService.getActiveAddress(task.creatorId);
 
   const apiEnv = validateApiEnv();
-  const result = await validatePayTx(txHash, task.expectedReward, apiEnv.escrowAddress);
+  const result = await verifyPayment({
+    txHash,
+    expectedFrom: creatorWalletAddress,
+    expectedTo: apiEnv.escrowAddress,
+    expectedAmount: task.expectedReward,
+    tokenAddress: apiEnv.mockUsdtAddress, // 来自 API env 的 MOCK_USDT_ADDRESS
+  });
 
-  if (!result.valid) {
-    throw new BadRequestException(`Payment validation failed: ${result.error}`);
+  if (!result.success) {
+    throw new BadRequestException(`Payment validation failed: ${result.error?.message}`);
   }
 
-  if (result.confirmations < MIN_CONFIRMATIONS) {
+  if ((result.confirmations ?? 0) < MIN_CONFIRMATIONS) {
     throw new BadRequestException(
       `Insufficient confirmations: ${result.confirmations}/${MIN_CONFIRMATIONS}`
     );
@@ -120,24 +131,23 @@ async verifyTaskPayment(taskId: string, txHash: string) {
 ### 1.2 执行 Payout (结算给 Agent)
 
 ```typescript
-// 从 @c2c-agents/shared/chain 导入 (未来)
-import { executePayoutTx } from '@c2c-agents/shared/chain';
+// 从 @c2c-agents/shared/chain 导入
+import { executePayout } from '@c2c-agents/shared/chain';
 
 /**
  * 执行链上 payout (托管资金转给 Agent)
- *
- * @param orderId - 订单 UUID
- * @param agentAddress - Agent 钱包地址
- * @param amount - 金额 (最小单位,string)
- * @returns 交易哈希
  */
-async executePayoutTx(
-  orderId: string,
-  agentAddress: string,
-  amount: string
-): Promise<{
-  txHash: string;
-  confirmations: number;
+async executePayout(params: {
+  orderId: string;
+  creatorAddress: string;
+  providerAddress: string;
+  grossAmount: string;
+  signer: Signer;
+}): Promise<{
+  success: boolean;
+  txHash?: string;
+  confirmations?: number;
+  error?: Error;
 }>;
 ```
 
@@ -145,27 +155,30 @@ async executePayoutTx(
 
 ```typescript
 // Owner #5 使用示例
-import { executePayoutTx } from '@c2c-agents/shared/chain';
+import { executePayout } from '@c2c-agents/shared/chain';
 import { OrderStatus } from '@c2c-agents/shared';
-import { calculateFee } from '@c2c-agents/shared/utils';
-import { PLATFORM_FEE_RATE } from '@c2c-agents/config/constants';
 
 async settleOrder(orderId: string) {
   const order = await this.orderService.findById(orderId);
+  const creatorWalletAddress = await this.walletBindingService.getActiveAddress(order.creatorId);
 
   // 状态机检查
   assertTransition(order.status, OrderStatus.Paid);
 
   // 收款地址：WalletBinding 的 active address
   const providerAddress = await this.walletBindingService.getActiveAddress(order.providerId);
-  const { netAmount } = calculateFee(order.escrowAmount, PLATFORM_FEE_RATE);
-
   // 执行链上 payout (幂等性由合约保证)
-  const result = await executePayoutTx(
+  const result = await executePayout({
     orderId,
     providerAddress,
-    netAmount // 扣除手续费后的金额（由 escrowAmount 计算）
-  );
+    grossAmount: order.escrowAmount,
+    creatorAddress: creatorWalletAddress,
+    signer: this.chainSigner,
+  });
+
+  if (!result.success) {
+    throw new BadRequestException(`Payout failed: ${result.error?.message}`);
+  }
 
   // 更新订单状态 (幂等性检查)
   await this.db.query(`
@@ -182,24 +195,22 @@ async settleOrder(orderId: string) {
 ### 1.3 执行 Refund (退款给 Task 创建者)
 
 ```typescript
-// 从 @c2c-agents/shared/chain 导入 (未来)
-import { executeRefundTx } from '@c2c-agents/shared/chain';
+// 从 @c2c-agents/shared/chain 导入
+import { executeRefund } from '@c2c-agents/shared/chain';
 
 /**
  * 执行链上 refund (托管资金退还给 Task 创建者)
- *
- * @param orderId - 订单 UUID
- * @param refundAddress - 退款接收地址
- * @param amount - 退款金额 (最小单位,string)
- * @returns 交易哈希
  */
-async executeRefundTx(
-  orderId: string,
-  refundAddress: string,
-  amount: string
-): Promise<{
-  txHash: string;
-  confirmations: number;
+async executeRefund(params: {
+  orderId: string;
+  creatorAddress: string;
+  amount: string;
+  signer: Signer;
+}): Promise<{
+  success: boolean;
+  txHash?: string;
+  confirmations?: number;
+  error?: Error;
 }>;
 ```
 
@@ -207,7 +218,7 @@ async executeRefundTx(
 
 ```typescript
 // Owner #6 使用示例
-import { executeRefundTx } from '@c2c-agents/shared/chain';
+import { executeRefund } from '@c2c-agents/shared/chain';
 import { OrderStatus } from '@c2c-agents/shared';
 
 async processRefund(orderId: string) {
@@ -220,11 +231,16 @@ async processRefund(orderId: string) {
   const creatorAddress = await this.walletBindingService.getActiveAddress(order.creatorId);
 
   // 执行链上退款
-  const result = await executeRefundTx(
+  const result = await executeRefund({
     orderId,
     creatorAddress,
-    order.escrowAmount  // 全额退款
-  );
+    amount: order.escrowAmount, // 全额退款
+    signer: this.chainSigner,
+  });
+
+  if (!result.success) {
+    throw new BadRequestException(`Refund failed: ${result.error?.message}`);
+  }
 
   // 更新订单状态 (幂等性检查)
   await this.db.query(`
@@ -776,9 +792,15 @@ PLATFORM_OPERATOR_PRIVATE_KEY=<部署钱包私钥>
 ```typescript
 import { MIN_CONFIRMATIONS } from '@c2c-agents/config/constants';
 
-const result = await validatePayTx(txHash, amount, recipient);
+const result = await verifyPayment({
+  txHash,
+  expectedFrom,
+  expectedTo: recipient,
+  expectedAmount: amount,
+  tokenAddress: mockUsdtAddress,
+});
 
-if (result.confirmations < MIN_CONFIRMATIONS) {
+if ((result.confirmations ?? 0) < MIN_CONFIRMATIONS) {
   throw new BadRequestException('Waiting for confirmations');
 }
 ```
