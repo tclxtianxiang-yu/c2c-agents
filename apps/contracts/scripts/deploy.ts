@@ -1,22 +1,63 @@
-import { ethers } from 'hardhat';
+import hre from 'hardhat';
+
+const { ethers } = hre;
+
+function resolveEnvAddress(name: string, fallback: string): string {
+  const value = process.env[name];
+  if (!value) {
+    return fallback;
+  }
+  if (!ethers.isAddress(value)) {
+    throw new Error(`${name} is not a valid address`);
+  }
+  return value;
+}
+
+function resolveOptionalAddress(name: string): string | undefined {
+  const value = process.env[name];
+  if (!value) {
+    return undefined;
+  }
+  if (!ethers.isAddress(value)) {
+    throw new Error(`${name} is not a valid address`);
+  }
+  return value;
+}
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
+  const [deployer] = await ethers.getSigners();
+  const deployerAddress = await deployer.getAddress();
 
-  const lockedAmount = ethers.parseEther('0.001');
+  const feeReceiver = resolveEnvAddress('PLATFORM_FEE_RECEIVER', deployerAddress);
+  const admin = resolveEnvAddress('PLATFORM_ADMIN_ADDRESS', deployerAddress);
+  const operator = resolveOptionalAddress('PLATFORM_OPERATOR_ADDRESS');
 
-  const lock = await ethers.deployContract('Lock', [unlockTime], {
-    value: lockedAmount,
-  });
+  if (!operator) {
+    throw new Error('PLATFORM_OPERATOR_ADDRESS is required for deployment');
+  }
 
-  await lock.waitForDeployment();
+  if (admin.toLowerCase() !== deployerAddress.toLowerCase()) {
+    throw new Error('PLATFORM_ADMIN_ADDRESS must match deployer to grant operator');
+  }
 
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
-  );
+  const MockUSDT = await ethers.getContractFactory('MockUSDT');
+  const token = await MockUSDT.deploy();
+  await token.waitForDeployment();
+
+  const Escrow = await ethers.getContractFactory('Escrow');
+  const escrow = await Escrow.deploy(await token.getAddress(), feeReceiver, admin);
+  await escrow.waitForDeployment();
+
+  const tx = await escrow.grantOperator(operator);
+  await tx.wait();
+
+  console.log('MockUSDT deployed to:', await token.getAddress());
+  console.log('Escrow deployed to:', await escrow.getAddress());
+  console.log('Deployer:', deployerAddress);
+  console.log('Admin:', admin);
+  console.log('FeeReceiver:', feeReceiver);
+  console.log('Operator:', operator);
+  console.log('Operator granted: true');
 }
 
 main().catch((error) => {

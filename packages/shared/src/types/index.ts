@@ -100,7 +100,6 @@ export interface Order {
   refundRequestReason: string | null; // A 在 Delivered 发起退款的原因
   cancelRequestReason: string | null; // B 在 InProgress 发起中断的原因
 
-  disputeId: string | null; // uuid | null
   pairingCreatedAt: string | null; // timestamptz → ISO 8601（用于 TTL）
 
   createdAt: string; // timestamptz → ISO 8601

@@ -214,7 +214,7 @@ export function toApiError(error: unknown): ApiErrorResponse & { statusCode: num
   if (error instanceof Error) {
     return {
       code: ErrorCode.SYSTEM_INTERNAL_ERROR,
-      message: error.message,
+      message: 'Internal server error',
       statusCode: 500,
     };
   }

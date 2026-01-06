@@ -12,6 +12,7 @@ import {
   uuidToBytes32,
   validateDeliveryContent,
 } from './index';
+import { ValidationError } from '../errors';
 
 describe('金额转换工具', () => {
   describe('toMinUnit', () => {
@@ -229,6 +230,10 @@ describe('时间计算工具', () => {
       vi.setSystemTime(new Date('2026-01-05T10:00:01Z')); // 1 秒后
       expect(isTTLExpired(createdAt, 0)).toBe(true);
     });
+
+    it('应该在非法时间时抛出 ValidationError', () => {
+      expect(() => isTTLExpired('invalid-date', 1)).toThrow(ValidationError);
+    });
   });
 
   describe('getRemainingMs', () => {
@@ -253,6 +258,10 @@ describe('时间计算工具', () => {
       const remaining = getRemainingMs(createdAt, 3);
       expect(remaining).toBe(2 * 60 * 60 * 1000);
     });
+
+    it('应该在非法时间时抛出 ValidationError', () => {
+      expect(() => getRemainingMs('invalid-date', 1)).toThrow(ValidationError);
+    });
   });
 
   describe('shouldAutoAccept', () => {
@@ -276,6 +285,10 @@ describe('时间计算工具', () => {
       expect(shouldAutoAccept(deliveredAt, autoAcceptHours)).toBe(
         isTTLExpired(deliveredAt, autoAcceptHours)
       );
+    });
+
+    it('应该在非法时间时抛出 ValidationError', () => {
+      expect(() => shouldAutoAccept('invalid-date', 1)).toThrow(ValidationError);
     });
   });
 });

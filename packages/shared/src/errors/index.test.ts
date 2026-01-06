@@ -197,7 +197,7 @@ describe('toApiError', () => {
 
     expect(apiError.statusCode).toBe(500);
     expect(apiError.code).toBe(ErrorCode.SYSTEM_INTERNAL_ERROR);
-    expect(apiError.message).toBe('Something went wrong');
+    expect(apiError.message).toBe('Internal server error');
   });
 
   it('应该转换未知错误为 API 响应', () => {

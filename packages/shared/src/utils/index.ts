@@ -7,6 +7,8 @@
 import Decimal from 'decimal.js';
 import { getAddress, keccak256, toBytes } from 'viem';
 
+import { ValidationError } from '../errors';
+
 // ============================================================
 // 金额转换工具（基于 decimal.js，确保精度安全）
 // ============================================================
@@ -134,8 +136,20 @@ export function calculateFee(
 // 时间计算工具（统一使用 UTC）
 // ============================================================
 
+function toValidDate(value: string | Date, fieldName: string): Date {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) {
+    throw new ValidationError(`Invalid ${fieldName} date`);
+  }
+  return date;
+}
+
 /**
  * 检查 TTL 是否过期
+ *
+ * 注意：若传入非法时间将抛出 ValidationError。
+ * - API 路径应由全局 exception filter 转为 400
+ * - cron/worker 应捕获后跳过单条记录
  *
  * @param createdAt - 创建时间（ISO 8601 字符串或 Date 对象）
  * @param ttlHours - TTL 时长（小时）
@@ -150,7 +164,7 @@ export function calculateFee(
  * ```
  */
 export function isTTLExpired(createdAt: string | Date, ttlHours: number): boolean {
-  const createdTime = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+  const createdTime = toValidDate(createdAt, 'createdAt');
   const expiresAt = new Date(createdTime.getTime() + ttlHours * 60 * 60 * 1000);
   return Date.now() >= expiresAt.getTime();
 }
@@ -170,7 +184,7 @@ export function isTTLExpired(createdAt: string | Date, ttlHours: number): boolea
  * ```
  */
 export function getRemainingMs(createdAt: string | Date, ttlHours: number): number {
-  const createdTime = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+  const createdTime = toValidDate(createdAt, 'createdAt');
   const expiresAt = new Date(createdTime.getTime() + ttlHours * 60 * 60 * 1000);
   return expiresAt.getTime() - Date.now();
 }

@@ -17,8 +17,48 @@
 
 ## 1. 链上交互网关 (待实现)
 
-> **状态**: 🟡 待实现 (Phase 2)
-> **依赖**: MockUSDT.sol, Escrow.sol 合约部署完成
+> **状态**: 🟡 待实现 (Phase 3)
+> **依赖**: ✅ MockUSDT.sol, Escrow.sol 已实现并部署
+
+### 1.0 合约已落地信息（Phase 2）
+
+**合约源码**:
+- `apps/contracts/contracts/MockUSDT.sol`
+- `apps/contracts/contracts/Escrow.sol`
+
+**TypeChain 类型**:
+- `apps/contracts/typechain-types/contracts/MockUSDT.ts`
+- `apps/contracts/typechain-types/contracts/Escrow.ts`
+
+**部署脚本**:
+- `apps/contracts/scripts/deploy.ts`
+
+**环境变量（部署后写入）**:
+```bash
+MOCK_USDT_ADDRESS=0x...
+ESCROW_ADDRESS=0x...
+PLATFORM_OPERATOR_PRIVATE_KEY=...
+PLATFORM_OPERATOR_ADDRESS=0x...
+PLATFORM_ADMIN_ADDRESS=0x...
+PLATFORM_FEE_RECEIVER=0x...
+```
+
+**说明**:
+- `MOCK_USDT_ADDRESS/ESCROW_ADDRESS/PLATFORM_OPERATOR_PRIVATE_KEY` 为 server-only
+- API 启动时由 `apps/api/src/config/env.ts` 强制校验
+
+**部署命令（Sepolia）**:
+```bash
+PATH=/Users/yutianxiang/.nvm/versions/node/v22.18.0/bin:$PATH pnpm --filter @c2c-agents/contracts run deploy
+```
+
+**合约能力摘要**:
+- MockUSDT: `decimals()=6`, `mint()`(onlyOwner), `faucet()`(public)
+- Escrow: `payout/refund`(operator/admin), `pause/unpause`, `setFeeReceiver`, `grant/revokeOperator`, `sweep`
+
+**事件**:
+- `Paid(orderId, token, provider, netAmount, feeReceiver, feeAmount)`
+- `Refunded(orderId, token, creator, amount)`
 
 ### 1.1 支付确认校验
 
@@ -52,15 +92,13 @@ async validatePayTx(
 // Owner #2 使用示例
 import { validatePayTx } from '@c2c-agents/shared/chain';
 import { MIN_CONFIRMATIONS } from '@c2c-agents/config/constants';
+import { validateApiEnv } from '@/config/env';
 
 async verifyTaskPayment(taskId: string, txHash: string) {
   const task = await this.findById(taskId);
 
-  const result = await validatePayTx(
-    txHash,
-    task.escrowAmount,
-    env.ESCROW_ADDRESS
-  );
+  const apiEnv = validateApiEnv();
+  const result = await validatePayTx(txHash, task.expectedReward, apiEnv.escrowAddress);
 
   if (!result.valid) {
     throw new BadRequestException(`Payment validation failed: ${result.error}`);
@@ -76,6 +114,8 @@ async verifyTaskPayment(taskId: string, txHash: string) {
   await this.updateTaskStatus(taskId, TaskStatus.Published);
 }
 ```
+
+> 如果改为在创建 Order 后再校验，则使用 `order.escrowAmount` 作为 expectedAmount。
 
 ### 1.2 执行 Payout (结算给 Agent)
 
@@ -107,6 +147,8 @@ async executePayoutTx(
 // Owner #5 使用示例
 import { executePayoutTx } from '@c2c-agents/shared/chain';
 import { OrderStatus } from '@c2c-agents/shared';
+import { calculateFee } from '@c2c-agents/shared/utils';
+import { PLATFORM_FEE_RATE } from '@c2c-agents/config/constants';
 
 async settleOrder(orderId: string) {
   const order = await this.orderService.findById(orderId);
@@ -114,11 +156,15 @@ async settleOrder(orderId: string) {
   // 状态机检查
   assertTransition(order.status, OrderStatus.Paid);
 
+  // 收款地址：WalletBinding 的 active address
+  const providerAddress = await this.walletBindingService.getActiveAddress(order.providerId);
+  const { netAmount } = calculateFee(order.escrowAmount, PLATFORM_FEE_RATE);
+
   // 执行链上 payout (幂等性由合约保证)
   const result = await executePayoutTx(
     orderId,
-    order.agentWalletAddress,
-    order.netAmount  // 扣除手续费后的金额
+    providerAddress,
+    netAmount // 扣除手续费后的金额（由 escrowAmount 计算）
   );
 
   // 更新订单状态 (幂等性检查)
@@ -170,10 +216,13 @@ async processRefund(orderId: string) {
   // 状态机检查
   assertTransition(order.status, OrderStatus.Refunded);
 
+  // 退款地址：WalletBinding 的 active address
+  const creatorAddress = await this.walletBindingService.getActiveAddress(order.creatorId);
+
   // 执行链上退款
   const result = await executeRefundTx(
     orderId,
-    order.creatorWalletAddress,
+    creatorAddress,
     order.escrowAmount  // 全额退款
   );
 
@@ -200,18 +249,21 @@ async processRefund(orderId: string) {
 
 ```sql
 CREATE TABLE queue_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   status queue_item_status NOT NULL DEFAULT 'queued',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   consumed_at TIMESTAMPTZ,
-  canceled_at TIMESTAMPTZ,
-  UNIQUE(agent_id, order_id)
+  canceled_at TIMESTAMPTZ
 );
 
 CREATE TYPE queue_item_status AS ENUM ('queued', 'consumed', 'canceled');
+
+CREATE UNIQUE INDEX uq_queue_items_agent_order_queued
+  ON queue_items(agent_id, order_id)
+  WHERE status = 'queued';
 ```
 
 ### 2.2 核心约束
@@ -219,6 +271,7 @@ CREATE TYPE queue_item_status AS ENUM ('queued', 'consumed', 'canceled');
 1. **队列容量**: 每个 Agent 最多持有 `QUEUE_MAX_N` (默认 10) 个 `queued` 状态的 QueueItem
 2. **先进先出**: 必须按 `created_at` 升序消费
 3. **原子抢占**: `consume-next` 操作必须使用 `FOR UPDATE SKIP LOCKED` 保证并发安全
+4. **历史记录允许共存**: `consumed` / `canceled` 与 `queued` 可共存，唯一约束只限制 `queued`
 
 ### 2.3 核心 SQL 操作
 
@@ -231,9 +284,9 @@ FROM queue_items
 WHERE agent_id = $1 AND status = 'queued';
 
 -- 如果 count < QUEUE_MAX_N,允许入队
-INSERT INTO queue_items (agent_id, order_id, status)
-VALUES ($1, $2, 'queued')
-ON CONFLICT (agent_id, order_id) DO NOTHING
+INSERT INTO queue_items (agent_id, task_id, order_id, status)
+VALUES ($1, $2, $3, 'queued')
+ON CONFLICT (agent_id, order_id) WHERE status = 'queued' DO NOTHING
 RETURNING *;
 ```
 
@@ -243,7 +296,7 @@ RETURNING *;
 import { QUEUE_MAX_N } from '@c2c-agents/config/constants';
 import { QueueItem, QueueItemStatus } from '@c2c-agents/shared';
 
-async enqueue(agentId: string, orderId: string): Promise<QueueItem> {
+async enqueue(agentId: string, taskId: string, orderId: string): Promise<QueueItem> {
   // 检查队列容量
   const { count } = await this.db.query<{ count: number }>(`
     SELECT COUNT(*) as count
@@ -257,11 +310,11 @@ async enqueue(agentId: string, orderId: string): Promise<QueueItem> {
 
   // 入队 (幂等)
   const item = await this.db.query<QueueItem>(`
-    INSERT INTO queue_items (agent_id, order_id, status)
-    VALUES ($1, $2, 'queued')
-    ON CONFLICT (agent_id, order_id) DO NOTHING
+    INSERT INTO queue_items (agent_id, task_id, order_id, status)
+    VALUES ($1, $2, $3, 'queued')
+    ON CONFLICT (agent_id, order_id) WHERE status = 'queued' DO NOTHING
     RETURNING *
-  `, [agentId, orderId]);
+  `, [agentId, taskId, orderId]);
 
   return item;
 }
@@ -501,50 +554,32 @@ const agent = createMockAgent({
 
 ### 5.1 触发器 (已实现)
 
-#### auto_update_order_status_on_task_archive
-
-```sql
--- 当 Task 归档时,自动取消关联的 Standby 订单
-CREATE OR REPLACE FUNCTION auto_cancel_standby_orders_on_task_archive()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.status = 'archived' AND OLD.status != 'archived' THEN
-    UPDATE orders
-    SET status = 'Cancelled'
-    WHERE task_id = NEW.id
-      AND status = 'Standby';
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_auto_cancel_standby_orders_on_task_archive
-AFTER UPDATE ON tasks
-FOR EACH ROW
-EXECUTE FUNCTION auto_cancel_standby_orders_on_task_archive();
-```
-
-**影响**: Owner #2 归档 Task 时,会自动触发关联 Standby 订单的取消
+当前仅保留 `updated_at` 自动更新时间戳触发器（tasks/orders/agents/disputes/user_profiles 等），
+**没有**业务状态自动变更触发器。如需新增业务触发器，必须走 migration 变更提案。
 
 ### 5.2 索引策略 (已实现)
 
 ```sql
 -- 订单状态查询优化
 CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_task_id ON orders(task_id);
-CREATE INDEX idx_orders_agent_id ON orders(agent_id);
+CREATE INDEX idx_orders_task ON orders(task_id);
+CREATE INDEX idx_orders_creator ON orders(creator_id);
+CREATE INDEX idx_orders_provider ON orders(provider_id);
+CREATE INDEX idx_orders_agent ON orders(agent_id);
 
 -- 队列查询优化
-CREATE INDEX idx_queue_items_agent_status ON queue_items(agent_id, status);
-CREATE INDEX idx_queue_items_created_at ON queue_items(created_at);
+CREATE INDEX idx_queue_items_agent_created_at ON queue_items(agent_id, created_at);
+CREATE INDEX idx_queue_items_order ON queue_items(order_id);
+CREATE INDEX idx_queue_items_consumed_at ON queue_items(consumed_at);
+CREATE INDEX idx_queue_items_canceled_at ON queue_items(canceled_at);
+CREATE UNIQUE INDEX uq_queue_items_agent_order_queued
+  ON queue_items(agent_id, order_id)
+  WHERE status = 'queued';
 
--- Pairing 超时扫描优化
-CREATE INDEX idx_orders_pairing_expires_at ON orders(pairing_expires_at)
-  WHERE status = 'Pairing';
-
--- 自动验收扫描优化
-CREATE INDEX idx_deliveries_auto_accept_at ON deliveries(auto_accept_at)
-  WHERE auto_accepted_at IS NULL;
+-- tx_hash 对账/查重优化
+CREATE INDEX idx_orders_pay_tx_hash ON orders(pay_tx_hash);
+CREATE INDEX idx_orders_payout_tx_hash ON orders(payout_tx_hash);
+CREATE INDEX idx_orders_refund_tx_hash ON orders(refund_tx_hash);
 ```
 
 ### 5.3 外键约束 (已实现)
@@ -727,6 +762,8 @@ MOCK_USDT_ADDRESS=<部署后填写>
 ESCROW_ADDRESS=<部署后填写>
 PLATFORM_OPERATOR_PRIVATE_KEY=<部署钱包私钥>
 ```
+
+**说明**: 以上链上敏感变量在 API 启动时由 `apps/api/src/config/env.ts` 校验。
 
 ---
 

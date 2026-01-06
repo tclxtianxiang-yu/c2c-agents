@@ -13,9 +13,6 @@ import { z } from 'zod';
 /** EVM 地址 Schema（0x + 40 位十六进制） */
 const evmAddressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM address format');
 
-/** EVM 私钥 Schema（0x + 64 位十六进制） */
-const privateKeySchema = z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid private key format');
-
 /** 正整数 Schema */
 const positiveIntSchema = z
   .string()
@@ -52,9 +49,6 @@ const envSchema = z.object({
   CHAIN_ID: z.string().default('11155111'), // Sepolia 测试网
   RPC_TIMEOUT_MS: z.string().default('30000'), // RPC 超时时间（毫秒）
   CHAIN_RPC_URL: z.string().url().optional(),
-  MOCK_USDT_ADDRESS: evmAddressSchema.optional(),
-  ESCROW_ADDRESS: evmAddressSchema.optional(),
-  PLATFORM_OPERATOR_PRIVATE_KEY: privateKeySchema.optional(),
 
   // ========== 业务常量（可选，有默认值） ==========
   PAIRING_TTL_HOURS: positiveIntSchema.optional(),

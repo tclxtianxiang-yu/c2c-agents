@@ -14,7 +14,8 @@
 - [4. 工具函数使用指南](#4-工具函数使用指南)
 - [5. 错误处理规范](#5-错误处理规范)
 - [6. 配置常量使用](#6-配置常量使用)
-- [7. 数据库交互规范](#7-数据库交互规范)
+- [7. 合约对接速览](#7-合约对接速览)
+- [8. 数据库交互规范](#8-数据库交互规范)
 
 ---
 
@@ -121,7 +122,7 @@ const order: Order = {
 };
 
 // ✅ 使用工具函数转换
-const displayAmount = fromMinUnit(order.rewardAmount, 6); // '1.00'
+const displayAmount = fromMinUnit(order.rewardAmount, 6); // '1.000000'
 const minUnitAmount = toMinUnit('1.5', 6); // '1500000'
 
 // ✅ 计算手续费（注意：feeRate 现为 number 类型）
@@ -233,28 +234,34 @@ InProgress (进行中)
   ↓
 Delivered (已交付)
   ↓
-Accepted (已验收) ← 正常路径终点
+Accepted (已验收)
   ↓
-Paid (已结算) ← 最终状态
+Paid (已结算)
+  ↓
+Completed (完成) ← 唯一终态
 
-# 异常分支
-Pairing → PairingTimeout (配对超时)
-InProgress → RefundRequested (请求退款)
+# 分支与回流
+Pairing → Standby
 InProgress → CancelRequested (请求取消)
 Delivered → AutoAccepted (自动验收)
-Delivered → Disputed (争议中)
-Disputed → AdminArbitrating (管理员仲裁中)
-
-# 终态
-AdminArbitrating → {Accepted, Refunded, Cancelled}
+Delivered → RefundRequested (请求退款)
+Accepted → Paid
+AutoAccepted → Paid
+RefundRequested → Disputed
 RefundRequested → Refunded
-CancelRequested → Cancelled
+CancelRequested → Disputed
+CancelRequested → Refunded
+Disputed → AdminArbitrating (管理员仲裁中)
+AdminArbitrating → Paid
+AdminArbitrating → Refunded
+Paid → Completed
+Refunded → Completed
 ```
 
 **重要规则**:
 
 1. 进入 `RefundRequested`, `CancelRequested`, `Disputed`, `AdminArbitrating` 后，**永久关闭**自动验收路径
-2. `Paid`, `Refunded`, `Cancelled` 是**终态**，不可再转移
+2. **唯一终态是 `Completed`**，`Paid` / `Refunded` 仅为中间态，必须继续流转到 `Completed`
 
 ---
 
@@ -269,9 +276,9 @@ import { isValidAddress, normalizeAddress, formatAddress } from '@c2c-agents/sha
 isValidAddress('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'); // false (太短)
 isValidAddress('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0'); // true
 
-// 标准化地址 (转小写)
+// 标准化地址 (EIP-55 checksum)
 normalizeAddress('0xAbCdEf0123456789AbCdEf0123456789AbCdEf01');
-// '0xabcdef0123456789abcdef0123456789abcdef01'
+// '0xabCDeF0123456789AbcdEf0123456789aBCDEF01'
 
 // 格式化显示 (0x1234...5678)
 formatAddress('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0');
@@ -288,8 +295,8 @@ toMinUnit('1.5', 6);    // '1500000'
 toMinUnit('100', 6);    // '100000000'
 
 // 最小单位 → 用户金额
-fromMinUnit('1500000', 6);   // '1.5'
-fromMinUnit('100000000', 6); // '100.0'
+fromMinUnit('1500000', 6);   // '1.500000'
+fromMinUnit('100000000', 6); // '100.000000'
 
 // 计算手续费 (15%)（注意：feeRate 现为 number 类型）
 const { feeAmount, netAmount } = calculateFee('1000000', 0.15);
@@ -306,15 +313,12 @@ const { feeAmount, netAmount } = calculateFee('1000000', 0.15);
 ### 4.3 UUID 转换
 
 ```typescript
-import { uuidToBytes32, bytes32ToUuid } from '@c2c-agents/shared/utils';
+import { uuidToBytes32 } from '@c2c-agents/shared/utils';
 
 // UUID → bytes32 (用于链上存储)
 const bytes32 = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
-// '0x550e8400e29b41d4a716446655440000'
-
-// bytes32 → UUID (从链上读取)
-const uuid = bytes32ToUuid('0x550e8400e29b41d4a716446655440000');
-// '550e8400-e29b-41d4-a716-446655440000'
+// '0x...' (keccak256 hash，不是直接 hex)
+// Solidity 对应：keccak256(abi.encodePacked(uuid))
 ```
 
 ---
@@ -406,7 +410,7 @@ import {
   PAIRING_TTL_HOURS,              // 24 (配对超时时长)
   QUEUE_MAX_N,                    // 10 (队列最大容量)
   AUTO_ACCEPT_HOURS,              // 24 (自动验收时长)
-  PLATFORM_FEE_RATE,              // '0.15' (平台手续费率 15%)
+  PLATFORM_FEE_RATE,              // 0.15 (平台手续费率 15%)
   MIN_CONFIRMATIONS,              // 1 (最小确认数)
   AUTO_ACCEPT_SCAN_INTERVAL_MINUTES, // 5 (自动验收扫描间隔)
 
@@ -431,27 +435,32 @@ import { PAIRING_TTL_HOURS, AUTO_ACCEPT_HOURS } from '@c2c-agents/config/constan
 
 // 计算配对超时时间
 async createPairing(orderId: string) {
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + PAIRING_TTL_HOURS);
+  const pairingCreatedAt = new Date();
 
   await this.db.query(`
     UPDATE orders
     SET
       status = 'Pairing',
-      pairing_expires_at = $1
+      pairing_created_at = $1
     WHERE id = $2
-  `, [expiresAt, orderId]);
+  `, [pairingCreatedAt, orderId]);
+
+  // 过期点 = pairing_created_at + PAIRING_TTL_HOURS
 }
 
 // 计算自动验收时间
 async createDelivery(orderId: string) {
-  const autoAcceptAt = new Date();
-  autoAcceptAt.setHours(autoAcceptAt.getHours() + AUTO_ACCEPT_HOURS);
+  const deliveredAt = new Date();
 
   await this.db.query(`
-    INSERT INTO deliveries (order_id, auto_accept_at)
-    VALUES ($1, $2)
-  `, [orderId, autoAcceptAt]);
+    UPDATE orders
+    SET
+      status = 'Delivered',
+      delivered_at = $1
+    WHERE id = $2
+  `, [deliveredAt, orderId]);
+
+  // 自动验收触发点 = delivered_at + AUTO_ACCEPT_HOURS
 }
 ```
 
@@ -463,10 +472,6 @@ import { GAS_LIMITS } from '@c2c-agents/config/constants';
 // 在链上交互时使用预设的 Gas Limit
 const tx = await contract.approve(spender, amount, {
   gasLimit: GAS_LIMITS.APPROVE, // 60,000
-});
-
-const tx2 = await contract.deposit(orderId, amount, {
-  gasLimit: GAS_LIMITS.DEPOSIT, // 120,000
 });
 ```
 
@@ -488,11 +493,52 @@ try {
 }
 ```
 
+**注意**: 链上敏感变量（如 `MOCK_USDT_ADDRESS`、`ESCROW_ADDRESS`、`PLATFORM_OPERATOR_PRIVATE_KEY`）
+不在 `@c2c-agents/config` 中校验，需由 API 进程在启动时校验（见 `apps/api/ENV.md`）。
+
 ---
 
-## 7. 数据库交互规范
+## 7. 合约对接速览
 
-### 7.1 禁止直接修改 Schema
+> 面向多数模块的链上基础对接信息（合约已在 Phase 2 落地）
+
+### 7.1 合约与地址来源
+
+**合约**:
+- `MockUSDT` (6 decimals，测试币，支持 faucet)
+- `Escrow` (托管池，operator 执行 payout/refund)
+
+**地址来源**: `.env`
+
+```bash
+MOCK_USDT_ADDRESS=0x...
+ESCROW_ADDRESS=0x...
+
+NEXT_PUBLIC_MOCK_USDT_ADDRESS=0x...
+NEXT_PUBLIC_ESCROW_ADDRESS=0x...
+```
+
+### 7.2 角色与权限
+
+- `ADMIN`：拥有暂停、授权 operator、修改 feeReceiver 的权限
+- `OPERATOR`：后端执行 `payout/refund` 的热钱包
+
+### 7.3 常用交互（概念级）
+
+- A 支付：前端将 MockUSDT `transfer` 到 `ESCROW_ADDRESS`
+- 后端结算：operator 调用 Escrow `payout(orderId, creator, provider, gross, net, fee)`
+- 后端退款：operator 调用 Escrow `refund(orderId, creator, amount)`
+
+### 7.4 事件（用于排查）
+
+- `Paid(orderId, token, provider, netAmount, feeReceiver, feeAmount)`
+- `Refunded(orderId, token, creator, amount)`
+
+---
+
+## 8. 数据库交互规范
+
+### 8.1 禁止直接修改 Schema
 
 **所有数据库 schema 变更必须通过 Owner #1**:
 
@@ -501,7 +547,7 @@ try {
 3. 在 `infra/supabase/migrations/` 添加新 migration 文件
 4. 运行 `supabase migration up`
 
-### 7.2 允许的数据库操作
+### 8.2 允许的数据库操作
 
 各模块**可以**执行以下操作:
 
@@ -523,7 +569,7 @@ await this.db.query(`
 `, [orderId, fileUrl]);
 ```
 
-### 7.3 禁止的数据库操作
+### 8.3 禁止的数据库操作
 
 ```typescript
 // ❌ 禁止: 创建/删除表
@@ -539,7 +585,7 @@ await this.db.query(`ALTER TABLE orders ADD FOREIGN KEY ...`);
 await this.db.query(`CREATE OR REPLACE FUNCTION ...`);
 ```
 
-### 7.4 跨模块数据访问
+### 8.4 跨模块数据访问
 
 **禁止直接跨表 JOIN,必须通过 Service 接口**:
 
@@ -556,7 +602,7 @@ const order = await this.orderService.findById(orderId);
 const agent = await this.agentService.findById(order.agentId);
 ```
 
-### 7.5 幂等性约束
+### 8.5 幂等性约束
 
 所有状态变更操作**必须幂等**:
 
@@ -646,7 +692,7 @@ const options = getAllowedTransitions(from); // OrderStatus[]
 toMinUnit('1.5', 6) → '1500000'
 
 // 最小单位 → 显示金额
-fromMinUnit('1500000', 6) → '1.5'
+fromMinUnit('1500000', 6) → '1.500000'
 
 // 计算手续费（注意：feeRate 现为 number 类型）
 calculateFee('1000000', 0.15) → { feeAmount: '150000', netAmount: '850000' }

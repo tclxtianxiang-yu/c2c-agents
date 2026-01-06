@@ -4,34 +4,22 @@
  * 业务常量配置，支持通过环境变量覆盖默认值
  */
 
-// ============================================================
-// 辅助函数：安全解析数值
-// ============================================================
+import { getEnv } from './env';
 
-/**
- * 安全解析环境变量为数字，避免 NaN
- * @param value 环境变量值
- * @param defaultValue 默认值
- * @returns 解析后的数字（如果解析失败则返回默认值）
- */
-function parseNumber(value: string | undefined, defaultValue: number): number {
-  if (!value) return defaultValue;
-  const num = Number(value);
-  return Number.isFinite(num) ? num : defaultValue;
-}
+const env = getEnv();
 
 // ============================================================
 // 业务逻辑常量
 // ============================================================
 
 /** Pairing 状态 TTL（小时） */
-export const PAIRING_TTL_HOURS = parseNumber(process.env.PAIRING_TTL_HOURS, 24);
+export const PAIRING_TTL_HOURS = env.PAIRING_TTL_HOURS ?? 24;
 
 /** 队列最大容量 N（每个 Agent 最多接 N 个任务） */
-export const QUEUE_MAX_N = parseNumber(process.env.QUEUE_MAX_N, 10);
+export const QUEUE_MAX_N = env.QUEUE_MAX_N ?? 10;
 
 /** 自动验收时长（小时） */
-export const AUTO_ACCEPT_HOURS = parseNumber(process.env.AUTO_ACCEPT_HOURS, 24);
+export const AUTO_ACCEPT_HOURS = env.AUTO_ACCEPT_HOURS ?? 24;
 
 /**
  * 平台手续费率（0.15 = 15%）
@@ -45,22 +33,21 @@ export const AUTO_ACCEPT_HOURS = parseNumber(process.env.AUTO_ACCEPT_HOURS, 24);
  * const { feeAmount, netAmount } = calculateFee('1000000', PLATFORM_FEE_RATE);
  * ```
  */
-export const PLATFORM_FEE_RATE = parseNumber(process.env.PLATFORM_FEE_RATE, 0.15);
+export const PLATFORM_FEE_RATE = env.PLATFORM_FEE_RATE
+  ? Number(env.PLATFORM_FEE_RATE)
+  : 0.15;
 
 /** 最小确认数（链上交易确认数） */
-export const MIN_CONFIRMATIONS = parseNumber(process.env.MIN_CONFIRMATIONS, 1);
+export const MIN_CONFIRMATIONS = env.MIN_CONFIRMATIONS ?? 1;
 
 /** 自动验收扫描间隔（分钟） */
-export const AUTO_ACCEPT_SCAN_INTERVAL_MINUTES = parseNumber(
-  process.env.AUTO_ACCEPT_SCAN_INTERVAL_MINUTES,
-  5
-);
+export const AUTO_ACCEPT_SCAN_INTERVAL_MINUTES = env.AUTO_ACCEPT_SCAN_INTERVAL_MINUTES ?? 5;
 
 /** Gas Price 倍数（用于加速交易确认） */
-export const GAS_PRICE_MULTIPLIER = parseNumber(process.env.GAS_PRICE_MULTIPLIER, 1.2);
+export const GAS_PRICE_MULTIPLIER = env.GAS_PRICE_MULTIPLIER ?? 1.2;
 
 /** 链上操作最大重试次数 */
-export const MAX_RETRIES = parseNumber(process.env.MAX_RETRIES, 3);
+export const MAX_RETRIES = env.MAX_RETRIES ?? 3;
 
 // ============================================================
 // 链常量（Sepolia 测试网）
@@ -71,12 +58,6 @@ export const SEPOLIA_CHAIN_ID = 11155111;
 
 /** Sepolia RPC URL（默认使用公共节点） */
 export const DEFAULT_SEPOLIA_RPC_URL = 'https://rpc.sepolia.org';
-
-/** Mock USDT 合约地址（从环境变量读取） */
-export const MOCK_USDT_ADDRESS = process.env.MOCK_USDT_ADDRESS || '';
-
-/** Escrow 合约地址（从环境变量读取） */
-export const ESCROW_ADDRESS = process.env.ESCROW_ADDRESS || '';
 
 /** Gas Limits（合约调用预估值） */
 export const GAS_LIMITS = {

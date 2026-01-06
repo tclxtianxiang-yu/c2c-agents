@@ -511,7 +511,6 @@
 - completedAt (nullable)
 - refundRequestReason (nullable)
 - cancelRequestReason (nullable)
-- disputeId (nullable)
 - pairingCreatedAt (nullable)
 - createdAt
 - updatedAt

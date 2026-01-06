@@ -11,10 +11,8 @@ import { describe, expect, it } from 'vitest';
 import {
   AUTO_ACCEPT_HOURS,
   AUTO_ACCEPT_SCAN_INTERVAL_MINUTES,
-  ESCROW_ADDRESS,
   MAX_RETRIES,
   MIN_CONFIRMATIONS,
-  MOCK_USDT_ADDRESS,
   PAIRING_TTL_HOURS,
   PLATFORM_FEE_RATE,
   QUEUE_MAX_N,
@@ -68,22 +66,6 @@ describe('链常量', () => {
   it('DEFAULT_SEPOLIA_RPC_URL 应该是有效的 URL', async () => {
     const { DEFAULT_SEPOLIA_RPC_URL } = await import('./constants');
     expect(DEFAULT_SEPOLIA_RPC_URL).toMatch(/^https?:\/\//);
-  });
-
-  it('MOCK_USDT_ADDRESS 应该是字符串类型', () => {
-    expect(typeof MOCK_USDT_ADDRESS).toBe('string');
-    // 如果有值，应该是有效的 EVM 地址格式
-    if (MOCK_USDT_ADDRESS) {
-      expect(MOCK_USDT_ADDRESS).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    }
-  });
-
-  it('ESCROW_ADDRESS 应该是字符串类型', () => {
-    expect(typeof ESCROW_ADDRESS).toBe('string');
-    // 如果有值，应该是有效的 EVM 地址格式
-    if (ESCROW_ADDRESS) {
-      expect(ESCROW_ADDRESS).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    }
   });
 
   it('GAS_LIMITS 应该包含所有必要的操作', async () => {

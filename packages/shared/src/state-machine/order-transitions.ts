@@ -1,4 +1,5 @@
 import { OrderStatus } from '../enums';
+import { InvalidTransitionError } from '../errors';
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.Standby]: [OrderStatus.Pairing],
@@ -23,7 +24,7 @@ const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 export function assertTransition(from: OrderStatus, to: OrderStatus): void {
   const allowed = ALLOWED_TRANSITIONS[from] || [];
   if (!allowed.includes(to)) {
-    throw new Error(`Invalid transition: ${from} -> ${to}`);
+    throw new InvalidTransitionError(from, to);
   }
 }
 
