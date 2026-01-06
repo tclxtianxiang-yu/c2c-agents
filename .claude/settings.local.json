@@ -29,7 +29,8 @@
       "Bash(pnpm:*)",
       "Bash(node -e:*)",
       "Bash(git add:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(cloc:*)"
     ]
   }
 }

@@ -183,12 +183,28 @@ apps/api/src/modules/
 
 ## 使用 AI 开发
 
-### 🔴 必读文档
+### 🔴 AI 上下文规范（必须 / 建议）
 
-**在使用 AI（Claude Code / Cursor / Copilot）开发时,必须将 CONTEXT.md 作为上下文引用!**
+**必须 @ 的上下文文档（所有业务同学）**
+
+- `@docs/CONTEXT.md`（全局约束与 ownership）
+- `@docs/PRD.md`（业务流程与状态定义）
+- `@docs/DEVIDE_THE_WORK.md`（模块边界与职责划分）
+
+**建议 @ 的上下文文档（按需叠加）**
+
+- `@docs/INTERFACE.md`（Owner #1 公共接口 / 状态机 / shared 用法）
+- `@docs/owner1/INTERFACE.md`（链上网关与 core 能力对接）
+- `@docs/CONTRACT.md`（合约接口与链上调用口径）
+- `@apps/api/ENV.md`（API env 校验规则）
+
+**最小示例**
 
 ```markdown
-@docs/CONTEXT.md 请帮我实现 XXX 功能
+@docs/CONTEXT.md
+@docs/PRD.md
+@docs/DEVIDE_THE_WORK.md
+请帮我在 delivery 模块补充交付校验与测试
 ```
 
 ### 为什么必须引用 CONTEXT.md?
