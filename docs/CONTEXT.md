@@ -203,6 +203,7 @@ WHERE id = $2
 - `payoutTxHash` 存在则不得重复打款
 - `refundTxHash` 存在则不得重复退款
 - `payTxHash` 必须幂等：同一 task/order 重复提交不得重复创建资源
+- `recordEscrow` 是支付确认后的必需步骤：未 recordEscrow 的订单不得进入 payout/refund（系统级硬约束）
 
 ### 7.2 队列并发（Queue：必须原子）
 

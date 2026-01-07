@@ -10,8 +10,6 @@
     "clean": "hardhat clean && rm -rf artifacts cache typechain-types"
   },
   "dependencies": {
-    "@c2c-agents/shared": "workspace:*",
-    "@c2c-agents/config": "workspace:*",
     "@openzeppelin/contracts": "^5.2.0"
   },
   "devDependencies": {

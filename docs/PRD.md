@@ -88,6 +88,7 @@
      - 绑定 taskId、creatorId、rewardAmount；
      - 写入 payTxHash、escrowAmount（=amount）；
      - Order.status = Standby；
+   - 关键步骤：支付确认成功且 Order 创建成功后必须调用 recordEscrow，失败需阻断后续状态流转；
    - 更新 Task：
      - Task.status = `published`；
      - Task.currentOrderId = Order.id；
@@ -181,7 +182,7 @@
     - 在 Delivered 状态下（且尚未进入任何退款/争议状态），A 可：
       - 点击「验收通过」：
         - Order.status → Accepted；
-        - 后端调用 escrow 合约结算 rewardAmount \* (1 – 15%) 给 B 当前 active 地址；
+        - 后端调用 escrow 合约结算 rewardAmount \* (1 – 15%) 给 B 当前 active 地址（前置条件：recordEscrow 已成功）；
         - 成功后 Order.status → Paid → Completed，记录 acceptedAt、paidAt、completedAt；
       - 点击「发起退款」：
         - 填写 refundRequestReason；
@@ -191,7 +192,7 @@
         - 若始终保持 Delivered 且未出现 RefundRequested/CancelRequested/Disputed/AdminArbitrating，则在 deadline 后由后台定时任务触发 AutoAccepted：
           - 再次检查该订单仍为 Delivered 且无退款/争议；
           - Order.status → AutoAccepted；
-          - 调用合约付款给 B（扣除 15% 手续费）；
+          - 调用合约付款给 B（扣除 15% 手续费，前置条件：recordEscrow 已成功）；
           - 成功后 Order.status → Paid → Completed，记录 autoAcceptedAt、paidAt、completedAt。
 
 15. B 在 InProgress 中发起中断：
@@ -199,14 +200,18 @@
     - B 可在 InProgress 状态下点击「发起中断」，填写 cancelRequestReason；
     - Order.status：InProgress → CancelRequested；
     - A 在 CancelRequested 状态下可：
-      - 同意：调用合约退款给 A → Order.status = Refunded → Completed；
+      - 同意：调用合约退款给 A → Order.status = Refunded → Completed（前置条件：recordEscrow 已成功）；
       - 拒绝：双方任一方可发起平台介入。
 
 16. 退款/中断协商失败与平台介入：
 
     - RefundRequested / CancelRequested 状态中：
       - 任意一方拒绝对方请求后，可点击「平台介入」；
-      - Order.status → Disputed → AdminArbitrating。
+      - Order.status → Disputed（平台介入但允许继续协商）；
+      - 争议可撤回：
+        - 退款争议撤回：Disputed → Delivered
+        - 中断争议撤回：Disputed → InProgress
+      - 管理员介入：Disputed → AdminArbitrating。
     - AdminArbitrating 状态下，管理员在后台看到：
       - Task 信息；
       - Delivery 内容；
@@ -304,7 +309,8 @@
   - A 发起退款 → RefundRequested。
 - RefundRequested / CancelRequested：
   - 对方同意 → Refunded → Completed；
-  - 对方拒绝 + 平台介入 → Disputed → AdminArbitrating。
+  - 对方拒绝 + 平台介入 → Disputed（可撤回）；
+  - 管理员介入 → AdminArbitrating。
 - AdminArbitrating：
   - 强制退款 → Refunded → Completed；
   - 强制付款（需 Delivered+Delivery）→ Paid → Completed。
@@ -392,7 +398,10 @@
     - 展示 requestReason；
     - 显示对方发起的请求内容；
     - 当前用户有「同意」「拒绝」按钮，以及当被拒绝后「平台介入」按钮。
-  - Disputed / AdminArbitrating：
+  - Disputed：
+    - 展示平台介入中；
+    - 允许继续协商与「撤回争议」。
+  - AdminArbitrating：
     - 展示「已进入平台仲裁，等待管理员处理」，无进一步操作。
   - Completed：
     - 展示完成结果、结算信息；
@@ -511,7 +520,6 @@
 - completedAt (nullable)
 - refundRequestReason (nullable)
 - cancelRequestReason (nullable)
-- disputeId (nullable)
 - pairingCreatedAt (nullable)
 - createdAt
 - updatedAt

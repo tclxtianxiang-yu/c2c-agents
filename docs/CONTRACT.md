@@ -113,6 +113,9 @@ struct Settlement {
   uint64  timestamp;    // 结算发生时间
 }
 
+/// @dev 托管余额保护（记账式锁仓总额）
+uint256 totalEscrowed; // 仅统计已 recordEscrow 的订单金额，用于 sweep 护栏
+
 注意：链上不一定需要存全量字段，但为了审计与排查，建议保留最小可追溯信息。
 
 ⸻
@@ -169,13 +172,20 @@ refund(bytes32 orderId, address creator, uint256 amount) -> (bool)
 	•	escrow 余额足够
 	•	退款后写入 Settlement，状态变更为 Refunded，触发事件
 
+recordEscrow(bytes32 orderId, uint256 amount) -> (bool)
+	•	仅 operator/admin：在链下确认支付后调用，登记托管金额
+	•	amount > 0
+	•	totalEscrowed += amount
+	•	用于 sweep 保护（balance - totalEscrowed 为可转出余额）
+	•	对接要求：Task 模块支付确认成功且 Order 创建成功后必须调用，失败需阻断后续状态流转
+
 ⸻
 
 3.3 推荐实现函数（MVP 强烈建议）
 
 sweep(address to, uint256 amount)
 	•	仅 admin：紧急转出合约内多余 token（例如误转的 token）
-	•	注意：必须避免影响已托管但未结算的资金（见下文“资金模型选择”）
+	•	注意：必须避免影响已托管但未结算的资金（balance - totalEscrowed 为可转出余额）
 
 pause() / unpause()
 	•	仅 admin：紧急暂停 payout/refund（安全事故止血）
@@ -202,6 +212,9 @@ event Refunded(
   address indexed creator,
   uint256 amount
 );
+
+/// @notice 记录托管金额
+event EscrowRecorded(bytes32 indexed orderId, uint256 amount);
 
 /// @notice 费收地址变更
 event FeeReceiverChanged(address indexed oldReceiver, address indexed newReceiver);
@@ -266,6 +279,15 @@ interface IEscrow {
     uint256 amount
   ) external returns (bool);
 
+  /// @notice 记录托管金额（链下确认支付后调用）
+  /// @dev 仅 OPERATOR/ADMIN 可调用；幂等：同一 orderId 只能成功一次
+  /// @param orderId 订单唯一业务键
+  /// @param amount 订单托管金额（通常等于 escrowAmount）
+  function recordEscrow(
+    bytes32 orderId,
+    uint256 amount
+  ) external returns (bool);
+
   /// @notice 修改手续费接收地址
   /// @dev onlyAdmin
   function setFeeReceiver(address newReceiver) external;
@@ -288,23 +310,13 @@ interface IEscrow {
 
 ⸻
 
-4. 资金模型选择（你们需要提前定一个，避免 P0 冲突）
+4. 资金模型（已采用记账式锁仓）
 
-方案 A：Escrow 不区分 order 子账户（MVP 最简单）
-	•	Escrow 只是一个 token 池子
-	•	payout/refund 只做：
-	•	幂等：orderId 未被处理过
-	•	转账：从合约余额转出
-	•	风险：如果资金不足（例如误操作 sweep 或外部损失），会导致某些 order 无法出金
-	•	但 MVP 实现最快，链下依靠对账与运营避免问题
-
-方案 B：Escrow 记录每个 order 的“应付金额”（推荐）
-	•	增加 locked[orderId]=grossAmount（在链下确认支付后由 operator 调用 lock(orderId, grossAmount, creator)）
-	•	payout/refund 必须匹配 locked amount，且完成后置零
-	•	好处：更安全、可 sweep 多余资金不影响锁定金额
-	•	代价：多一个 lock() 入口（链下确认支付后再链上登记），但 PRD 当前是“仅 Transfer 入金”，要改口径
-
-PRD 目前是纯 Transfer 入金 + 链下校验后建单，因此如果不改口径，MVP 建议先走 方案 A。
+- Escrow 仍为 token 池子，但使用 `recordEscrow` 记账式锁仓：
+  - 链下确认支付后 **必须** 调用 `recordEscrow(orderId, amount)`，写入托管金额
+  - `totalEscrowed` 仅统计已 recordEscrow 的金额，用于 sweep 护栏
+  - sweep 只能转出 `balance - totalEscrowed`，避免抽走在托管资金
+- 如果未调用 recordEscrow，sweep 护栏无法覆盖该订单资金，属于严重风险
 
 ⸻
 
@@ -327,17 +339,17 @@ PRD 目前是纯 Transfer 入金 + 链下校验后建单，因此如果不改口
 ⸻
 
 6. 合约验收用例（最小集合）
-	1.	A transfer MockUSDT 到 escrow，后端校验通过后：
-
+	1.	A transfer MockUSDT 到 escrow → 链下校验通过 → recordEscrow 成功后：
 	•	payout 成功：B 收到 net，平台收到 fee，Paid 事件 emitted，getStatus=Paid
-
-	2.	refund 成功：A 收到 amount，Refunded 事件 emitted，getStatus=Refunded
-	3.	幂等：同一 orderId 第二次 payout/refund 必须 revert
-	4.	权限：非 operator/admin 调用 payout/refund 必须 revert
-	5.	入参一致性：net+fee != gross 必须 revert（防止后端计算错误）
+	2.	A transfer MockUSDT 到 escrow → 链下校验通过 → recordEscrow 成功后：
+	•	refund 成功：A 收到 amount，Refunded 事件 emitted，getStatus=Refunded
+	3.	未 recordEscrow 的订单，payout/refund 必须 revert（Escrow amount mismatch）
+	4.	幂等：同一 orderId 第二次 recordEscrow/payout/refund 必须 revert
+	5.	权限：非 operator/admin 调用 recordEscrow/payout/refund 必须 revert
+	6.	入参一致性：net+fee != gross 必须 revert（防止后端计算错误）
 
 ⸻
 
-如果你确认采用“方案 A（池子模式）”，下一步我可以把 **Escrow.sol 的完整代码骨架（含 AccessControl/Pausable/事件/错误）**也用 markdown 贴出来，直接给合约同学开干。
+当前已采用“记账式锁仓（recordEscrow）”口径，合约与后端需严格按 recordEscrow → payout/refund 顺序执行。
 
 ```

@@ -1,8 +1,8 @@
 # C2C Agents - Web3 任务接单平台
 
-基于 pnpm + Turbo 的 Monorepo 架构，集成 Next.js 15、NestJS 10 和 Hardhat 的完整 Web3 应用。
+基于 pnpm + Turbo 的 Monorepo 架构,集成 Next.js 15、NestJS 10 和 Hardhat 的完整 Web3 应用。
 
-> ⚠️ **重要提示**：本项目采用严格的 Code Ownership 和模块化开发模式，请在开发前务必阅读 [CONTEXT.md](docs/CONTEXT.md)
+> ⚠️ **重要提示**: 本项目采用严格的 Code Ownership 和模块化开发模式,请在开发前务必阅读 [CONTEXT.md](docs/CONTEXT.md)
 
 ---
 
@@ -14,14 +14,13 @@
 - [开发规范](#开发规范)
 - [使用 AI 开发](#使用-ai-开发)
 - [常用命令](#常用命令)
-- [核心模块说明](#核心模块说明)
 - [文档索引](#文档索引)
 
 ---
 
 ## 项目结构
 
-```
+```text
 C2CAgents/
 ├── apps/
 │   ├── web/          # Next.js 15 + React 19 前端
@@ -35,8 +34,8 @@ C2CAgents/
 │
 ├── docs/             # 产品文档
 │   ├── CONTEXT.md    # 🔴 AI 开发必读：全局约束与硬性规则
+│   ├── INTERFACE.md  # 📘 Owner #1 公共接口文档
 │   ├── PRD.md        # 产品需求文档
-│   ├── OWNER1.md     # Core 模块文档
 │   └── CONTRACT.md   # 合约接口规范
 │
 ├── infra/
@@ -49,7 +48,7 @@ C2CAgents/
 
 ### Workspace 依赖关系
 
-```
+```text
 packages/shared (核心层，零依赖)
     ↓
     ├─→ packages/config (依赖 shared)
@@ -69,6 +68,7 @@ packages/shared (核心层，零依赖)
 ✅ **合约**: Hardhat + Solidity 0.8.24 + OpenZeppelin
 ✅ **包管理**: pnpm 10 + Turbo 2
 ✅ **类型**: TypeScript 5.6 strict 模式
+✅ **代码质量**: Biome (格式化 + Lint) + Husky (Git Hooks)
 
 ---
 
@@ -137,9 +137,9 @@ supabase migration up
 
 ```typescript
 // ✅ 正确：从 shared 导入
-import { OrderStatus, TaskStatus } from "@c2c-agents/shared";
-import { assertTransition } from "@c2c-agents/shared/state-machine";
-import { PAIRING_TTL_HOURS } from "@c2c-agents/config";
+import { OrderStatus, TaskStatus } from '@c2c-agents/shared';
+import { assertTransition } from '@c2c-agents/shared/state-machine';
+import { PAIRING_TTL_HOURS } from '@c2c-agents/config/constants';
 
 // 使用状态机验证
 assertTransition(currentStatus, targetStatus);
@@ -150,8 +150,8 @@ assertTransition(currentStatus, targetStatus);
 ```typescript
 // ❌ 禁止：复制枚举定义
 enum OrderStatus {
-  Standby = "Standby",
-  Pairing = "Pairing",
+  Standby = 'Standby',
+  Pairing = 'Pairing',
   // ...
 }
 
@@ -159,12 +159,12 @@ enum OrderStatus {
 const contract = new ethers.Contract(address, abi, provider);
 
 // ❌ 禁止：跨模块直接操作数据表
-await this.db.query("INSERT INTO queue_items ...");
+await this.db.query('INSERT INTO queue_items ...');
 ```
 
 ### 📁 目录归属（NestJS 模块）
 
-```
+```text
 apps/api/src/modules/
 ├── task/         # Owner #2（任务发布+支付确认）
 ├── matching/     # Owner #3（匹配+Pairing）
@@ -177,26 +177,42 @@ apps/api/src/modules/
 └── core/         # Owner #1 only（链上网关/共享服务）
 ```
 
-**规则**：只修改自己模块内的 `controller/service/dto/__tests__`
+**规则**: 只修改自己模块内的 `controller/service/dto/__tests__`
 
 ---
 
 ## 使用 AI 开发
 
-### 🔴 必读文档
+### 🔴 AI 上下文规范（必须 / 建议）
 
-**在使用 AI（Claude Code / Cursor / Copilot）开发时，必须将 CONTEXT.md 作为上下文引用！**
+**必须 @ 的上下文文档（所有业务同学）**
+
+- `@docs/CONTEXT.md`（全局约束与 ownership）
+- `@docs/PRD.md`（业务流程与状态定义）
+- `@docs/DEVIDE_THE_WORK.md`（模块边界与职责划分）
+
+**建议 @ 的上下文文档（按需叠加）**
+
+- `@docs/INTERFACE.md`（Owner #1 公共接口 / 状态机 / shared 用法）
+- `@docs/owner1/INTERFACE.md`（链上网关与 core 能力对接）
+- `@docs/CONTRACT.md`（合约接口与链上调用口径）
+- `@apps/api/ENV.md`（API env 校验规则）
+
+**最小示例**
 
 ```markdown
-@docs/CONTEXT.md 请帮我实现 XXX 功能
+@docs/CONTEXT.md
+@docs/PRD.md
+@docs/DEVIDE_THE_WORK.md
+请帮我在 delivery 模块补充交付校验与测试
 ```
 
-### 为什么必须引用 CONTEXT.md？
+### 为什么必须引用 CONTEXT.md?
 
-1. **避免冲突**：CONTEXT.md 定义了严格的 Code Ownership，防止 6 人并行开发互踩
-2. **类型统一**：确保 AI 从 `packages/shared` 导入类型，而不是重复定义
-3. **遵守约束**：幂等性、状态机、队列并发等系统级约束必须遵守
-4. **受限目录保护**：AI 会自动识别受限目录并提出变更提案，而不是直接修改
+1. **避免冲突**: CONTEXT.md 定义了严格的 Code Ownership,防止 6 人并行开发互踩
+2. **类型统一**: 确保 AI 从 `packages/shared` 导入类型,而不是重复定义
+3. **遵守约束**: 幂等性、状态机、队列并发等系统级约束必须遵守
+4. **受限目录保护**: AI 会自动识别受限目录并提出变更提案,而不是直接修改
 
 ### AI 开发工作流
 
@@ -221,12 +237,12 @@ apps/api/src/modules/
 
 ### AI 推荐配置
 
-**Cursor / Copilot 用户**：
+**Cursor / Copilot 用户**:
 
 - 将 `docs/CONTEXT.md` 添加到工作区索引
 - 在 `.cursorrules` 或 `.github/copilot-instructions.md` 中引用 CONTEXT.md
 
-**Claude Code 用户**：
+**Claude Code 用户**:
 
 - 每次对话开始时使用 `@docs/CONTEXT.md`
 - 配合 `@docs/PRD.md` 理解业务需求
@@ -241,6 +257,7 @@ apps/api/src/modules/
 pnpm dev              # 并行启动所有服务
 pnpm build            # 构建所有项目
 pnpm typecheck        # 全项目类型检查
+pnpm test             # 运行所有测试
 
 # 代码格式化（使用 Biome）
 pnpm lint             # 运行 Biome lint 检查
@@ -254,7 +271,7 @@ pnpm clean            # 清理所有构建产物
 
 ### 🔴 代码提交规范（Git Hooks）
 
-项目已配置 **Biome + Husky** 强制代码格式化，所有开发者必须遵守：
+项目已配置 **Biome + Husky** 强制代码格式化,所有开发者必须遵守:
 
 ```bash
 # ⚠️ 提交代码前会自动运行 lint-staged（格式化暂存文件）
@@ -270,11 +287,11 @@ git add .       # 重新暂存
 git push        # 再次推送
 ```
 
-**重要**：
+**重要**:
 
 - ✅ 所有代码必须通过 Biome 格式化才能 push
 - ✅ 使用 VSCode 的团队成员会自动在保存时格式化（已配置 `.vscode/settings.json`）
-- ✅ 推荐 VSCode 用户安装 Biome 扩展：`biomejs.biome`
+- ✅ 推荐 VSCode 用户安装 Biome 扩展: `biomejs.biome`
 - ❌ 禁止使用 `--no-verify` 跳过 hooks（除非紧急情况并通知团队）
 
 ### 合约命令
@@ -316,123 +333,6 @@ npx shadcn@latest add button card input label dialog
 
 ---
 
-## 核心模块说明
-
-### packages/shared（核心共享包）⚠️ Owner #1 only
-
-**职责**：所有类型、枚举、状态机的**唯一来源**
-
-```typescript
-// 枚举
-export enum OrderStatus {
-  Standby = 'Standby',
-  Pairing = 'Pairing',
-  InProgress = 'InProgress',
-  // ... 13 个状态
-}
-
-export enum TaskStatus {
-  Unpaid = 'unpaid',
-  Published = 'published',
-  Archived = 'archived',
-}
-
-// 状态机
-export function assertTransition(from: OrderStatus, to: OrderStatus): void;
-export function canTransition(from: OrderStatus, to: OrderStatus): boolean;
-export function getAllowedTransitions(from: OrderStatus): OrderStatus[];
-
-// 错误类型
-export class InvalidTransitionError extends Error;
-export class ValidationError extends Error;
-```
-
-**关键文件**：
-
-- `src/enums/` - 所有枚举定义
-- `src/state-machine/order-transitions.ts` - 订单状态机
-- `src/types/` - DTO 接口定义
-- `src/errors/` - 自定义错误类型
-
-### packages/config（配置管理）⚠️ Owner #1 only
-
-**职责**：集中管理所有配置常量和环境变量校验
-
-```typescript
-// 配置常量
-export const PAIRING_TTL_HOURS = 24;
-export const QUEUE_MAX_N = 10;
-export const AUTO_ACCEPT_HOURS = 24;
-export const PLATFORM_FEE_RATE = 0.15;
-export const MIN_CONFIRMATIONS = 1;
-
-// 环境变量校验
-export const env = envSchema.parse(process.env);
-```
-
-**关键文件**：
-
-- `src/constants.ts` - 配置常量（来自 OWNER1.md）
-- `src/env.ts` - Zod 环境变量校验
-
-### packages/ui（UI 组件库）
-
-**职责**：可复用的 shadcn/ui 组件
-
-```bash
-# 添加新组件
-cd packages/ui
-npx shadcn@latest add <component-name>
-```
-
-### apps/web（Next.js 前端）
-
-**关键目录**：
-
-- `src/app/` - 页面路由（App Router）
-- `src/components/` - 可复用组件
-- `src/providers/` - 全局 Provider（Wagmi/RainbowKit）
-
-**容器页面归属**：
-
-- `src/app/page.tsx` - 首页 → Owner #2
-- `src/app/tasks/[id]/page.tsx` - 任务详情 → Owner #3
-- `src/app/(b)/workbench/**` - B 工作台 → Owner #5
-
-### apps/api（NestJS 后端）
-
-**关键目录**：
-
-- `src/modules/` - 业务模块（按 Owner 分工）
-- `src/modules/core/` - 核心服务 → Owner #1 only
-
-**模块开发规则**：
-
-1. 只修改自己模块的 `controller/service/dto`
-2. DTO 必须引用自 `@c2c-agents/shared`
-3. 跨模块调用通过 Service 接口
-4. 必须包含 `__tests__/*.spec.ts`
-
-### apps/contracts（Hardhat 智能合约）⚠️ Owner #1 only
-
-**关键文件**：
-
-- `contracts/MockUSDT.sol` - ERC-20 测试币（待实现）
-- `contracts/Escrow.sol` - 托管合约（待实现）
-- `typechain-types/` - 自动生成的类型
-
-**使用方式**：
-
-```typescript
-// ✅ 通过 shared 提供的封装
-import { getEscrowContract } from "@c2c-agents/shared/contracts";
-
-// ❌ 禁止直连
-const contract = new ethers.Contract(address, abi, provider);
-```
-
----
-
 ## 开发流程
 
 ### 1. 开发前检查
@@ -446,7 +346,7 @@ apps/contracts/**           → Owner #1 only
 apps/web/src/app/**/page.tsx → 容器 Owner only
 ```
 
-**如果在受限目录 → 停止，提交变更提案 Issue**
+**如果在受限目录 → 停止,提交变更提案 Issue**
 
 ### 2. 创建新功能
 
@@ -472,82 +372,42 @@ git push origin feature/your-feature-name
 
 ### 3. PR 检查清单
 
-提交 PR 时必须包含：
+提交 PR 时必须包含:
 
-- [ ] PR 标题格式：`[模块] 简短描述`
-- [ ] 影响模块：Owner #X
-- [ ] 是否涉及状态机/幂等/队列/链上？
-- [ ] 是否触碰受限目录？
+- [ ] PR 标题格式: `[模块] 简短描述`
+- [ ] 影响模块: Owner #X
+- [ ] 是否涉及状态机/幂等/队列/链上?
+- [ ] 是否触碰受限目录?
 - [ ] 测试用例（如涉及关键逻辑）
 - [ ] 类型检查通过 `pnpm typecheck`
 
-**受限目录 PR**：必须标注 `[RESTRICTED]` 前缀，由对应 Owner 合并
-
----
-
-## 系统级约束（必须遵守）
-
-### 幂等性
-
-```typescript
-// payout 必须幂等
-UPDATE orders SET
-  payout_tx_hash = $1,
-  status = 'Paid'
-WHERE id = $2
-  AND payout_tx_hash IS NULL;  // 幂等检查
-```
-
-### 队列并发
-
-```sql
--- consume-next 必须单 SQL 原子抢占
-UPDATE queue_items
-SET status = 'consumed', consumed_at = NOW()
-WHERE id = (
-  SELECT id FROM queue_items
-  WHERE agent_id = $1 AND status = 'queued'
-  ORDER BY created_at ASC
-  LIMIT 1
-  FOR UPDATE SKIP LOCKED
-)
-RETURNING *;
-```
-
-### 状态互斥
-
-进入以下状态后，自动验收路径**永久关闭**：
-
-- `RefundRequested`
-- `CancelRequested`
-- `Disputed`
-- `AdminArbitrating`
+**受限目录 PR**: 必须标注 `[RESTRICTED]` 前缀,由对应 Owner 合并
 
 ---
 
 ## 常见问题
 
-### Q: 我需要添加一个新的订单状态，怎么做？
+### Q: 我需要添加一个新的订单状态,怎么做?
 
-**A**: 这涉及 `packages/shared` 的修改，你需要：
+**A**: 这涉及 `packages/shared` 的修改,你需要:
 
 1. 停止直接修改
-2. 提交 Issue：「变更提案：添加新状态 XYZ」
-3. 描述：状态名称、触发条件、允许的状态迁移
+2. 提交 Issue:「变更提案：添加新状态 XYZ」
+3. 描述: 状态名称、触发条件、允许的状态迁移
 4. 等待 Owner #1 审批并落地
 
-### Q: 我要在前端调用合约，怎么办？
+### Q: 我要在前端调用合约,怎么办?
 
-**A**: 不能直接 `new ethers.Contract`，应该：
+**A**: 不能直接 `new ethers.Contract`,应该:
 
 ```typescript
 // ✅ 使用 shared 提供的封装
-import { validatePayTx, executePayoutTx } from "@c2c-agents/shared/chain";
+import { validatePayTx, executePayoutTx } from '@c2c-agents/shared/chain';
 ```
 
-### Q: 我需要操作队列，怎么办？
+### Q: 我需要操作队列,怎么办?
 
-**A**: 不能直接操作 `queue_items` 表，应该：
+**A**: 不能直接操作 `queue_items` 表,应该:
 
 ```typescript
 // ✅ 调用 QueueService
@@ -560,20 +420,20 @@ import { QueueService } from '../queue/queue.service';
 })
 ```
 
-### Q: AI 生成的代码重复定义了枚举，怎么办？
+### Q: AI 生成的代码重复定义了枚举,怎么办?
 
-**A**: 这说明你没有引用 `CONTEXT.md`！重新开始对话：
+**A**: 这说明你没有引用 `CONTEXT.md`! 重新开始对话:
 
-```
+```markdown
 @docs/CONTEXT.md 请重新生成代码，使用 shared 中的类型
 ```
 
-### Q: 我想改任务详情页的布局，怎么办？
+### Q: 我想改任务详情页的布局,怎么办?
 
-**A**: 检查页面归属：
+**A**: 检查页面归属:
 
 - `apps/web/src/app/tasks/[id]/page.tsx` → Owner #3 维护
-- 如果你不是 Owner #3：创建子组件提供给 Owner #3 集成
+- 如果你不是 Owner #3: 创建子组件提供给 Owner #3 集成
 
 ---
 
@@ -590,14 +450,15 @@ import { QueueService } from '../queue/queue.service';
 
 ## 文档索引
 
-| 文档                                          | 用途                                   | 读者          |
-| --------------------------------------------- | -------------------------------------- | ------------- |
-| [README.md](README.md)                        | 项目概览与开发指南                     | 开发人员      |
-| [CONTEXT.md](docs/CONTEXT.md)                 | 🔴 **AI 开发必读**：全局约束与硬性规则 | AI + 开发人员 |
-| [PRD.md](docs/PRD.md)                         | 完整产品需求文档                       | AI + 开发人员 |
-| [ownerx/\*.md](docs/ownerx/*.md)              | Owner 的提示词工程                     | Owner         |
-| [DEVIDE_THE_WORK.md](docs/DEVIDE_THE_WORK.md) | 模块化分                               | 开发人员      |
-| [CONTRACT.md](docs/CONTRACT.md)               | 智能合约接口规范                       | 合约开发      |
+| 文档                                          | 用途                                          | 读者          |
+| --------------------------------------------- | --------------------------------------------- | ------------- |
+| [README.md](README.md)                        | 项目概览与开发指南                            | 开发人员      |
+| [CONTEXT.md](docs/CONTEXT.md)                 | 🔴 **AI 开发必读**: 全局约束与硬性规则        | AI + 开发人员 |
+| [INTERFACE.md](docs/INTERFACE.md)             | 📘 **Owner #1 公共接口**: 类型/状态机/工具函数 | AI + 开发人员 |
+| [owner1/INTERFACE.md](docs/owner1/INTERFACE.md) | 📗 Owner #1 专用接口: 链上网关/队列系统       | 特定 Owner    |
+| [PRD.md](docs/PRD.md)                         | 完整产品需求文档                              | AI + 开发人员 |
+| [DEVIDE_THE_WORK.md](docs/DEVIDE_THE_WORK.md) | 模块化分工                                    | 开发人员      |
+| [CONTRACT.md](docs/CONTRACT.md)               | 智能合约接口规范                              | 合约开发      |
 
 ---
 
@@ -605,21 +466,21 @@ import { QueueService } from '../queue/queue.service';
 
 ### 立即可做
 
-1. ✅ **启动开发环境**：`pnpm dev`
-2. ✅ **配置环境变量**：复制 `.env.example` → `.env`
-3. ✅ **添加 UI 组件**：`cd packages/ui && npx shadcn@latest add button`
+1. ✅ **启动开发环境**: `pnpm dev`
+2. ✅ **配置环境变量**: 复制 `.env.example` → `.env`
+3. ✅ **添加 UI 组件**: `cd packages/ui && npx shadcn@latest add button`
 
 ### 等待 Owner #1
 
-1. ⏳ **实现核心 DTO**：根据 `infra/supabase/migrations/supabase_init.sql` 补充 `packages/shared/src/types`
-2. ⏳ **开发智能合约**：实现 `MockUSDT.sol` 和 `Escrow.sol`
-3. ⏳ **数据库迁移**：完成 Supabase schema 初始化
+1. ⏳ **开发智能合约**: 实现 `MockUSDT.sol` 和 `Escrow.sol`
+2. ⏳ **实现链上网关**: `apps/api/src/modules/core/chain-gateway/`
+3. ⏳ **实现队列服务**: `apps/api/src/modules/queue/`
 
 ### 配置第三方服务
 
-1. **WalletConnect**：在 [cloud.walletconnect.com](https://cloud.walletconnect.com) 创建项目
-2. **Sepolia RPC**：从 [Infura](https://infura.io) 或 [Alchemy](https://alchemy.com) 获取
-3. **Supabase**：运行 `cd infra/supabase && supabase start`
+1. **WalletConnect**: 在 [cloud.walletconnect.com](https://cloud.walletconnect.com) 创建项目
+2. **Sepolia RPC**: 从 [Infura](https://infura.io) 或 [Alchemy](https://alchemy.com) 获取
+3. **Supabase**: 运行 `cd infra/supabase && supabase start`
 
 ---
 
@@ -628,11 +489,12 @@ import { QueueService } from '../queue/queue.service';
 ### ✅ DO（推荐做法）
 
 - ✅ 开发前先引用 `@docs/CONTEXT.md`
+- ✅ 查阅 `@docs/INTERFACE.md` 了解如何使用 shared/config
 - ✅ 从 `@c2c-agents/shared` 导入类型
 - ✅ 使用状态机验证 `assertTransition(from, to)`
 - ✅ 只修改自己模块的代码
 - ✅ 跨模块调用通过 Service 接口
-- ✅ PR 标题格式：`[模块] 简短描述`
+- ✅ PR 标题格式: `[模块] 简短描述`
 
 ### ❌ DON'T（禁止做法）
 
@@ -651,8 +513,10 @@ UNLICENSED - Internal Project
 
 ---
 
-**🔴 再次提醒**：使用 AI 开发时，必须先引用 `@docs/CONTEXT.md`，否则会导致代码冲突和规范违反！
+**🔴 再次提醒**: 使用 AI 开发时,必须先引用 `@docs/CONTEXT.md`,然后查阅 `@docs/INTERFACE.md` 了解如何对接 Owner #1 的核心功能!
 
 ```markdown
-@docs/CONTEXT.md 请帮我实现 XXX 功能
+@docs/CONTEXT.md
+@docs/INTERFACE.md
+请帮我实现 XXX 功能
 ```

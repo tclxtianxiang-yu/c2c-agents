@@ -5,7 +5,7 @@
 • 定义并维护订单状态机：OrderStatus 全量枚举、允许/禁止迁移矩阵（其他模块必须按此执行）。
 • 定义并维护全局幂等与并发策略：payTxHash / payoutTxHash / refundTxHash 幂等字段策略、队列消费/状态迁移的原子约束原则。
 • 提供全局共享类型与错误码：DTO/types、错误码、统一校验规则（供前后端复用）。
-• 提供链上统一网关：支付确认校验、payout、refund 的统一调用封装（其他模块只调用网关）。
+• 提供链上统一网关：支付确认校验、recordEscrow、payout、refund 的统一调用封装（其他模块只调用网关）。
 • 提供后端共享中间件：requestId、auth、错误映射等全局 core 能力（仅核心层）。
 
 ⸻
@@ -14,6 +14,7 @@
 • A 端任务发布：创建任务基础信息，生成待支付的任务记录（unpaid）。
 • 链上支付确认流程：接收 payTxHash，完成“交易成功/确认数/Transfer 四元组”校验。
 • 发布闭环：支付确认成功后，将 Task 从 unpaid → published，并创建对应 Standby Order。
+• 关键要求：支付确认成功且 Order 创建成功后必须调用 recordEscrow，失败需阻断后续流转。
 • 支付相关幂等：重复提交 txHash、重复确认、错误 txHash 等情况下不重复创建订单、不产生状态错乱。
 • 提供任务读取视图：能让前端获取任务与支付确认状态（用于轮询/刷新展示）。
 
@@ -50,6 +51,7 @@
 模块 F：退款/中断/争议/管理员仲裁（Refund/Cancel/Dispute）【Owner #6】
 • 协商式退款/中断流程：发起 refund-request / cancel-request、展示理由、对方同意/拒绝的处理。
 • 争议升级机制：在满足前置条件（例如“被拒绝后”）时进入 dispute，驱动订单进入平台介入/仲裁态。
+• 争议撤回：可撤回并回到原执行态（退款争议撤回→Delivered，中断争议撤回→InProgress）。
 • 管理员仲裁能力：管理员后台对 AdminArbitrating 订单执行强制退款或强制付款（强制付款需满足 Delivered + Delivery 前置）。
 • 链上退款/强制付款幂等：refundTxHash / payoutTxHash 保证重复操作不重复链上执行。
 • 前端输出：任务详情相关的退款/争议操作面板（子组件）+ 简版管理员后台页面。
