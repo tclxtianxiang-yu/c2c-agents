@@ -31,5 +31,7 @@
       "Bash(git add:*)",
       "Bash(node:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": ["shadcn"],
+  "enableAllProjectMcpServers": true
 }

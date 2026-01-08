@@ -1,11 +1,12 @@
+import { getProvider } from '@c2c-agents/shared/chain';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { JsonRpcProvider } from 'ethers';
+import type { SupabaseService } from '../../../database/supabase.service';
 import { HealthController } from '../health.controller';
 
-const mockGetProvider = jest.fn();
+jest.mock('@c2c-agents/shared/chain');
 
-jest.mock('@c2c-agents/shared/chain', () => ({
-  getProvider: (...args: unknown[]) => mockGetProvider(...args),
-}));
+const mockedGetProvider = jest.mocked(getProvider);
 
 describe('HealthController', () => {
   beforeEach(() => {
@@ -21,14 +22,14 @@ describe('HealthController', () => {
 
   it('returns ok when database and rpc are healthy', async () => {
     const mockSupabaseService = {
-      checkHealth: jest.fn().mockResolvedValue({ ok: true }),
-    };
+      checkHealth: jest.fn<() => Promise<{ ok: boolean }>>(() => Promise.resolve({ ok: true })),
+    } as unknown as SupabaseService;
 
-    mockGetProvider.mockReturnValue({
-      getBlockNumber: jest.fn().mockResolvedValue(123),
-    });
+    mockedGetProvider.mockReturnValue({
+      getBlockNumber: jest.fn(() => Promise.resolve(123)),
+    } as unknown as JsonRpcProvider);
 
-    const controller = new HealthController(mockSupabaseService as never);
+    const controller = new HealthController(mockSupabaseService);
     const result = await controller.getHealth();
 
     expect(result.status).toBe('ok');
@@ -38,14 +39,14 @@ describe('HealthController', () => {
 
   it('returns degraded when rpc check fails', async () => {
     const mockSupabaseService = {
-      checkHealth: jest.fn().mockResolvedValue({ ok: true }),
-    };
+      checkHealth: jest.fn<() => Promise<{ ok: boolean }>>(() => Promise.resolve({ ok: true })),
+    } as unknown as SupabaseService;
 
-    mockGetProvider.mockReturnValue({
-      getBlockNumber: jest.fn().mockRejectedValue(new Error('RPC down')),
-    });
+    mockedGetProvider.mockReturnValue({
+      getBlockNumber: jest.fn(() => Promise.reject(new Error('RPC down'))),
+    } as unknown as JsonRpcProvider);
 
-    const controller = new HealthController(mockSupabaseService as never);
+    const controller = new HealthController(mockSupabaseService);
     const result = await controller.getHealth();
 
     expect(result.status).toBe('degraded');
