@@ -1,20 +1,15 @@
 import { ContractInteractionError } from '@c2c-agents/shared';
+import type { PayoutResult, RecordEscrowResult } from '@c2c-agents/shared/chain';
+import { executePayout, executeRecordEscrow, getProvider } from '@c2c-agents/shared/chain';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { JsonRpcProvider } from 'ethers';
 import { ChainService } from '../chain.service';
 
-const mockVerifyPayment = jest.fn();
-const mockExecutePayout = jest.fn();
-const mockExecuteRefund = jest.fn();
-const mockExecuteRecordEscrow = jest.fn();
-const mockGetProvider = jest.fn();
+jest.mock('@c2c-agents/shared/chain');
 
-jest.mock('@c2c-agents/shared/chain', () => ({
-  verifyPayment: (...args: unknown[]) => mockVerifyPayment(...args),
-  executePayout: (...args: unknown[]) => mockExecutePayout(...args),
-  executeRefund: (...args: unknown[]) => mockExecuteRefund(...args),
-  executeRecordEscrow: (...args: unknown[]) => mockExecuteRecordEscrow(...args),
-  getProvider: (...args: unknown[]) => mockGetProvider(...args),
-}));
+const mockedExecutePayout = jest.mocked(executePayout);
+const mockedExecuteRecordEscrow = jest.mocked(executeRecordEscrow);
+const mockedGetProvider = jest.mocked(getProvider);
 
 describe('ChainService', () => {
   beforeEach(() => {
@@ -27,17 +22,17 @@ describe('ChainService', () => {
     process.env.SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
 
-    mockGetProvider.mockReturnValue({
-      getBlockNumber: jest.fn(),
-    });
+    mockedGetProvider.mockReturnValue({
+      getBlockNumber: jest.fn(() => Promise.resolve(0)),
+    } as unknown as JsonRpcProvider);
   });
 
   it('returns payout failure when shared executePayout fails', async () => {
-    mockExecutePayout.mockResolvedValue({
+    mockedExecutePayout.mockResolvedValue({
       success: false,
       orderKey: '0x123',
       error: new ContractInteractionError('fail'),
-    });
+    } as PayoutResult);
 
     const service = new ChainService();
     const result = await service.executePayout({
@@ -51,7 +46,7 @@ describe('ChainService', () => {
     if (!result.success) {
       expect(result.error).toBeInstanceOf(ContractInteractionError);
     }
-    expect(mockExecutePayout).toHaveBeenCalledWith(
+    expect(mockedExecutePayout).toHaveBeenCalledWith(
       expect.objectContaining({
         escrowAddress: process.env.ESCROW_ADDRESS,
         rpcUrl: process.env.CHAIN_RPC_URL,
@@ -60,13 +55,13 @@ describe('ChainService', () => {
   });
 
   it('forwards recordEscrow to shared executeRecordEscrow', async () => {
-    mockExecuteRecordEscrow.mockResolvedValue({
+    mockedExecuteRecordEscrow.mockResolvedValue({
       success: true,
       orderKey: '0x456',
       txHash: '0xabc',
       confirmations: 1,
       amount: '1000',
-    });
+    } as RecordEscrowResult);
 
     const service = new ChainService();
     const result = await service.recordEscrow({
@@ -75,7 +70,7 @@ describe('ChainService', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(mockExecuteRecordEscrow).toHaveBeenCalledWith(
+    expect(mockedExecuteRecordEscrow).toHaveBeenCalledWith(
       expect.objectContaining({
         escrowAddress: process.env.ESCROW_ADDRESS,
         rpcUrl: process.env.CHAIN_RPC_URL,

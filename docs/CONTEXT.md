@@ -62,15 +62,22 @@ C2CAgents/
 
 **容器页面归属：**
 
-- 任务详情页容器：`apps/web/src/app/tasks/[id]/page.tsx` → Owner #3
-- B 工作台容器：`apps/web/src/app/(b)/workbench/**` → Owner #5
-- 首页/任务广场：`apps/web/src/app/page.tsx` → Owner #2
+| 路由                                     | Owner    | 说明            |
+| ---------------------------------------- | -------- | --------------- |
+| `apps/web/src/app/page.tsx`              | Owner #2 | 首页 / 任务市场 |
+| `apps/web/src/app/tasks/create/page.tsx` | Owner #2 | 发布任务页      |
+| `apps/web/src/app/tasks/[id]/page.tsx`   | Owner #3 | 任务详情容器    |
+| `apps/web/src/app/agents/page.tsx`       | Owner #4 | Agent 市场页    |
+| `apps/web/src/app/agents/[id]/page.tsx`  | Owner #4 | Agent 详情页    |
+| `apps/web/src/app/(b)/workbench/**`      | Owner #5 | B 工作台容器    |
+| `apps/web/src/app/account/page.tsx`      | Owner #1 | 账户中心        |
+| `apps/web/src/app/admin/**`              | Owner #6 | 管理员后台      |
 
-> 其他人只能提供 **子组件**（`apps/web/src/components/**`），由容器 Owner 引用集成；禁止直接改容器布局与状态编排逻辑。
+> **每个 Owner 负责自己的页面容器（page.tsx）和对应子组件。跨模块 UI 需求通过 `apps/web/src/components/**` 提供可复用组件，由容器 Owner 集成。\*\*
 
 ### 3.3 NestJS 模块目录归属（强制隔离，天然不踩）
 
-**仅允许在 `apps/api/src/modules/**` 以模块维度开发：**
+**仅允许在 `apps/api/src/modules/**` 以模块维度开发：\*\*
 
 ```
 apps/api/src/modules/
@@ -109,11 +116,13 @@ enum OrderStatus { ... }  // 禁止在模块内重复定义
 ```
 
 **禁止：**
+
 - 在各模块里复制/重定义 `OrderStatus`、`TaskStatus`、错误码
 - 前后端各写一套不一致的类型
 - 假设字段存在但未在 `packages/shared/src/types` 中定义
 
 **允许：**
+
 - 模块内部定义 "仅模块内部使用" 的临时类型，但对外（API/组件 props/跨模块调用）必须使用 shared 导出类型
 
 ### 4.2 订单状态机（OrderStatus Transition）
@@ -122,13 +131,17 @@ enum OrderStatus { ... }  // 禁止在模块内重复定义
 
 ```typescript
 // 状态流转必须调用
-import { assertTransition, canTransition } from '@c2c-agents/shared/state-machine';
+import {
+  assertTransition,
+  canTransition,
+} from "@c2c-agents/shared/state-machine";
 
 // 修改订单状态前
 assertTransition(currentStatus, targetStatus);
 ```
 
 **规则：**
+
 - 状态机迁移矩阵（允许/禁止迁移）由 `packages/shared` 维护
 - 任何模块要改变订单状态，必须使用 shared 的迁移校验
 - 不能私自添加"捷径状态"或跳转规则
@@ -137,9 +150,10 @@ assertTransition(currentStatus, targetStatus);
 
 ## 5) 数据库迁移规则（Supabase/Postgres：零冲突）
 
-**迁移文件位置：`infra/supabase/migrations/**`**
+**迁移文件位置：`infra/supabase/migrations/**`\*\*
 
 **规则：**
+
 - 只允许 Owner #1 写入/修改迁移文件
 - 其他人需要加字段/索引/约束：
   1. 提 PR，内容为「迁移需求说明」
@@ -147,6 +161,7 @@ assertTransition(currentStatus, targetStatus);
   3. Owner #1 负责最终 SQL 落地
 
 **禁止：**
+
 - 模块为了方便"偷偷改表结构"
 - 在代码里假设不存在的字段/索引（必须等 core migration 合并后再依赖）
 - 直接在模块代码中执行 DDL（CREATE/ALTER TABLE）
@@ -155,9 +170,10 @@ assertTransition(currentStatus, targetStatus);
 
 ## 6) 合约与 ABI 规则（Hardhat：零冲突）
 
-**合约目录：`apps/contracts/**`**
+**合约目录：`apps/contracts/**`\*\*
 
 **规则：**
+
 - 只允许 Owner #1（或指定合约 owner）修改 `.sol` 文件并重新生成 ABI/typechain
 - 其他人：
   - 只能消费 `apps/contracts/typechain-types/**`（通过 workspace 引用）
@@ -167,7 +183,7 @@ assertTransition(currentStatus, targetStatus);
 
 ```typescript
 // ✅ 正确：通过 shared 或 config 提供的封装使用合约
-import { getEscrowContract } from '@c2c-agents/shared/contracts';
+import { getEscrowContract } from "@c2c-agents/shared/contracts";
 
 // ❌ 禁止：各模块自行 new Contract
 const contract = new ethers.Contract(address, abi, provider);
@@ -200,6 +216,7 @@ WHERE id = $2
 ```
 
 **约束：**
+
 - `payoutTxHash` 存在则不得重复打款
 - `refundTxHash` 存在则不得重复退款
 - `payTxHash` 必须幂等：同一 task/order 重复提交不得重复创建资源
@@ -236,6 +253,7 @@ RETURNING *;
 **关键规则：**
 
 进入以下状态后，自动验收路径**永久关闭**：
+
 - `RefundRequested`
 - `CancelRequested`
 - `Disputed`
@@ -270,7 +288,7 @@ WHERE status = 'Delivered'
 
 ```typescript
 // matching 模块需要队列能力
-import { QueueService } from '../queue/queue.service';
+import { QueueService } from "../queue/queue.service";
 
 @Module({
   imports: [QueueModule],
@@ -284,7 +302,7 @@ export class MatchingModule {}
 
 ```typescript
 // ❌ 禁止在 matching 模块中直接操作 queue_items 表
-await this.db.query('INSERT INTO queue_items ...');
+await this.db.query("INSERT INTO queue_items ...");
 ```
 
 ### 8.2 链上调用规范
@@ -293,7 +311,7 @@ await this.db.query('INSERT INTO queue_items ...');
 
 ```typescript
 // ✅ 正确
-import { validatePayTx, executePayoutTx } from '@c2c-agents/shared/chain';
+import { validatePayTx, executePayoutTx } from "@c2c-agents/shared/chain";
 
 // ❌ 禁止各模块自行 new provider/contract
 const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -307,11 +325,13 @@ const contract = new ethers.Contract(address, abi, provider);
 ### 9.1 容器 vs 组件职责划分
 
 **容器 Owner 负责：**
+
 - 页面级路由（`apps/web/src/app/**/page.tsx`）
 - Layout 与状态编排
 - 跨模块组件拼装
 
 **子组件提供者负责：**
+
 - 可复用组件（`apps/web/src/components/**`）
 - 清晰的 props 契约
 - 不触碰容器文件
@@ -319,6 +339,7 @@ const contract = new ethers.Contract(address, abi, provider);
 ### 9.2 禁止行为
 
 **❌ 禁止：**
+
 - 为了加按钮/展示信息去直接改别人的容器页
 - 在多个位置复制同一块业务 UI（必须抽组件到 `packages/ui` 或 `apps/web/src/components`）
 - 直接修改 `apps/web/src/app/layout.tsx` 根布局（需要 Owner #1 审批）
@@ -353,6 +374,7 @@ apps/api/src/modules/task/
 ```
 
 **测试覆盖：**
+
 - 主流程（happy path）
 - 幂等场景（重复提交同一操作）
 - 并发/竞态（若模块涉及队列/状态变更）
@@ -360,6 +382,7 @@ apps/api/src/modules/task/
 ### 10.2 关键测试场景
 
 **任何影响以下内容的改动必须附带测试：**
+
 - 状态机迁移
 - 幂等逻辑（payoutTxHash/refundTxHash）
 - 队列操作（enqueue/consume）
@@ -399,6 +422,7 @@ apps/api/src/modules/task/
 ### 11.3 受限目录 PR 流程
 
 **触碰受限目录的 PR：**
+
 1. 必须标注 `[RESTRICTED]` 前缀
 2. 必须由对应 Owner 最终合并
 3. 其他 Owner 可以 Review，但不能 Merge
@@ -406,10 +430,12 @@ apps/api/src/modules/task/
 ### 11.4 禁止"顺手改"
 
 **❌ 禁止：**
+
 - 发现需要 shared/schema/ABI 变更时直接修改
 - "顺便" 修改不在自己模块范围内的代码
 
 **✅ 正确做法：**
+
 1. 停止当前工作
 2. 提交「变更提案」Issue
 3. 等待对应 Owner 落地后再继续
@@ -423,6 +449,7 @@ apps/api/src/modules/task/
 **你（AI）只能修改被分配模块的白名单路径。**
 
 **遇到跨模块需求时：**
+
 1. 立即停止直接修改
 2. 在响应中输出「需求清单」
 3. 明确标注「所需 Owner 动作」
@@ -441,6 +468,7 @@ apps/web/src/app/**/page.tsx（容器页）
 ```
 
 **必须：**
+
 1. 停止直接修改
 2. 输出「变更提案」：
    - 需要添加/修改的内容
@@ -467,26 +495,39 @@ const ALLOWED_TRANSITIONS = { ... };          // 复制状态机
 
 ### 13.1 高冲突区
 
-| 冲突点 | Owner | 说明 |
-|--------|-------|------|
-| 1. `packages/shared/**` | Owner #1 | DTO/枚举/状态机 |
-| 2. `packages/config/**` | Owner #1 | 配置常量/环境变量 |
-| 3. `infra/supabase/migrations/**` | Owner #1 | 数据库 schema |
-| 4. `apps/contracts/**` | Owner #1 | 合约 + ABI |
-| 5. `apps/web/src/app/tasks/[id]/page.tsx` | Owner #3 | 任务详情页容器 |
-| 6. `apps/web/src/app/(b)/workbench/**` | Owner #5 | B 工作台容器 |
+| 冲突点                                      | Owner    | 说明              |
+| ------------------------------------------- | -------- | ----------------- |
+| 1. `packages/shared/**`                     | Owner #1 | DTO/枚举/状态机   |
+| 2. `packages/config/**`                     | Owner #1 | 配置常量/环境变量 |
+| 3. `infra/supabase/migrations/**`           | Owner #1 | 数据库 schema     |
+| 4. `apps/contracts/**`                      | Owner #1 | 合约 + ABI        |
+| 5. `apps/web/src/app/page.tsx`              | Owner #2 | 首页 / 任务市场   |
+| 6. `apps/web/src/app/tasks/create/page.tsx` | Owner #2 | 发布任务页        |
+| 7. `apps/web/src/app/tasks/[id]/page.tsx`   | Owner #3 | 任务详情页容器    |
+| 8. `apps/web/src/app/agents/page.tsx`       | Owner #4 | Agent 市场页      |
+| 9. `apps/web/src/app/agents/[id]/page.tsx`  | Owner #4 | Agent 详情页      |
+| 10. `apps/web/src/app/(b)/workbench/**`     | Owner #5 | B 工作台容器      |
+| 11. `apps/web/src/app/account/page.tsx`     | Owner #1 | 账户中心          |
+| 12. `apps/web/src/app/admin/**`             | Owner #6 | 管理员后台        |
 
 ### 13.2 规避策略（强制执行）
 
 **绝对收口（Owner #1）：**
+
 - 所有 shared/config/migrations/contracts 修改
 
 **容器隔离：**
+
+- Owner #2 维护首页 / 任务市场 / 发布任务页
 - Owner #3 维护任务详情页
+- Owner #4 维护 Agent 市场页 / Agent 详情页
 - Owner #5 维护 B 工作台
+- Owner #1 维护账户中心
+- Owner #6 维护管理员后台
 - 其他人只提供子组件
 
 **模块隔离：**
+
 - 每个 NestJS 模块只修改自己的 `modules/xxx/**`
 - 跨模块调用通过 Service 接口
 
@@ -502,10 +543,10 @@ const ALLOWED_TRANSITIONS = { ... };          // 复制状态机
 
 ```typescript
 // ✅ 推荐：单引号、分号、2 空格缩进
-const message = 'Hello World';
+const message = "Hello World";
 
 // ✅ 推荐：使用 import type
-import type { OrderStatus } from '@c2c-agents/shared';
+import type { OrderStatus } from "@c2c-agents/shared";
 
 // ✅ 推荐：使用 const
 const MAX_RETRY = 3;
@@ -571,7 +612,7 @@ apps/web/src/app/**/page.tsx → 容器 Owner only
 
 ```typescript
 // 先检查
-import { OrderStatus, TaskStatus } from '@c2c-agents/shared';
+import { OrderStatus, TaskStatus } from "@c2c-agents/shared";
 ```
 
 **如果已存在 → 直接使用，禁止复制**
