@@ -29,9 +29,11 @@
       "Bash(pnpm:*)",
       "Bash(node -e:*)",
       "Bash(git add:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)"
     ]
   },
-  "enabledMcpjsonServers": ["shadcn"],
-  "enableAllProjectMcpServers": true
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["shadcn"]
 }

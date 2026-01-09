@@ -2,7 +2,8 @@
 
 > **目标读者**: 需要与 Owner #1 核心服务深度集成的特定模块
 > **用途**: 链上交互、队列系统、核心服务等高级功能对接
-> **最后更新**: 2026-01-05
+> **同步说明**: 公共规则以 `docs/INTERFACE.md` 为准，本文件补充深度集成细节
+> **最后更新**: 2026-01-09
 
 ---
 
@@ -10,7 +11,7 @@
 
 - [1. 链上交互网关 (已落地)](#1-链上交互网关-已落地)
 - [2. 队列系统 API (Owner #4 专用)](#2-队列系统-api-owner-4-专用)
-- [3. 核心共享服务 (待实现)](#3-核心共享服务-待实现)
+- [3. 核心共享服务 (已落地)](#3-核心共享服务-已落地)
 - [4. 测试数据工厂 (开发环境)](#4-测试数据工厂-开发环境)
 
 ---
@@ -48,6 +49,7 @@ class ChainService {
   recordEscrow(params: {
     orderId: string;
     amount: string;
+    minConfirmations?: number; // 最小确认数，未传则使用默认值
   }): Promise<RecordEscrowResult>;
 
   executePayout(params: {
@@ -55,12 +57,15 @@ class ChainService {
     creatorAddress: string;
     providerAddress: string;
     grossAmount: string;
+    feeRate?: number; // 手续费率（0-1），未传则使用默认值
+    minConfirmations?: number; // 最小确认数，未传则使用默认值
   }): Promise<PayoutResult>;
 
   executeRefund(params: {
     orderId: string;
     creatorAddress: string;
     amount: string;
+    minConfirmations?: number; // 最小确认数，未传则使用默认值
   }): Promise<RefundResult>;
 }
 ```
@@ -70,6 +75,8 @@ class ChainService {
 - 如果直接调用 `@c2c-agents/shared/chain` 的 `verifyPayment`，必须显式传 `tokenAddress`
 - Owner #2 必须在 Task 模块“支付确认成功且 Order 创建成功”后调用 `recordEscrow`，失败必须阻断后续流转
 - 幂等条件：`escrowedAmounts[orderId] == 0`，重复调用必须返回幂等错误
+- ChainService 默认使用 `@c2c-agents/config/constants` 的 `MIN_CONFIRMATIONS`、
+  `GAS_PRICE_MULTIPLIER`、`PLATFORM_FEE_RATE`，调用方也可显式传参覆盖
 
 ### 1.0 合约已落地信息（Phase 2）
 
@@ -193,6 +200,8 @@ async executePayout(params: {
   creatorAddress: string;
   providerAddress: string;
   grossAmount: string;
+  feeRate?: number; // 手续费率（0-1），未传则使用默认值
+  minConfirmations?: number; // 最小确认数，未传则使用默认值
   signer: Signer;
 }): Promise<{
   success: boolean;
@@ -256,6 +265,7 @@ async executeRefund(params: {
   orderId: string;
   creatorAddress: string;
   amount: string;
+  minConfirmations?: number; // 最小确认数，未传则使用默认值
   signer: Signer;
 }): Promise<{
   success: boolean;
@@ -517,55 +527,23 @@ export class QueueService {
 
 ---
 
-## 3. 核心共享服务 (待实现)
+## 3. 核心共享服务 (已落地)
 
-> **状态**: 🟡 待实现 (Phase 3)
-> **位置**: `apps/api/src/modules/core/`
+> **状态**: ✅ 已落地 (Phase 4)
+> **位置**: `apps/api/src/common/` + `apps/api/src/modules/core/`
 
-### 3.1 链上网关服务 (ChainGatewayService)
+### 3.1 RequestIdMiddleware
 
 ```typescript
-// 未来由 Owner #1 实现
-export class ChainGatewayService {
-  async validatePayment(txHash: string, expectedAmount: string): Promise<boolean>;
-  async executePayout(orderId: string, recipient: string, amount: string): Promise<string>;
-  async executeRefund(orderId: string, recipient: string, amount: string): Promise<string>;
-  async getTransactionStatus(txHash: string): Promise<TxStatus>;
-}
+// 文件: apps/api/src/common/middleware/request-id.middleware.ts
+// 为每个请求生成 requestId, 并写入响应头 X-Request-ID
 ```
 
-### 3.2 请求 ID 中间件 (RequestIdMiddleware)
+### 3.2 HttpExceptionFilter
 
 ```typescript
-// 未来由 Owner #1 实现
-// 自动为每个请求生成唯一 request_id,用于日志追踪
-@Injectable()
-export class RequestIdMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    req['requestId'] = uuidv4();
-    res.setHeader('X-Request-ID', req['requestId']);
-    next();
-  }
-}
-```
-
-### 3.3 全局异常过滤器 (GlobalExceptionFilter)
-
-```typescript
-// 未来由 Owner #1 实现
-// 统一处理 shared/errors 中的自定义错误
-@Catch()
-export class GlobalExceptionFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
-    if (exception instanceof InvalidTransitionError) {
-      // 映射为 400 Bad Request
-    }
-    if (exception instanceof ValidationError) {
-      // 映射为 400 Bad Request
-    }
-    // ...
-  }
-}
+// 文件: apps/api/src/common/filters/http-exception.filter.ts
+// 统一错误结构,并将 requestId 回传给前端
 ```
 
 ---
@@ -907,6 +885,6 @@ SELECT * FROM pg_stat_statements WHERE query LIKE '%trigger%';
 
 ---
 
-**最后更新**: 2026-01-05
+**最后更新**: 2026-01-09
 **维护者**: Owner #1
-**版本**: v1.0.0
+**版本**: v1.0.1
