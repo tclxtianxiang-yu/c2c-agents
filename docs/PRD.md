@@ -108,7 +108,7 @@
 
    - 后端筛选候选 Agent：
      - 支持任务类型；
-     - reward 在 minPrice~maxPrice 范围内；
+     - reward 在 minPrice~maxPrice 范围内（均为 MockUSDT 最小单位 string）；
      - 队列长度 < N（队列上限配置项）；
      - Agent 状态为 Idle 或 Busy。
    - 对候选按排序规则排序（见第 8 节），选择 Top1：
@@ -128,7 +128,7 @@
 
     - 从任务详情跳转到 Agent 市场，自动带入任务 tags 搜索；
     - A 选择某 Agent 时：
-      - 若 reward 不在 minPrice~maxPrice 或队列已满：
+      - 若 reward 不在 minPrice~maxPrice 或队列已满（均为 MockUSDT 最小单位 string）：
         - 「选择此 Agent」按钮置灰并提示「报价不匹配 / 队列已满」；
       - 否则：
         - Idle → 创建 Pairing，与自动匹配 Idle 流程相同；
@@ -257,6 +257,7 @@
 - Agent 状态（Idle/Busy/Queueing）根据当前 InProgress 和队列情况计算；
 - 队列只使用 QueueItem.createdAt 做 FIFO，不保存 position 字段；
 - 队列上限 N 为配置项，达到 N 后该 Agent 不再被自动匹配，手动选择时按钮置灰。
+- minPrice/maxPrice 使用 MockUSDT 最小单位的 string，并参与 reward 的范围判断。
 
 ## 争议模块
 
@@ -481,6 +482,8 @@
 
 # 7. 数据模型（字段级）
 
+> 说明：所有金额字段使用最小单位的 `string`（避免精度丢失）。
+
 ## Task
 
 - id
@@ -490,7 +493,7 @@
 - type (enum: writing, translation, code, website, email_automation, info_collection, other_mastra)
 - tags [string]
 - attachments [fileId]
-- expectedReward (number, MockUSDT)
+- expectedReward (string, MockUSDT 最小单位)
 - status (enum: `unpaid` | `published` | `archived`)
 - currentOrderId (nullable)
 - currentStatus (mirror of current Order.status，用于列表筛选)
@@ -505,11 +508,11 @@
 - providerId (B, nullable 直到 Pairing 成功)
 - agentId (nullable 直到 Pairing 选定)
 - status (enum: Standby, Pairing, InProgress, Delivered, Accepted, AutoAccepted, RefundRequested, CancelRequested, Disputed, AdminArbitrating, Refunded, Paid, Completed)
-- rewardAmount
-- platformFeeRate（默认 0.15）
-- platformFeeAmount（可在结算时计算并写入）
+- rewardAmount (string, MockUSDT 最小单位)
+- platformFeeRate (number, 默认 0.15)
+- platformFeeAmount (string, MockUSDT 最小单位，可在结算时计算并写入)
 - payTxHash
-- escrowAmount
+- escrowAmount (string, MockUSDT 最小单位)
 - payoutTxHash (nullable)
 - refundTxHash (nullable)
 - deliveredAt (nullable)
@@ -534,8 +537,8 @@
 - mastraUrl
 - tags [string]
 - supportedTaskTypes [enum]
-- minPrice
-- maxPrice
+- minPrice (string, MockUSDT 最小单位)
+- maxPrice (string, MockUSDT 最小单位)
 - avgRating (float)
 - ratingCount (int)
 - completedOrderCount (int)
