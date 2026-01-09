@@ -1,9 +1,9 @@
-import { MIN_CONFIRMATIONS } from '@c2c-agents/config/constants';
 import { MockUSDT__factory } from '@c2c-agents/contracts/typechain-types/factories/contracts/MockUSDT__factory';
 import type { Log, Provider } from 'ethers';
 
 import { ContractInteractionError, PaymentVerificationError } from '../errors';
 import { normalizeAddress } from '../utils';
+import { MIN_CONFIRMATIONS } from './constants';
 import { getProvider } from './contracts';
 
 export interface VerifyPaymentParams {

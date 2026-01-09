@@ -1,3 +1,8 @@
+import {
+  GAS_PRICE_MULTIPLIER,
+  MIN_CONFIRMATIONS,
+  PLATFORM_FEE_RATE,
+} from '@c2c-agents/config/constants';
 import type {
   ExecutePayoutParams,
   ExecuteRecordEscrowParams,
@@ -55,6 +60,7 @@ export class ChainService {
   verifyPayment(params: VerifyPaymentInput): Promise<PaymentVerificationResult> {
     return verifyPayment({
       ...params,
+      minConfirmations: params.minConfirmations ?? MIN_CONFIRMATIONS,
       tokenAddress: this.mockUsdtAddress,
       provider: this.provider,
     });
@@ -63,6 +69,12 @@ export class ChainService {
   executePayout(params: ExecutePayoutInput): Promise<PayoutResult> {
     return executePayout({
       ...params,
+      feeRate: params.feeRate ?? PLATFORM_FEE_RATE,
+      gas: {
+        ...params.gas,
+        gasPriceMultiplier: params.gas?.gasPriceMultiplier ?? GAS_PRICE_MULTIPLIER,
+      },
+      minConfirmations: params.minConfirmations ?? MIN_CONFIRMATIONS,
       signer: this.signer,
       escrowAddress: this.escrowAddress,
       rpcUrl: this.rpcUrl,
@@ -72,6 +84,11 @@ export class ChainService {
   executeRefund(params: ExecuteRefundInput): Promise<RefundResult> {
     return executeRefund({
       ...params,
+      gas: {
+        ...params.gas,
+        gasPriceMultiplier: params.gas?.gasPriceMultiplier ?? GAS_PRICE_MULTIPLIER,
+      },
+      minConfirmations: params.minConfirmations ?? MIN_CONFIRMATIONS,
       signer: this.signer,
       escrowAddress: this.escrowAddress,
       rpcUrl: this.rpcUrl,
@@ -81,6 +98,11 @@ export class ChainService {
   recordEscrow(params: ExecuteRecordEscrowInput): Promise<RecordEscrowResult> {
     return executeRecordEscrow({
       ...params,
+      gas: {
+        ...params.gas,
+        gasPriceMultiplier: params.gas?.gasPriceMultiplier ?? GAS_PRICE_MULTIPLIER,
+      },
+      minConfirmations: params.minConfirmations ?? MIN_CONFIRMATIONS,
       signer: this.signer,
       escrowAddress: this.escrowAddress,
       rpcUrl: this.rpcUrl,

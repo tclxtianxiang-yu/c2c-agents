@@ -2,7 +2,8 @@
 
 > **目标读者**: 所有 Owner (2-6) 和 AI Agent
 > **用途**: 与 Owner #1 管理的核心模块对接时的必读文档
-> **最后更新**: 2026-01-05
+> **补充说明**: 深度集成细节见 `docs/owner1/INTERFACE.md`
+> **最后更新**: 2026-01-09
 
 ---
 
@@ -431,6 +432,9 @@ import {
 } from '@c2c-agents/config/constants';
 ```
 
+**说明**：链上辅助函数的默认值位于 `@c2c-agents/shared/chain`，当未传参时会使用默认值。
+若依赖环境变量覆盖，请将 `@c2c-agents/config/constants` 中的常量传入这些函数。
+
 ### 6.2 使用示例
 
 ```typescript
@@ -497,13 +501,15 @@ try {
 ```
 
 **注意**: 链上敏感变量（如 `MOCK_USDT_ADDRESS`、`ESCROW_ADDRESS`、`PLATFORM_OPERATOR_PRIVATE_KEY`）
-不在 `@c2c-agents/config` 中校验，需由 API 进程在启动时校验（见 `apps/api/ENV.md`）。
+不在 `@c2c-agents/config` 中校验，由 API 启动时的 `apps/api/src/config/env.ts` 校验，
+环境清单见 `apps/api/ENV.md`。
 
 ---
 
 ## 7. 合约对接速览
 
 > 面向多数模块的链上基础对接信息（合约已在 Phase 2 落地）
+> 深度集成与 ChainService 细节见 `docs/owner1/INTERFACE.md`
 
 ### 7.1 合约与地址来源
 
@@ -726,6 +732,6 @@ calculateFee('1000000', 0.15) → { feeAmount: '150000', netAmount: '850000' }
 
 ---
 
-**最后更新**: 2026-01-05
+**最后更新**: 2026-01-09
 **维护者**: Owner #1
 **版本**: v1.0.0

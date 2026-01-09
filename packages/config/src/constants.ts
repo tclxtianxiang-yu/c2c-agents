@@ -4,6 +4,14 @@
  * 业务常量配置，支持通过环境变量覆盖默认值
  */
 
+import {
+  DEFAULT_SEPOLIA_RPC_URL as SHARED_DEFAULT_SEPOLIA_RPC_URL,
+  GAS_LIMITS as SHARED_GAS_LIMITS,
+  GAS_PRICE_MULTIPLIER as SHARED_GAS_PRICE_MULTIPLIER,
+  MAX_RETRIES as SHARED_MAX_RETRIES,
+  MIN_CONFIRMATIONS as SHARED_MIN_CONFIRMATIONS,
+  PLATFORM_FEE_RATE as SHARED_PLATFORM_FEE_RATE,
+} from '@c2c-agents/shared/chain';
 import { getEnv } from './env';
 
 const env = getEnv();
@@ -33,19 +41,21 @@ export const AUTO_ACCEPT_HOURS = env.AUTO_ACCEPT_HOURS ?? 24;
  * const { feeAmount, netAmount } = calculateFee('1000000', PLATFORM_FEE_RATE);
  * ```
  */
-export const PLATFORM_FEE_RATE = env.PLATFORM_FEE_RATE ? Number(env.PLATFORM_FEE_RATE) : 0.15;
+export const PLATFORM_FEE_RATE = env.PLATFORM_FEE_RATE
+  ? Number(env.PLATFORM_FEE_RATE)
+  : SHARED_PLATFORM_FEE_RATE;
 
 /** 最小确认数（链上交易确认数） */
-export const MIN_CONFIRMATIONS = env.MIN_CONFIRMATIONS ?? 1;
+export const MIN_CONFIRMATIONS = env.MIN_CONFIRMATIONS ?? SHARED_MIN_CONFIRMATIONS;
 
 /** 自动验收扫描间隔（分钟） */
 export const AUTO_ACCEPT_SCAN_INTERVAL_MINUTES = env.AUTO_ACCEPT_SCAN_INTERVAL_MINUTES ?? 5;
 
 /** Gas Price 倍数（用于加速交易确认） */
-export const GAS_PRICE_MULTIPLIER = env.GAS_PRICE_MULTIPLIER ?? 1.2;
+export const GAS_PRICE_MULTIPLIER = env.GAS_PRICE_MULTIPLIER ?? SHARED_GAS_PRICE_MULTIPLIER;
 
 /** 链上操作最大重试次数 */
-export const MAX_RETRIES = env.MAX_RETRIES ?? 3;
+export const MAX_RETRIES = env.MAX_RETRIES ?? SHARED_MAX_RETRIES;
 
 // ============================================================
 // 链常量（Sepolia 测试网）
@@ -55,19 +65,10 @@ export const MAX_RETRIES = env.MAX_RETRIES ?? 3;
 export const SEPOLIA_CHAIN_ID = 11155111;
 
 /** Sepolia RPC URL（默认使用公共节点） */
-export const DEFAULT_SEPOLIA_RPC_URL = 'https://rpc.sepolia.org';
+export const DEFAULT_SEPOLIA_RPC_URL = SHARED_DEFAULT_SEPOLIA_RPC_URL;
 
 /** Gas Limits（合约调用预估值） */
-export const GAS_LIMITS = {
-  /** USDT approve 操作 */
-  APPROVE: 60_000,
-  /** Escrow deposit 操作（Task 创建） */
-  DEPOSIT: 120_000,
-  /** Escrow payout 操作（Agent 收款） */
-  PAYOUT: 100_000,
-  /** Escrow refund 操作（退款） */
-  REFUND: 100_000,
-} as const;
+export const GAS_LIMITS = SHARED_GAS_LIMITS;
 
 /** USDT 代币精度（Sepolia 上的 MockUSDT） */
 export const USDT_DECIMALS = 6;

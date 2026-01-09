@@ -1,14 +1,14 @@
+import type { Escrow } from '@c2c-agents/contracts/typechain-types/contracts/Escrow';
+import type { Provider, Signer } from 'ethers';
+import { ContractInteractionError, IdempotencyViolationError, ValidationError } from '../errors';
+import { calculateFee, normalizeAddress, uuidToBytes32 } from '../utils';
 import {
   GAS_LIMITS,
   GAS_PRICE_MULTIPLIER,
   MAX_RETRIES,
   MIN_CONFIRMATIONS,
   PLATFORM_FEE_RATE,
-} from '@c2c-agents/config/constants';
-import type { Escrow } from '@c2c-agents/contracts/typechain-types/contracts/Escrow';
-import type { Provider, Signer } from 'ethers';
-import { ContractInteractionError, IdempotencyViolationError, ValidationError } from '../errors';
-import { calculateFee, normalizeAddress, uuidToBytes32 } from '../utils';
+} from './constants';
 import { getEscrowContract, getProvider } from './contracts';
 
 export interface GasOverrides {
@@ -24,6 +24,7 @@ export interface ExecutePayoutParams {
   signer: Signer;
   escrowAddress?: string;
   feeRate?: number;
+  minConfirmations?: number;
   gas?: GasOverrides;
   provider?: Provider;
   rpcUrl?: string;
@@ -38,6 +39,7 @@ export interface ExecuteRefundParams {
   amount: string;
   signer: Signer;
   escrowAddress?: string;
+  minConfirmations?: number;
   gas?: GasOverrides;
   provider?: Provider;
   rpcUrl?: string;
@@ -51,6 +53,7 @@ export interface ExecuteRecordEscrowParams {
   amount: string;
   signer: Signer;
   escrowAddress?: string;
+  minConfirmations?: number;
   gas?: GasOverrides;
   provider?: Provider;
   rpcUrl?: string;
@@ -168,6 +171,7 @@ export async function executePayout(params: ExecutePayoutParams): Promise<Payout
     const provider =
       params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
     const overrides = await buildGasOverrides(provider, GAS_LIMITS.PAYOUT, params.gas);
+    const minConfirmations = params.minConfirmations ?? MIN_CONFIRMATIONS;
 
     const tx = await escrow.payout(
       orderKey,
@@ -178,7 +182,7 @@ export async function executePayout(params: ExecutePayoutParams): Promise<Payout
       fee,
       overrides
     );
-    const receipt = await tx.wait(MIN_CONFIRMATIONS);
+    const receipt = await tx.wait(minConfirmations);
     if (!receipt) {
       throw new ContractInteractionError('Payout transaction not confirmed', {
         orderId: params.orderId,
@@ -254,9 +258,10 @@ export async function executeRefund(params: ExecuteRefundParams): Promise<Refund
     const provider =
       params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
     const overrides = await buildGasOverrides(provider, GAS_LIMITS.REFUND, params.gas);
+    const minConfirmations = params.minConfirmations ?? MIN_CONFIRMATIONS;
 
     const tx = await escrow.refund(orderKey, creatorAddress, amount, overrides);
-    const receipt = await tx.wait(MIN_CONFIRMATIONS);
+    const receipt = await tx.wait(minConfirmations);
     if (!receipt) {
       throw new ContractInteractionError('Refund transaction not confirmed', {
         orderId: params.orderId,
@@ -345,9 +350,10 @@ export async function executeRecordEscrow(
     const provider =
       params.provider ?? params.signer.provider ?? getProvider({ rpcUrl: params.rpcUrl });
     const overrides = await buildGasOverrides(provider, GAS_LIMITS.DEPOSIT, params.gas);
+    const minConfirmations = params.minConfirmations ?? MIN_CONFIRMATIONS;
 
     const tx = await escrow.recordEscrow(orderKey, amount, overrides);
-    const receipt = await tx.wait(MIN_CONFIRMATIONS);
+    const receipt = await tx.wait(minConfirmations);
     if (!receipt) {
       throw new ContractInteractionError('Record escrow transaction not confirmed', {
         orderId: params.orderId,
