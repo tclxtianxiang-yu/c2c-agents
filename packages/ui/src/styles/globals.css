@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 深色主题 - 基于设计稿配色 */
+
+    /* === 基础语义色 === */
+    --background: 222 47% 11%; /* #1a1f2e 深灰背景 */
+    --foreground: 210 40% 98%; /* 浅色文字 */
+
+    /* === 卡片/弹窗 === */
+    --card: 222 47% 14%; /* 比背景稍亮 */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    /* === 主色：亮蓝色 #0099FF === */
+    --primary: 204 100% 50%; /* #0099FF */
+    --primary-foreground: 222 47% 11%; /* 深色文字 */
+
+    /* === 次要色 === */
+    --secondary: 222 47% 20%; /* 深灰变体 */
+    --secondary-foreground: 210 40% 98%;
+
+    /* === 静音色（低对比度） === */
+    --muted: 222 47% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    /* === 强调色：紫色 === */
+    --accent: 270 70% 60%; /* 紫色强调 */
+    --accent-foreground: 210 40% 98%;
+
+    /* === 状态色 === */
+    --destructive: 0 72% 51%; /* 红色/错误 */
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 71% 45%; /* 绿色/成功 */
+    --success-foreground: 210 40% 98%;
+
+    --warning: 45 93% 47%; /* 黄色/警告 */
+    --warning-foreground: 222 47% 11%;
+
+    /* === 边框/输入框 === */
+    --border: 222 47% 20%;
+    --input: 222 47% 20%;
+    --ring: 204 100% 50%; /* 聚焦环用主色 */
+
+    /* === 图表色 === */
+    --chart-1: 204 100% 50%; /* 蓝 */
+    --chart-2: 142 71% 45%; /* 绿 */
+    --chart-3: 270 70% 60%; /* 紫 */
+    --chart-4: 45 93% 47%; /* 黄 */
+    --chart-5: 0 72% 51%; /* 红 */
+
+    /* === 圆角 === */
+    --radius: 0.5rem;
+
+    /* === Sidebar === */
+    --sidebar: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 204 100% 50%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 47% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 16%;
+    --sidebar-ring: 204 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
