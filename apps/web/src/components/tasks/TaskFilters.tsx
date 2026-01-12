@@ -8,13 +8,13 @@ type TaskFiltersProps = {
 
 export function TaskFilters({ status, currentStatus, onChange }: TaskFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
       <label className="flex items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           Task
         </span>
         <select
-          className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-1 text-sm text-white"
+          className="rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground"
           value={status ?? ''}
           onChange={(event) =>
             onChange({
@@ -30,11 +30,11 @@ export function TaskFilters({ status, currentStatus, onChange }: TaskFiltersProp
         </select>
       </label>
       <label className="flex items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           Order
         </span>
         <select
-          className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-1 text-sm text-white"
+          className="rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground"
           value={currentStatus ?? ''}
           onChange={(event) =>
             onChange({
