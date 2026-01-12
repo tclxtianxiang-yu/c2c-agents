@@ -31,7 +31,15 @@
       "Bash(git add:*)",
       "Bash(node:*)",
       "Bash(ls:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(test:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(curl:*)",
+      "WebSearch",
+      "Bash(git fetch:*)",
+      "Bash(command grep -E 'origin/\\(main|master\\)')",
+      "Bash(git merge:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

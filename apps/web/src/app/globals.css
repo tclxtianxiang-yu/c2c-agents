@@ -1,3 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 导入 packages/ui 的样式（CSS 变量在此定义） */
+@import "../../../../packages/ui/src/styles/globals.css";
+
+/* 应用级别的额外样式可以在此添加 */
