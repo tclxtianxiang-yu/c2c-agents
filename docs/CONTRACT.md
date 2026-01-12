@@ -17,8 +17,8 @@
 
 - 资金进入方式：**A → transfer(MockUSDT) → escrow**
 - 资金出金方式：**平台后端的热钱包/管理员地址**调用：
-  - `payout(orderId, provider, amountToProvider, feeToPlatform)`
-  - `refund(orderId, creator, amountToCreator)`
+  - `payout(orderId, creator, provider, grossAmount, netAmount, feeAmount)`
+  - `refund(orderId, creator, amount)`
 - 幂等：链上用 `orderId` 做唯一业务键，保证一个 order 只能 payout 或 refund 一次
 - 强制付款/退款：本质仍是 payout/refund，只是由 Admin 触发（链上不需要知道“争议”）
 

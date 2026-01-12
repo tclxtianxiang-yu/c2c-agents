@@ -19,6 +19,7 @@
 - 提供链上统一网关（支付确认校验、payout、refund）
 - 提供链上统一网关（支付确认校验、recordEscrow、payout、refund）
 - 提供后端共享中间件（requestId、auth、错误映射）
+- 账户中心页面容器（/account）
 
 ### 独占修改权限
 
@@ -51,18 +52,35 @@ apps/contracts/**           - 智能合约 + ABI + typechain
    - ✅ 完整的数据库 schema（728 行）
    - ✅ 所有核心表：tasks、orders、agents、deliveries、disputes、queue_items、wallet_bindings
    - ✅ 自动触发器 + 索引
+   - ✅ 后续迁移已应用：`20260106_remove_orders_dispute_id.sql`（orders.dispute_id 已移除，关联改用 disputes.order_id）
 
-4. **apps/contracts 框架**
+4. **apps/contracts 合约实现与部署**
    - ✅ Hardhat 配置就位（Sepolia 网络）
+   - ✅ MockUSDT.sol 与 Escrow.sol 已实现
    - ✅ TypeChain 集成
-   - ✅ 部署脚本框架（Lock.sol 占位）
+   - ✅ 部署脚本与 Sepolia 部署完成
 
-### 🟡 待完成
+### ✅ 补充完成项（Phase 3-4）
 
-1. `packages/shared/src/types/index.ts` - DTO 定义（当前是占位注释）
-2. 智能合约实现（MockUSDT + Escrow）
-3. 链上交互工具（`packages/shared/src/chain/`）
-4. API 核心模块（`apps/api/src/modules/core/`）
+5. **packages/shared/src/chain/** - 链上集成层
+   - ✅ 合约实例获取（contracts.ts）
+   - ✅ 支付校验（payment-verification.ts）
+   - ✅ 结算封装（settlement.ts）
+   - ✅ 17 个测试用例
+
+6. **apps/api/src/modules/core/** - API 核心模块
+   - ✅ ChainService（链上网关）
+   - ✅ HealthController（健康检查）
+   - ✅ 单元测试通过
+
+7. **apps/api/src/database/** - 数据库服务
+   - ✅ SupabaseService（Global 模块）
+   - ✅ 健康检查实现
+
+8. **apps/api/src/common/** - 共享基础设施
+   - ✅ RequestIdMiddleware
+   - ✅ HttpExceptionFilter
+   - ✅ 环境变量校验
 
 ### 🔁 状态机路径补充（争议协商）
 
@@ -102,7 +120,12 @@ apps/contracts/**           - 智能合约 + ABI + typechain
    - `File` (files 表)
    - `Review` (reviews 表)
 
-3. 金额类型处理决策：
+3. 注意 schema 变更：
+   - `orders.dispute_id` 已被迁移移除（见 `20260106_remove_orders_dispute_id.sql`）
+   - `Dispute` 与 `Order` 的关联使用 `disputes.order_id`
+   - `Order` DTO 不包含 `dispute_id`
+
+4. 金额类型处理决策：
    - 数据库使用 `numeric(78,0)` 存储最小单位整数
    - TypeScript 定义为 `string`（避免精度丢失）
 
@@ -654,13 +677,45 @@ apps/contracts/**           - 智能合约 + ABI + typechain
 
 ### Phase 3 验收清单
 
-- [ ] 合约实例获取工具正常工作
-- [ ] 支付校验通过单元测试（模拟 receipt）
-- [ ] Payout 调用成功（Sepolia 测试网）
-- [ ] Refund 调用成功（Sepolia 测试网）
-- [ ] 幂等性验证通过（重复调用返回错误）
-- [ ] 导出的 API 类型完整
-- [ ] `pnpm typecheck --filter @c2c-agents/shared` 通过
+- [x] 合约实例获取工具正常工作
+- [x] 支付校验通过单元测试（模拟 receipt）
+- [x] Payout 调用成功（Sepolia 测试网）
+- [x] Refund 调用成功（Sepolia 测试网）
+- [x] 幂等性验证通过（重复调用返回错误）
+- [x] 导出的 API 类型完整
+- [x] `pnpm typecheck --filter @c2c-agents/shared` 通过
+
+---
+
+### Phase 3 实施结果
+
+✅ **所有链上集成功能已完成并测试通过**
+
+#### 合约实例获取工具
+- 文件：`packages/shared/src/chain/contracts.ts`（73 行）
+- 功能：Provider/Signer 缓存管理、合约实例工厂
+- 技术：使用 viem 进行地址校验和 checksum 标准化
+
+#### 支付确认校验
+- 文件：`packages/shared/src/chain/payment-verification.ts`（194 行）
+- 功能：四元组校验（token、from、to、amount）+ 交易 receipt 验证
+- 测试：7 个测试用例，覆盖率 85.71%
+
+#### 结算调用封装
+- 文件：`packages/shared/src/chain/settlement.ts`（449 行）
+- 功能：executePayout、executeRefund、executeRecordEscrow + 重试逻辑
+- 幂等策略：通过 escrow.getStatus() 和 escrowedAmounts() 检查
+- 测试：10 个测试用例，覆盖率 81.08%
+
+#### 测试统计
+- 总测试数：185 个（全部通过）
+- 总覆盖率：85.12%（statements）
+- 核心覆盖：utils 100%、errors 100%、state-machine 100%
+
+#### 部署地址（Sepolia）
+- MockUSDT：`0x7C64e243F9380D692bC34E8F54253F595b32580b`
+- Escrow：`0x0FdA6d9CB0Fd0698F54B1dccfA3d91961C57D8C5`
+- Operator：`0xEd8041517E86b82d51147d62d7D45528A05181eC`
 
 ---
 
@@ -847,12 +902,48 @@ apps/contracts/**           - 智能合约 + ABI + typechain
 
 ### Phase 4 验收清单
 
-- [ ] Supabase 连接成功（`GET /api/health` 返回 database: ok）
-- [ ] RPC 连接成功（`GET /api/health` 返回 rpc: ok）
-- [ ] ChainService 可被其他模块注入
-- [ ] RequestId 中间件正常工作（响应头包含 X-Request-Id）
-- [ ] 全局异常过滤器捕获自定义错误
-- [ ] `pnpm dev --filter @c2c-agents/api` 成功启动
+- [x] Supabase 连接成功（`GET /api/health` 返回 database: ok）
+- [x] RPC 连接成功（`GET /api/health` 返回 rpc: ok）
+- [x] ChainService 可被其他模块注入
+- [x] RequestId 中间件正常工作（响应头包含 X-Request-Id）
+- [x] 全局异常过滤器捕获自定义错误
+- [x] `pnpm dev --filter @c2c-agents/api` 成功启动
+
+---
+
+### Phase 4 实施结果
+
+✅ **所有 API 核心基础设施已完成并运行正常**
+
+#### Supabase 数据库服务
+- 文件：`apps/api/src/database/supabase.service.ts`（75 行）
+- 功能：单例 client 管理、query 接口、健康检查
+- 模块：Global 模块，全局注入
+
+#### Core 模块（链上网关）
+- 文件：`apps/api/src/modules/core/chain.service.ts`（120 行）
+- 功能：封装 verifyPayment、executePayout、executeRefund、recordEscrow
+- 设计：onModuleInit 初始化 provider & signer
+
+#### 共享中间件
+- RequestIdMiddleware：请求 ID 追踪（x-request-id header）
+- AuthPlaceholderMiddleware：MVP 占位实现
+- HttpExceptionFilter：统一错误格式（toApiError）
+
+#### 健康检查
+- 端点：`GET /api/health`
+- 检查项：database（延迟统计）、rpc（3 秒超时）
+- 返回格式：`{ status: 'ok' | 'degraded', checks: {...} }`
+
+#### 环境变量校验
+- 文件：`apps/api/src/config/env.ts`（160 行）
+- 校验：CHAIN_RPC_URL、合约地址、操作员私钥、Supabase 配置
+- 失败行为：应用无法启动（fail-fast）
+
+#### 单元测试
+- health.test.ts：健康检查测试
+- chain.service.test.ts：链服务测试
+- 全部通过
 
 ---
 
@@ -876,6 +967,7 @@ Phase 4 (API 核心) ← 必须等待 Phase 3 完成
 4. **Phase 4** 在 Phase 3 完成后开始 (2 天)
 
 **总预估时间**: 9-12 天（单人全职）
+**实际完成时间**: 5 天（2026-01-05 至 2026-01-09）
 
 ---
 
@@ -1009,6 +1101,70 @@ Phase 4 (API 核心) ← 必须等待 Phase 3 完成
 
 ---
 
+## 📦 Phase 5: Account Center（API + UI）（4-6 天）
+
+### 目标
+
+实现完整的 Account 模块（Owner #1 负责），包含后端 API 与 `/account` 页面容器：
+钱包绑定、订单历史、收款记录查询，以及前端展示与入口。
+
+---
+
+### Task 5.1: Account API（Core 模块）
+
+**交付物**:
+
+- `apps/api/src/modules/core/account.controller.ts`
+- `apps/api/src/modules/core/account.service.ts`
+- `apps/api/src/modules/core/dto/account.dto.ts`
+- `apps/api/src/modules/core/__tests__/account.service.spec.ts`
+- `apps/api/src/modules/core/core.module.ts`（注册 AccountController/AccountService）
+
+**具体任务**:
+
+1. 钱包绑定接口：
+   - `GET /account/wallets` 获取当前用户的绑定地址（按 role=A/B）
+   - `POST /account/wallets/bind` 绑定或更新地址（校验签名/消息）
+   - `POST /account/wallets/set-active` 切换 active 地址（同一 user+role 仅一条 active）
+2. 订单历史接口：
+   - `GET /account/orders` 支持 role、status、分页筛选
+   - 返回订单状态、金额、pay/payout/refund tx hash 关键字段
+3. 收款/退款记录接口（基于 orders 表推导）：
+   - `GET /account/settlements` 返回 payout/refund 记录列表
+   - 如需展示争议信息，使用 `disputes.order_id` 关联
+4. 统一校验与错误处理：
+   - DTO 使用 `@c2c-agents/shared` 的类型/枚举
+   - 地址格式校验、角色合法性校验、重复绑定幂等处理
+
+**验收标准**:
+
+- [ ] Account API 可用（钱包绑定/订单历史/结算记录）
+- [ ] 幂等与唯一约束正确（active 地址唯一）
+- [ ] 单元测试覆盖关键分支
+
+---
+
+### Task 5.2: Account 页面容器（UI）
+
+**交付物**: `apps/web/src/app/account/page.tsx`
+
+**具体任务**:
+
+1. 基础布局与信息区块：
+   - 钱包绑定状态（当前地址、绑定/更换入口）
+   - 订单历史列表（分页或滚动加载）
+   - 收款/退款记录列表（payout/refund）
+2. 与现有共享组件对齐（如 `packages/ui` 或 `apps/web/src/components`）
+3. 对接 Account API，处理 loading/empty/error 状态
+
+**验收标准**:
+
+- [ ] `/account` 页面可访问且布局稳定
+- [ ] 钱包绑定区块可展示绑定状态
+- [ ] 订单历史与结算记录可展示
+
+---
+
 ## 📁 关键文件路径汇总
 
 ### Phase 1 关键文件
@@ -1041,6 +1197,15 @@ Phase 4 (API 核心) ← 必须等待 Phase 3 完成
 - `apps/api/src/common/filters/http-exception.filter.ts` - **P1**: 异常过滤器
 - `apps/api/src/modules/core/health.controller.ts` - **P2**: 健康检查
 
+### Phase 5 关键文件
+
+- `apps/web/src/app/account/page.tsx` - **P0**: 账户中心页面容器
+- `apps/api/src/modules/core/account.controller.ts` - **P0**: Account API Controller
+- `apps/api/src/modules/core/account.service.ts` - **P0**: Account API Service
+- `apps/api/src/modules/core/dto/account.dto.ts` - **P1**: Account DTO
+- `apps/api/src/modules/core/__tests__/account.service.spec.ts` - **P1**: Account API Tests
+- `apps/api/src/modules/core/core.module.ts` - **P1**: Core module wiring
+
 **优先级说明**: P0 = 最高优先级（必须完成），P1 = 高优先级（建议完成），P2 = 中优先级（可延后）
 
 ---
@@ -1061,15 +1226,21 @@ Phase 4 (API 核心) ← 必须等待 Phase 3 完成
 
 ### Phase 3
 
-- [ ] 支付校验单元测试通过
-- [ ] Payout/Refund 集成测试通过（Sepolia）
-- [ ] `pnpm typecheck --filter @c2c-agents/shared` 通过
+- [x] 支付校验单元测试通过
+- [x] Payout/Refund 集成测试通过（Sepolia）
+- [x] `pnpm typecheck --filter @c2c-agents/shared` 通过
 
 ### Phase 4
 
-- [ ] `GET /api/health` 返回 ok
-- [ ] `pnpm dev --filter @c2c-agents/api` 成功启动
-- [ ] ChainService 可被其他模块注入
+- [x] `GET /api/health` 返回 ok
+- [x] `pnpm dev --filter @c2c-agents/api` 成功启动
+- [x] ChainService 可被其他模块注入
+
+### Phase 5
+
+- [ ] Account API 可用（钱包绑定/订单历史/结算记录）
+- [ ] `/account` 页面可访问并展示数据
+- [ ] 钱包绑定流程可完成（含切换 active）
 
 ---
 
@@ -1082,6 +1253,6 @@ Phase 4 (API 核心) ← 必须等待 Phase 3 完成
 
 ---
 
-**最后更新**: 2026-01-05
-**状态**: 待开始执行
-**预计完成**: 2026-01-17 (假设全职投入)
+**最后更新**: 2026-01-09
+**状态**: 进行中（Account API + UI pending）
+**完成日期**: 待定
