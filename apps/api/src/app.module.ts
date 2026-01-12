@@ -6,6 +6,7 @@ import { AuthPlaceholderMiddleware } from './common/middleware/auth-placeholder.
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { DatabaseModule } from './database/database.module';
 import { CoreModule } from './modules/core/core.module';
+import { TaskModule } from './modules/task/task.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { CoreModule } from './modules/core/core.module';
     }),
     DatabaseModule,
     CoreModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],
