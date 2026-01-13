@@ -98,6 +98,38 @@ apps/api/src/modules/
 - 自己模块内的 `__tests__/*.spec.ts`
 - 自己模块内的 helper（可写 raw SQL helper，但**不得改 schema**）
 
+### 3.4 NestJS 开发规范（强制）
+
+**依赖注入规范：**
+
+```typescript
+// ✅ 正确：常规 import + @Inject 装饰器
+import { Controller, Inject } from '@nestjs/common';
+import { AppService } from './app.service';
+
+@Controller()
+export class AppController {
+  constructor(@Inject(AppService) private readonly appService: AppService) {}
+}
+
+// ❌ 禁止：import type 会导致 DI 失败
+import type { AppService } from './app.service';  // 编译后被擦除，运行时为 undefined
+```
+
+**原因**：
+
+- `import type` 是 TypeScript 类型导入，编译后完全擦除
+- NestJS 依赖 `reflect-metadata` 读取构造函数参数类型
+- 类型被擦除后，元数据为空，DI 无法解析
+
+**规则清单：**
+
+| 规则                                       | 说明                         |
+| ------------------------------------------ | ---------------------------- |
+| 禁止 `import type` 导入 Service/Repository | 会导致 DI 注入失败           |
+| Controller/Service 构造函数使用 `@Inject()` | 显式声明依赖，避免元数据丢失 |
+| 跨模块依赖通过 Module imports 声明         | 不直接 new 实例              |
+
 ---
 
 ## 4) 单一事实来源（Single Source of Truth）
