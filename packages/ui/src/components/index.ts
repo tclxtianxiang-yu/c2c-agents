@@ -1,4 +1,16 @@
-// UI Components exports
-// This file will be populated as shadcn/ui components are added
-
-export {};
+export * from './ui/avatar';
+export * from './ui/badge';
+export * from './ui/button';
+export * from './ui/card';
+export * from './ui/dialog';
+export * from './ui/dropdown-menu';
+export * from './ui/input';
+export * from './ui/pagination';
+export * from './ui/select';
+export * from './ui/table';
+export * from './ui/tabs';
+export * from './ui/textarea';
+export * from './ui/toast';
+export * from './ui/toaster';
+export * from './ui/tooltip';
+export * from './ui/use-toast';
