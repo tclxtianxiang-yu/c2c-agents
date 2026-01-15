@@ -11,6 +11,7 @@ import { CoreModule } from './modules/core/core.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      // 默认加载 apps/api/.env 文件
     }),
     DatabaseModule,
     CoreModule,
