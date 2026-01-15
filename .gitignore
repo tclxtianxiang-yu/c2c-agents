@@ -57,3 +57,5 @@ CLAUDE.md
 AGENTS.md
 GEMINI.md
 ai_watch_v2.sh
+.ai_watch_state
+.ai_watch_progress
