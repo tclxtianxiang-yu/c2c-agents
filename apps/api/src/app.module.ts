@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AuthPlaceholderMiddleware } from './common/middleware/auth-placeholder.middleware';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { DatabaseModule } from './database/database.module';
+import { AgentModule } from './modules/agent/agent.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
@@ -18,6 +19,7 @@ import { TaskModule } from './modules/task/task.module';
       // 默认加载 apps/api/.env 文件
     }),
     DatabaseModule,
+    AgentModule,
     AuthModule,
     CoreModule,
     DeliveryModule,
