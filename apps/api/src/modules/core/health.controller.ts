@@ -1,7 +1,7 @@
 import { getProvider } from '@c2c-agents/shared/chain';
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { validateApiEnv } from '../../config/env';
-import type { SupabaseService } from '../../database/supabase.service';
+import { SupabaseService } from '../../database/supabase.service';
 
 type HealthCheckResult = {
   status: 'ok' | 'error';
@@ -35,7 +35,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 @Controller('api')
 export class HealthController {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(@Inject(SupabaseService) private readonly supabaseService: SupabaseService) {}
 
   @Get('health')
   async getHealth(): Promise<HealthResponse> {

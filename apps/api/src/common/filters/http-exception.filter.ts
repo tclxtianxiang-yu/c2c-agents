@@ -18,6 +18,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       headers?: Record<string, string | string[] | undefined>;
       requestId?: string;
     }>();
+    const requestId = request.requestId ?? request.headers?.['x-request-id'];
 
     const apiError = toApiError(exception);
     let statusCode = apiError.statusCode;
@@ -43,10 +44,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     }
 
+    if (statusCode >= 500) {
+      const errorMessage =
+        exception instanceof Error ? (exception.stack ?? exception.message) : String(exception);
+      console.error(`[api-error] requestId=${requestId ?? 'unknown'} ${errorMessage}`);
+    }
+
     response.status(statusCode).json({
       code,
       message,
-      requestId: request.requestId ?? request.headers?.['x-request-id'],
+      requestId,
     });
   }
 }

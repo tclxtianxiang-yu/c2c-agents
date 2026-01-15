@@ -9,6 +9,12 @@ dist/
 out/
 build/
 
+# 防止源码目录中的编译产物被提交
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+
 # Turbo
 .turbo/
 
