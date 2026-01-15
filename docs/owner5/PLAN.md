@@ -1,71 +1,57 @@
-# Owner #5 开发计划（交付 + 验收 + 正常结算）
+# Owner #5 开发计划（交付 + 验收 + 结算）
 
-> **Owner**: Owner #5  \
-> **模块**: 交付 + 验收 + AutoAccepted + 正常结算（Delivered → Paid → Completed）  \
-> **后端模块**: `apps/api/src/modules/delivery/**`, `apps/api/src/modules/settlement/**`  \
-> **页面容器**: `apps/web/src/app/(b)/workbench/**`  \
-> **创建日期**: 2026-01-05  \
-> **预估工期**: 7-9 天（单人全职）
+> **Owner**: Owner #5  
+> **职责范围**: 交付（Delivered）+ 验收（Accepted）+ 正常结算（Paid/Completed）+ 自动验收  
+> **后端模块**: `apps/api/src/modules/delivery/**`, `apps/api/src/modules/settlement/**`  
+> **页面容器**: `apps/web/src/app/(b)/workbench/**`  
+> **创建日期**: 2026-01-09
 
 ---
 
-## ✅ Code Ownership 与边界
+## 0) Code Ownership 与边界
 
 - **仅修改**: `apps/api/src/modules/delivery/**`, `apps/api/src/modules/settlement/**`, `apps/web/src/app/(b)/workbench/**`, `apps/web/src/components/**`
 - **禁止修改**: `packages/shared/**`, `packages/config/**`, `infra/supabase/migrations/**`, `apps/contracts/**`, 其他 Owner 页面容器
-- **跨模块协作**: 通过 Service 接口调用，不直连他人模块/表
+- **跨模块协作**: 只通过 Service 或公开 API 调用，不跨模块直接写表
 
 ---
 
 ## 1) 后端模块与 API（Owner #5 负责）
 
-### 模块 A：`delivery`
+### 模块：delivery
 
-**职责**：交付创建与读取（InProgress → Delivered）。
+**职责**: InProgress 阶段交付内容提交与读取（Delivered）。
 
-#### API 清单（对外 HTTP）
+**HTTP API**
+1. `POST /orders/:id/deliveries`
+   - 用途：提交交付内容，推动 Order.status: InProgress → Delivered
+   - 入参：contentText | externalUrl | attachments（至少一项）
+   - 出参：deliveryId, deliveredAt, orderStatus
+2. `GET /orders/:id/delivery`
+   - 用途：获取交付详情 + 自动验收截止时间
+   - 出参：Delivery + deliveredAt + autoAcceptDeadline
 
-1) **提交交付**
-- `POST /orders/:id/deliveries`
-- 用途：创建 Delivery 并将 Order.status 推进为 Delivered
-- 输入：contentText | externalUrl | attachments（至少一项）
-- 输出：deliveryId, deliveredAt, orderStatus
-
-2) **读取交付**
-- `GET /orders/:id/delivery`
-- 用途：提供交付内容与 Delivered 倒计时
-- 输出：Delivery + deliveredAt + autoAcceptDeadline
-
-#### 模块内 Service 对外接口（供其他模块调用）
-
+**对外 Service（只读）**
 - `DeliveryQueryService.getByOrderId(orderId): Delivery`
 - `DeliveryQueryService.getSummary(orderId): { deliveredAt, contentText, externalUrl, attachments }`
 
-> 供 Owner #3 任务详情页展示交付内容和倒计时。
-
 ---
 
-### 模块 B：`settlement`
+### 模块：settlement
 
-**职责**：人工验收结算与自动验收（Delivered → Paid → Completed）。
+**职责**: A 侧验收与自动验收，驱动链上结算（Paid/Completed）。
 
-#### API 清单（对外 HTTP）
+**HTTP API**
+1. `POST /orders/:id/accept`
+   - 用途：A 侧验收，触发 payout 并更新 Order.status
+   - 出参：paidAt, completedAt, payoutTxHash
 
-1) **人工验收**
-- `POST /orders/:id/accept`
-- 用途：A 验收通过后触发 payout
-- 输出：paidAt, completedAt, payoutTxHash
+**内部任务**
+- 自动验收任务：扫描 Delivered 超时订单，执行 AutoAccepted → Paid → Completed
 
-2) **自动验收（内部定时任务）**
-- `cron/auto-accept`
-- 用途：扫描 Delivered 超时订单，执行 AutoAccepted → Paid → Completed
-
-#### 模块内 Service 对外接口（供其他模块调用）
-
+**对外 Service（内部编排使用）**
 - `SettlementService.triggerAccept(orderId, actorId)`
 - `SettlementService.processAutoAccept(orderId)`
-
-> 仅用于内部编排或管理任务，不对外暴露写接口给其他模块。
 
 ---
 
@@ -74,89 +60,73 @@
 ### 页面容器（Owner #5 独占）
 
 - `apps/web/src/app/(b)/workbench/**`
-  - B 工作台所有页（拟成单 / 进行中 / 已交付待结果 / 队列 / 历史）
-  - 交付入口、交付状态展示
+  - B 工作台页容器：进行中、待交付、已交付、历史等
+  - 交付入口与状态展示
 
-### 对外子组件（提供给其他 Owner 容器）
+### 对外子组件（供其他容器 Owner 使用）
 
-> 路径统一放在 `apps/web/src/components/**`
-
-- `DeliverySubmitForm`：交付提交表单（文本/链接/附件，至少一项校验）
-- `DeliverySummary`：交付内容摘要（任务详情页展示）
-- `AutoAcceptCountdown`：自动验收倒计时展示
-- `AcceptActionPanel`：A 侧验收入口面板（仅 UI，不含容器路由）
+- `DeliverySubmitForm`
+  - 交付提交表单（文本/链接/附件，至少一项校验）
+- `DeliverySummary`
+  - 交付内容摘要展示（任务详情页使用）
+- `AutoAcceptCountdown`
+  - 自动验收倒计时（Delivered 阶段）
+- `AcceptActionPanel`
+  - A 侧验收按钮面板（任务详情页使用）
 
 ---
 
-## 3) 对外接口依赖（Core 服务与跨模块协作）
+## 3) 对外接口依赖与暴露
 
 ### 需要调用的 Core 服务（Owner #1）
 
-- **ChainService.executePayout**
-  - 人工验收与自动验收的链上结算
-- **WalletBindingService.getActiveAddress**
-  - 获取 A/B 的当前地址（creator/provider）
-- **状态机与枚举**（`@c2c-agents/shared`）
-  - 使用 `assertTransition` 校验合法迁移
+- `ChainService.executePayout`
+  - 人工验收与自动验收结算
+- `WalletBindingService.getActiveAddress`
+  - 获取 A/B 地址（creator/provider）
+- `assertTransition` / `OrderStatus` / `TaskStatus`
+  - 来自 `@c2c-agents/shared` 的状态机校验与枚举
 
-### 需要遵守的系统级规则
+### 需要暴露给其他模块的接口
 
-- **自动验收互斥**：进入 `RefundRequested` / `CancelRequested` / `Disputed` / `AdminArbitrating` 必须跳过
-- **幂等**：payout 仅允许写入一次，`payout_tx_hash IS NULL` 才可更新
-- **recordEscrow 前置**：若未 recordEscrow，结算必须失败并阻断
-
-### 对外暴露给其他模块的 Service 接口
-
-- `DeliveryQueryService`（只读）
-  - 供任务详情页展示交付信息
+- `DeliveryQueryService`
+  - 任务详情页展示交付内容与截止时间
 
 ---
 
 ## 4) 测试覆盖（单元 + E2E）
 
-### 单元测试（`apps/api/src/modules/delivery/__tests__/*.spec.ts`）
+### delivery 模块
 
-- 交付内容为空（文本/链接/附件全空）应拒绝
-- Order.status 非 InProgress 时拒绝交付
-- 并发提交：只创建 1 个 Delivery
-- deliveredAt 写入成功且状态变为 Delivered
+**单元测试**
+- 交付内容全空（text/url/attachments）→ 400
+- Order.status 非 InProgress → 400
+- 并发提交交付 → 只创建 1 条 Delivery
+- Delivered 后写入 deliveredAt 且状态一致
 
-### 单元测试（`apps/api/src/modules/settlement/__tests__/*.spec.ts`）
+**E2E**
+- InProgress 提交交付成功 → Order.status = Delivered
+- 重复提交交付返回已存在 Delivery
+- GET /orders/:id/delivery 返回交付内容与自动验收截止时间
 
+### settlement 模块
+
+**单元测试**
 - Delivered → Accepted → Paid → Completed 正常路径
-- payout 失败时不进入 Paid
-- payout 重复调用不重复打款（幂等）
-- 进入 RefundRequested/CancelRequested/Disputed/AdminArbitrating 时自动验收跳过
+- payout 失败不进入 Paid/Completed
+- 幂等：payout_tx_hash 已存在时不重复打款
+- RefundRequested/CancelRequested/Disputed/AdminArbitrating 跳过自动验收
 
-### E2E 测试（`apps/api/src/modules/delivery/__tests__/delivery.e2e.spec.ts`）
-
-- InProgress 提交交付成功 → 状态 Delivered
-- 重复提交交付返回已有 Delivery
-
-### E2E 测试（`apps/api/src/modules/settlement/__tests__/settlement.e2e.spec.ts`）
-
-- A 验收成功 → 结算完成 → Completed
-- 自动验收触发路径 → Completed
-- 争议状态订单不触发自动验收
+**E2E**
+- A 验收成功 → Completed
+- 自动验收触发 → Completed
+- 争议状态订单不会进入自动验收
 
 ---
 
-## 5) 交付清单
+## 5) 依赖与风险
 
-- `apps/api/src/modules/delivery/**`
-  - 交付创建与读取接口
-- `apps/api/src/modules/settlement/**`
-  - 人工验收、自动验收与结算逻辑
-- `apps/web/src/app/(b)/workbench/**`
-  - B 工作台容器
-- `apps/web/src/components/**`
-  - DeliverySubmitForm / DeliverySummary / AutoAcceptCountdown / AcceptActionPanel
-
----
-
-## 6) 风险与前置依赖
-
-- **链上依赖**：ChainService 必须稳定可用（payout 必须幂等）
-- **自动验收**：依赖稳定的 cron 执行与状态互斥规则
-- **权限与数据**：交付/验收 API 需要严格校验 A/B 身份与订单归属
-
+- `recordEscrow` 已完成且有效是 payout 前置条件
+- 链上失败必须阻断状态推进（不可误更新）
+- 自动验收与争议分支互斥，需严格判断当前 OrderStatus
+- 所有状态流转必须通过 `@c2c-agents/shared` 的状态机校验

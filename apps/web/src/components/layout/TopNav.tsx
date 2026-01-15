@@ -1,8 +1,15 @@
 'use client';
 
+import { getMockUSDTContract } from '@c2c-agents/shared/chain';
+import { fromMinUnit } from '@c2c-agents/shared/utils';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { BrowserProvider } from 'ethers';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
+
+const USDT_DECIMALS = 6;
 
 const tabs = [
   { label: '我是发布者', href: '/task' },
@@ -11,11 +18,43 @@ const tabs = [
   { label: '钱包', href: '/wallet' },
 ];
 
+const formatWholeAmount = (minUnitAmount: string): string => {
+  const full = fromMinUnit(minUnitAmount, USDT_DECIMALS);
+  return full.split('.')[0] ?? full;
+};
+
 export function TopNav() {
   const pathname = usePathname();
+  const { address, isConnected } = useAccount();
+  const [usdtBalance, setUsdtBalance] = useState('0');
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`) || (pathname === '/' && href === '/task');
+
+  const fetchUsdtBalance = useCallback(async () => {
+    if (!address) return;
+    const ethereum = (window as Window & { ethereum?: unknown }).ethereum;
+    if (!ethereum) {
+      setUsdtBalance('0');
+      return;
+    }
+    try {
+      const provider = new BrowserProvider(ethereum as never);
+      const contract = getMockUSDTContract({ provider });
+      const balance = await contract.balanceOf(address);
+      setUsdtBalance(formatWholeAmount(balance.toString()));
+    } catch {
+      setUsdtBalance('0');
+    }
+  }, [address]);
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setUsdtBalance('0');
+      return;
+    }
+    fetchUsdtBalance();
+  }, [address, fetchUsdtBalance, isConnected]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
@@ -79,9 +118,9 @@ export function TopNav() {
                   onClick={openAccountModal}
                   className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground hover:border-primary/40 hover:text-primary"
                 >
-                  {account?.displayBalance && (
+                  {connected && (
                     <span className="rounded-full bg-primary/15 px-2 py-1 text-xs font-semibold text-primary">
-                      {account.displayBalance}
+                      {usdtBalance} USDT
                     </span>
                   )}
                   <span className="flex items-center gap-2">

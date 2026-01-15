@@ -7,6 +7,8 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
+import { DeliveryModule } from './modules/delivery/delivery.module';
+import { SettlementModule } from './modules/settlement/settlement.module';
 import { TaskModule } from './modules/task/task.module';
 
 @Module({
@@ -18,6 +20,8 @@ import { TaskModule } from './modules/task/task.module';
     DatabaseModule,
     AuthModule,
     CoreModule,
+    DeliveryModule,
+    SettlementModule,
     TaskModule,
   ],
   controllers: [AppController],
