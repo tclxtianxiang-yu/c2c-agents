@@ -2,8 +2,8 @@
 
 import type { OrderStatus, TaskStatus } from '@c2c-agents/shared';
 import { useEffect, useMemo, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { apiFetch } from '../../lib/api';
+import { useUserId } from '../../lib/useUserId';
 import { TopNav } from '../layout/TopNav';
 import { TaskCard, type TaskSummary } from '../tasks/TaskCard';
 import { TaskFilters } from '../tasks/TaskFilters';
@@ -14,14 +14,14 @@ type TaskDashboardProps = {
 };
 
 export function TaskDashboard({ scope }: TaskDashboardProps) {
-  const { address, isConnected } = useAccount();
+  const { userId, isConnected } = useUserId('A');
   const [mounted, setMounted] = useState(false);
   const [filters, setFilters] = useState<{ status?: TaskStatus; currentStatus?: OrderStatus }>({});
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const userId = address ?? '';
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -49,6 +49,7 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
   }, [scope, filters]);
 
   useEffect(() => {
+    void refreshKey;
     if (scope === 'mine' && !userId) {
       setTasks([]);
       return;
@@ -75,7 +76,12 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
     return () => {
       isMounted = false;
     };
-  }, [queryString, userId, scope]);
+  }, [queryString, userId, scope, refreshKey]);
+
+  const handleTaskPublished = () => {
+    setIsCreateOpen(false);
+    setRefreshKey((current) => current + 1);
+  };
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -186,7 +192,10 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
             aria-label="关闭发布任务弹窗"
           />
           <div className="relative w-full max-w-5xl rounded-3xl border border-border bg-card p-6 shadow-2xl">
-            <CreateTaskForm onClose={() => setIsCreateOpen(false)} />
+            <CreateTaskForm
+              onClose={() => setIsCreateOpen(false)}
+              onSuccess={handleTaskPublished}
+            />
           </div>
         </div>
       )}

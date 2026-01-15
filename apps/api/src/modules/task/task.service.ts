@@ -6,11 +6,11 @@ import {
   TaskStatus,
   ValidationError,
 } from '@c2c-agents/shared';
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { validateApiEnv } from '../../config/env';
-import type { ChainService } from '../core/chain.service';
+import { ChainService } from '../core/chain.service';
 import type { CreateTaskDto } from './dtos/create-task.dto';
-import type { TaskRepository } from './task.repository';
+import { TaskRepository } from './task.repository';
 
 const MAX_TAGS = 10;
 const TASK_TYPES = [
@@ -41,17 +41,21 @@ export class TaskService {
   private readonly escrowAddress: string;
 
   constructor(
-    private readonly repository: TaskRepository,
-    private readonly chainService: ChainService
+    @Inject(TaskRepository) private readonly repository: TaskRepository,
+    @Inject(ChainService) private readonly chainService: ChainService
   ) {
     this.escrowAddress = validateApiEnv().escrowAddress;
   }
 
   async createTask(userId: string, input: CreateTaskDto) {
+    const resolvedUserId = await this.resolveUserId(userId);
+    if (!resolvedUserId) {
+      throw new ValidationError('x-user-id header is required');
+    }
     this.validateCreateTask(input);
 
     const task = await this.repository.createTask({
-      creatorId: userId,
+      creatorId: resolvedUserId,
       title: input.title.trim(),
       description: input.description.trim(),
       type: input.type,
@@ -67,6 +71,10 @@ export class TaskService {
   }
 
   async confirmPayment(userId: string, taskId: string, payTxHash: string) {
+    const resolvedUserId = await this.resolveUserId(userId);
+    if (!resolvedUserId) {
+      throw new ValidationError('x-user-id header is required');
+    }
     const normalizedHash = payTxHash.trim();
     if (!isNonEmptyText(normalizedHash)) {
       throw new ValidationError('payTxHash is required');
@@ -80,7 +88,7 @@ export class TaskService {
       );
     }
 
-    if (task.creatorId !== userId) {
+    if (task.creatorId !== resolvedUserId) {
       throw new HttpException(
         { code: ErrorCode.AUTH_FORBIDDEN, message: 'Task does not belong to current user' },
         403
@@ -109,7 +117,7 @@ export class TaskService {
       throw new ValidationError('Task is not in unpaid status');
     }
 
-    const creatorAddress = await this.repository.getActiveWalletAddress(userId, 'A');
+    const creatorAddress = await this.repository.getActiveWalletAddress(resolvedUserId, 'A');
     if (!creatorAddress) {
       throw new ValidationError('Active wallet address not found for user');
     }
@@ -203,5 +211,13 @@ export class TaskService {
     if (rewardValue > BigInt(MAX_TASK_REWARD)) {
       throw new ValidationError(`expectedReward must be <= ${MAX_TASK_REWARD}`);
     }
+  }
+
+  private async resolveUserId(userId: string | null): Promise<string | null> {
+    if (!userId) return null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+      return userId;
+    }
+    return this.repository.findActiveUserIdByAddress(userId);
   }
 }

@@ -1,6 +1,6 @@
 import type { Order, OrderStatus, Task, TaskStatus, TaskType } from '@c2c-agents/shared';
-import { Injectable } from '@nestjs/common';
-import type { SupabaseService } from '../../database/supabase.service';
+import { Inject, Injectable } from '@nestjs/common';
+import { SupabaseService } from '../../database/supabase.service';
 import type { TaskListQueryDto } from './dtos/task-list-query.dto';
 
 const TASK_TABLE = 'tasks';
@@ -102,6 +102,10 @@ type WalletBindingRow = {
   address: string;
 };
 
+type WalletBindingUserRow = {
+  user_id: string;
+};
+
 export type CreateTaskInput = {
   creatorId: string;
   title: string;
@@ -187,7 +191,7 @@ function ensureNoError(error: unknown, context: string): void {
 
 @Injectable()
 export class TaskRepository {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(@Inject(SupabaseService) private readonly supabase: SupabaseService) {}
 
   async createTask(input: CreateTaskInput): Promise<Task> {
     const { data, error } = await this.supabase
@@ -269,6 +273,8 @@ export class TaskRepository {
     query = query.order('created_at', { ascending: false });
 
     const { data, error } = await query;
+    console.log('listTasks data', data);
+    console.log('listTasks error', error);
     ensureNoError(error, 'Failed to list tasks');
 
     return (data ?? []).map(toTask);
@@ -324,5 +330,21 @@ export class TaskRepository {
 
     ensureNoError(error, 'Failed to fetch wallet binding');
     return data?.address ?? null;
+  }
+
+  async findActiveUserIdByAddress(address: string): Promise<string | null> {
+    const normalized = address.trim();
+    if (!normalized) return null;
+
+    const { data, error } = await this.supabase
+      .query<WalletBindingUserRow>(WALLET_BINDINGS_TABLE)
+      .select('user_id')
+      .ilike('address', normalized)
+      .eq('is_active', true);
+
+    ensureNoError(error, 'Failed to fetch user id by wallet address');
+
+    if (!data?.length) return null;
+    return data[0].user_id ?? null;
   }
 }

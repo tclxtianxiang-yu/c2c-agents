@@ -8,10 +8,9 @@ export type TaskSummary = Pick<
 >;
 
 function formatMinUnit(amount: string, decimals = 6): string {
-  const normalized = amount.padStart(decimals + 1, '0');
-  const integer = normalized.slice(0, -decimals);
-  const fraction = normalized.slice(-decimals);
-  return `${Number(integer).toLocaleString()}.${fraction}`;
+  const divisor = 10n ** BigInt(decimals);
+  const whole = (BigInt(amount) / divisor).toString();
+  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 const typeLabels: Record<string, string> = {

@@ -1,10 +1,10 @@
 import { OrderStatus, TaskStatus, ValidationError } from '@c2c-agents/shared';
-import { Body, Controller, Get, Headers, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Param, Post, Query } from '@nestjs/common';
 import type { ConfirmPaymentDto } from './dtos/confirm-payment.dto';
 import type { CreateTaskDto } from './dtos/create-task.dto';
 import type { TaskListQueryDto } from './dtos/task-list-query.dto';
-import type { TaskQueryService } from './task.query.service';
-import type { TaskService } from './task.service';
+import { TaskQueryService } from './task.query.service';
+import { TaskService } from './task.service';
 
 function parseEnum<T extends Record<string, string>>(
   value: string | undefined,
@@ -28,8 +28,8 @@ function parseTags(tags: string | string[] | undefined): string[] | undefined {
 @Controller('tasks')
 export class TaskController {
   constructor(
-    private readonly taskService: TaskService,
-    private readonly taskQueryService: TaskQueryService
+    @Inject(TaskService) private readonly taskService: TaskService,
+    @Inject(TaskQueryService) private readonly taskQueryService: TaskQueryService
   ) {}
 
   @Post()

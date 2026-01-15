@@ -1,10 +1,12 @@
 'use client';
 
+import { getEscrowAddress, getMockUSDTContract } from '@c2c-agents/shared/chain';
 import { toMinUnit } from '@c2c-agents/shared/utils';
+import { BrowserProvider } from 'ethers';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { apiFetch } from '../../lib/api';
+import { useUserId } from '../../lib/useUserId';
 import { PaymentStatusBanner } from '../tasks/PaymentStatusBanner';
 
 const USDT_DECIMALS = 6;
@@ -24,16 +26,17 @@ type ConfirmResponse = {
 
 function formatAmount(value: string): string {
   const parsed = Number(value || '0');
-  if (Number.isNaN(parsed)) return '0.00';
-  return parsed.toFixed(2);
+  if (Number.isNaN(parsed)) return '0';
+  return Math.floor(parsed).toLocaleString();
 }
 
 type CreateTaskFormProps = {
   onClose?: () => void;
+  onSuccess?: () => void;
 };
 
-export function CreateTaskForm({ onClose }: CreateTaskFormProps) {
-  const { address, isConnected } = useAccount();
+export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
+  const { userId, isConnected } = useUserId('A');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('website');
@@ -62,15 +65,62 @@ export function CreateTaskForm({ onClose }: CreateTaskFormProps) {
   const feeAmount = formatAmount(String(Number(reward || '0') * PLATFORM_FEE_RATE));
   const totalAmount = formatAmount(String(Number(reward || '0') * (1 + PLATFORM_FEE_RATE)));
 
+  const finalizeSuccess = () => {
+    if (onSuccess) {
+      onSuccess();
+      return;
+    }
+    onClose?.();
+  };
+
+  const confirmPayment = async (taskIdValue: string, payTxHash: string) => {
+    const response = await apiFetch<ConfirmResponse>(`/tasks/${taskIdValue}/payments/confirm`, {
+      method: 'POST',
+      headers: {
+        'x-user-id': userId,
+      },
+      body: JSON.stringify({
+        payTxHash,
+      }),
+    });
+
+    setPaymentStatus('success');
+    setPaymentMessage(`确认数 ${response.confirmations}`);
+    finalizeSuccess();
+  };
+
+  const executeWalletPayment = async (amount: string) => {
+    const ethereum = (window as Window & { ethereum?: unknown }).ethereum;
+    if (!ethereum) {
+      throw new Error('未检测到钱包，请先安装并连接钱包');
+    }
+
+    const provider = new BrowserProvider(ethereum as never);
+    const signer = await provider.getSigner();
+    const mockUsdt = getMockUSDTContract({ signer });
+    const escrowAddress = getEscrowAddress();
+    const tx = await mockUsdt.transfer(escrowAddress, BigInt(amount));
+
+    setPaymentMessage('交易已提交，等待确认...');
+    const receipt = await tx.wait(1);
+    if (!receipt || receipt.status !== 1) {
+      throw new Error('交易失败，请在钱包或区块浏览器确认');
+    }
+
+    return tx.hash;
+  };
+
   const handleCreate = async () => {
-    if (!address) return;
+    if (!userId) return;
     setLoading(true);
     try {
       const expectedReward = toMinUnit(reward || '0', USDT_DECIMALS);
+      setPaymentStatus('pending');
+      setPaymentMessage('等待钱包确认支付...');
       const response = await apiFetch<CreateTaskResponse>('/tasks', {
         method: 'POST',
         headers: {
-          'x-user-id': address,
+          'x-user-id': userId,
         },
         body: JSON.stringify({
           title,
@@ -85,8 +135,9 @@ export function CreateTaskForm({ onClose }: CreateTaskFormProps) {
         }),
       });
       setTaskId(response.id);
-      setPaymentStatus('idle');
-      setPaymentMessage(undefined);
+      const hash = await executeWalletPayment(expectedReward);
+      setTxHash(hash);
+      await confirmPayment(response.id, hash);
     } catch (error) {
       setPaymentStatus('error');
       setPaymentMessage(error instanceof Error ? error.message : '创建任务失败');
@@ -96,21 +147,11 @@ export function CreateTaskForm({ onClose }: CreateTaskFormProps) {
   };
 
   const handleConfirmPayment = async () => {
-    if (!taskId || !address) return;
+    if (!taskId || !userId) return;
     setPaymentStatus('pending');
     setPaymentMessage(undefined);
     try {
-      const response = await apiFetch<ConfirmResponse>(`/tasks/${taskId}/payments/confirm`, {
-        method: 'POST',
-        headers: {
-          'x-user-id': address,
-        },
-        body: JSON.stringify({
-          payTxHash: txHash,
-        }),
-      });
-      setPaymentStatus('success');
-      setPaymentMessage(`确认数 ${response.confirmations}`);
+      await confirmPayment(taskId, txHash);
     } catch (error) {
       setPaymentStatus('error');
       setPaymentMessage(error instanceof Error ? error.message : '支付确认失败');
@@ -169,19 +210,46 @@ export function CreateTaskForm({ onClose }: CreateTaskFormProps) {
             </label>
             <label className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground">任务类型</span>
-              <select
-                className="h-12 rounded-lg border border-input bg-card px-4 text-base text-foreground focus:border-primary focus:outline-none"
-                value={type}
-                onChange={(event) => setType(event.target.value)}
-              >
-                <option value="writing">写作</option>
-                <option value="translation">翻译</option>
-                <option value="code">代码</option>
-                <option value="website">网站</option>
-                <option value="email_automation">邮件自动化</option>
-                <option value="info_collection">信息收集</option>
-                <option value="other_mastra">其他 Mastra</option>
-              </select>
+              <div className="relative">
+                <select
+                  className="h-12 w-full appearance-none rounded-lg border border-input bg-card/80 px-4 pr-10 text-base text-foreground shadow-[0_10px_30px_rgba(15,23,42,0.2)] backdrop-blur focus:border-primary focus:outline-none"
+                  value={type}
+                  onChange={(event) => setType(event.target.value)}
+                >
+                  <option value="writing" className="bg-background text-foreground">
+                    写作
+                  </option>
+                  <option value="translation" className="bg-background text-foreground">
+                    翻译
+                  </option>
+                  <option value="code" className="bg-background text-foreground">
+                    代码
+                  </option>
+                  <option value="website" className="bg-background text-foreground">
+                    网站
+                  </option>
+                  <option value="email_automation" className="bg-background text-foreground">
+                    邮件自动化
+                  </option>
+                  <option value="info_collection" className="bg-background text-foreground">
+                    信息收集
+                  </option>
+                  <option value="other_mastra" className="bg-background text-foreground">
+                    其他 Mastra
+                  </option>
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M6 8l4 4 4-4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
             </label>
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground">任务标签</span>
@@ -260,10 +328,11 @@ export function CreateTaskForm({ onClose }: CreateTaskFormProps) {
                 <div className="relative flex items-center">
                   <input
                     className="h-14 w-full rounded-lg border border-input bg-background pl-4 pr-20 text-xl font-bold text-foreground focus:border-primary focus:outline-none"
-                    placeholder="0.00"
-                    type="number"
+                    placeholder="0"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={reward}
-                    onChange={(event) => setReward(event.target.value)}
+                    onChange={(event) => setReward(event.target.value.replace(/[^0-9]/g, ''))}
                   />
                   <div className="absolute right-3 flex items-center gap-2 text-sm font-bold">
                     <span className="h-6 w-6 rounded-full bg-success" />
@@ -290,7 +359,7 @@ export function CreateTaskForm({ onClose }: CreateTaskFormProps) {
               <button
                 type="button"
                 onClick={handleCreate}
-                disabled={loading || !isConnected}
+                disabled={loading || !isConnected || !userId}
                 className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? '创建中...' : '支付并发布 →'}

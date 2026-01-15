@@ -5,15 +5,16 @@ import {
   type TaskType,
   ValidationError,
 } from '@c2c-agents/shared';
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import type { TaskListQueryDto, TaskListScope } from './dtos/task-list-query.dto';
-import type { TaskRepository } from './task.repository';
+import { TaskRepository } from './task.repository';
 
 const DEFAULT_SCOPE: TaskListScope = 'mine';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class TaskQueryService {
-  constructor(private readonly repository: TaskRepository) {}
+  constructor(@Inject(TaskRepository) private readonly repository: TaskRepository) {}
 
   async findById(taskId: string) {
     const task = await this.repository.findTaskById(taskId);
@@ -42,12 +43,13 @@ export class TaskQueryService {
   async listTasks(userId: string | null, query: TaskListQueryDto) {
     const scope = query.scope ?? DEFAULT_SCOPE;
     if (scope === 'mine') {
-      if (!userId) {
+      const resolvedUserId = await this.resolveUserId(userId);
+      if (!resolvedUserId) {
         throw new ValidationError('x-user-id header is required for scope=mine');
       }
       return this.repository.listTasks({
         ...query,
-        creatorId: userId,
+        creatorId: resolvedUserId,
       });
     }
 
@@ -76,5 +78,11 @@ export class TaskQueryService {
       minReward: filters?.minReward,
       maxReward: filters?.maxReward,
     });
+  }
+
+  private async resolveUserId(userId: string | null): Promise<string | null> {
+    if (!userId) return null;
+    if (UUID_RE.test(userId)) return userId;
+    return this.repository.findActiveUserIdByAddress(userId);
   }
 }
