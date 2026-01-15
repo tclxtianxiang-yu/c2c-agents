@@ -11,7 +11,7 @@ export function TaskFilters({ status, currentStatus, onChange }: TaskFiltersProp
     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
       <label className="flex items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Task
+          任务
         </span>
         <select
           className="rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground"
@@ -31,7 +31,7 @@ export function TaskFilters({ status, currentStatus, onChange }: TaskFiltersProp
       </label>
       <label className="flex items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Order
+          订单
         </span>
         <select
           className="rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground"
