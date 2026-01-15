@@ -12,6 +12,7 @@ import { TaskModule } from './modules/task/task.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      // 默认加载 apps/api/.env 文件
     }),
     DatabaseModule,
     CoreModule,
