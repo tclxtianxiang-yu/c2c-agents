@@ -98,6 +98,38 @@ apps/api/src/modules/
 - 自己模块内的 `__tests__/*.spec.ts`
 - 自己模块内的 helper（可写 raw SQL helper，但**不得改 schema**）
 
+### 3.4 NestJS 开发规范（强制）
+
+**依赖注入规范：**
+
+```typescript
+// ✅ 正确：常规 import + @Inject 装饰器
+import { Controller, Inject } from '@nestjs/common';
+import { AppService } from './app.service';
+
+@Controller()
+export class AppController {
+  constructor(@Inject(AppService) private readonly appService: AppService) {}
+}
+
+// ❌ 禁止：import type 会导致 DI 失败
+import type { AppService } from './app.service';  // 编译后被擦除，运行时为 undefined
+```
+
+**原因**：
+
+- `import type` 是 TypeScript 类型导入，编译后完全擦除
+- NestJS 依赖 `reflect-metadata` 读取构造函数参数类型
+- 类型被擦除后，元数据为空，DI 无法解析
+
+**规则清单：**
+
+| 规则                                       | 说明                         |
+| ------------------------------------------ | ---------------------------- |
+| 禁止 `import type` 导入 Service/Repository | 会导致 DI 注入失败           |
+| Controller/Service 构造函数使用 `@Inject()` | 显式声明依赖，避免元数据丢失 |
+| 跨模块依赖通过 Module imports 声明         | 不直接 new 实例              |
+
 ---
 
 ## 4) 单一事实来源（Single Source of Truth）
@@ -187,6 +219,107 @@ import { getEscrowContract } from "@c2c-agents/shared/contracts";
 
 // ❌ 禁止：各模块自行 new Contract
 const contract = new ethers.Contract(address, abi, provider);
+```
+
+---
+
+## 6.5) 环境变量配置规范（Monorepo 特殊要求）
+
+### 文件结构
+
+```
+C2CAgents/
+├── .env                    # 根目录配置源（不提交到 Git）
+├── .env.example            # 配置模板（提交到 Git）
+├── apps/
+│   ├── web/.env.local      # Next.js 前端配置（不提交）
+│   └── api/.env            # NestJS 后端配置（不提交）
+└── apps/contracts/         # Hardhat 通过 ESM dotenv 加载根目录 .env
+```
+
+### 加载机制差异
+
+| 框架 | 环境变量文件 | 加载方式 |
+|------|-------------|----------|
+| Next.js | `apps/web/.env.local` | 框架自动加载项目目录下的 `.env.local` |
+| NestJS | `apps/api/.env` | `import 'dotenv/config'` + ConfigModule |
+| Hardhat | 根目录 `.env` | ESM dotenv 在 `hardhat.config.ts` 中加载 |
+
+### 配置同步流程
+
+修改环境变量时，必须同步更新：
+
+1. 根目录 `.env` 和 `.env.example`
+2. `apps/web/.env.local`（如涉及 `NEXT_PUBLIC_*` 变量）
+3. `apps/api/.env`（如涉及后端变量）
+
+### 常见问题
+
+**Next.js 环境变量未生效**：
+- Next.js **不会读取** monorepo 根目录的 `.env` 文件
+- 必须在 `apps/web/.env.local` 中配置 `NEXT_PUBLIC_*` 变量
+- 修改后需删除 `.next` 缓存目录并重启开发服务器
+
+**NestJS 环境变量未加载**：
+- 确保 `apps/api/.env` 文件存在
+- 确保 `main.ts` 顶部有 `import 'dotenv/config'`（在其他 import 之前）
+
+### AI 自动生成环境变量文件
+
+**使用场景**：新开发者加入项目或更新根目录 `.env` 后，需要同步各子项目的环境变量文件。
+
+**执行命令**（在 Claude Code 中）：
+
+```
+@CONTEXT.md 请基于根目录 .env 自动生成 apps/ 下各项目所需的环境变量文件
+```
+
+**生成规则**：
+
+| 目标文件 | 筛选规则 | 说明 |
+|---------|---------|------|
+| `apps/web/.env.local` | 仅包含 `NEXT_PUBLIC_*` 变量 | Next.js 前端公开变量 |
+| `apps/api/.env` | 包含后端所需变量（见下表） | NestJS 服务端变量 |
+| `apps/contracts/` | 无需生成 | 已自动加载根目录 `.env` |
+
+**apps/api/.env 必需变量**：
+
+| 变量名 | 来源 | 用途 |
+|--------|------|------|
+| `DATABASE_URL` | 根目录 `.env` | PostgreSQL 连接 |
+| `SUPABASE_URL` | 根目录 `.env` | Supabase API URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | 根目录 `.env` | 服务端 Supabase 密钥 |
+| `CHAIN_ID` | 根目录 `.env` | 区块链网络 ID |
+| `CHAIN_RPC_URL` | 根目录 `.env` | RPC 节点地址 |
+| `MOCK_USDT_ADDRESS` | 根目录 `.env` | MockUSDT 合约地址 |
+| `ESCROW_ADDRESS` | 根目录 `.env` | Escrow 合约地址 |
+| `PLATFORM_OPERATOR_PRIVATE_KEY` | 根目录 `.env` | 操作员私钥 |
+| `PLATFORM_OPERATOR_ADDRESS` | 根目录 `.env` | 操作员地址 |
+| `MIN_CONFIRMATIONS` | 根目录 `.env` | 链上确认数 |
+| `QUEUE_MAX_N` | 根目录 `.env` | 队列最大数量 |
+| `PAIRING_TTL_HOURS` | 根目录 `.env` | Pairing 过期时间 |
+| `AUTO_ACCEPT_HOURS` | 根目录 `.env` | 自动验收时间 |
+| `PLATFORM_FEE_RATE` | 根目录 `.env` | 平台费率 |
+
+**AI 执行流程**：
+
+1. 读取根目录 `.env` 文件
+2. 根据上述规则筛选变量
+3. 生成 `apps/web/.env.local`（仅 NEXT_PUBLIC_* 变量）
+4. 生成 `apps/api/.env`（后端所需变量）
+5. 输出生成结果摘要
+
+**标准 Prompt 模板**：
+
+```
+@CONTEXT.md 请基于根目录 .env 自动生成 apps/ 下各项目所需的环境变量文件
+
+执行规则：
+1. 读取 .env 文件
+2. apps/web/.env.local: 仅提取 NEXT_PUBLIC_* 变量
+3. apps/api/.env: 提取 DATABASE_URL, SUPABASE_*, CHAIN_*, *_ADDRESS, PLATFORM_*, MIN_CONFIRMATIONS, QUEUE_MAX_N, *_HOURS, *_RATE 变量
+4. apps/contracts/: 跳过（已自动加载根目录 .env）
+5. 生成文件并输出摘要
 ```
 
 ---
@@ -669,5 +802,5 @@ packages/shared (核心层，零依赖)
 
 ---
 
-**文档版本**：v1.1 (2026-01-03)
+**文档版本**：v1.2 (2026-01-13)
 **下次更新**：当项目结构发生重大变化或新增 Owner 时
