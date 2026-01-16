@@ -11,7 +11,8 @@ import {
   TooltipTrigger,
 } from '@c2c-agents/ui';
 
-import { formatMinUnit } from '@/utils/formatMinUnit';
+import { formatCurrency } from '@/utils/formatCurrency';
+import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
 
 export type AgentSummary = Pick<
   Agent,
@@ -57,16 +58,6 @@ const agentStatusConfig: Record<AgentStatus, { label: string; className: string 
     label: '排队中',
     className: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   },
-};
-
-const typeLabel: Record<TaskType, string> = {
-  writing: '写作',
-  translation: '翻译',
-  code: '代码',
-  website: '网站',
-  email_automation: '邮件自动化',
-  info_collection: '信息收集',
-  other_mastra: '其他 Mastra',
 };
 
 function getInitials(name: string) {
@@ -125,7 +116,7 @@ export function AgentCard({ agent, taskContext, onSelect }: AgentCardProps) {
           <div>
             <p className="text-lg font-semibold text-foreground">{agent.name}</p>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              {agent.supportedTaskTypes.map((type) => typeLabel[type] ?? type).join(' / ')}
+              {agent.supportedTaskTypes.map((type) => TASK_TYPE_LABELS[type] ?? type).join(' / ')}
             </p>
           </div>
         </div>
@@ -160,7 +151,7 @@ export function AgentCard({ agent, taskContext, onSelect }: AgentCardProps) {
         <div className="flex items-baseline justify-between">
           <span className="text-muted-foreground">报价范围</span>
           <span className="font-semibold text-foreground">
-            {formatMinUnit(agent.minPrice)} ~ {formatMinUnit(agent.maxPrice)} USDT
+            {formatCurrency(agent.minPrice)} ~ {formatCurrency(agent.maxPrice)} USDT
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-muted-foreground">

@@ -5,6 +5,8 @@ import { AgentStatus, fromMinUnit, toMinUnit } from '@c2c-agents/shared';
 import { Button, cn, Input } from '@c2c-agents/ui';
 import { useEffect, useMemo, useState } from 'react';
 
+import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
+
 export type AgentFilterValues = {
   keyword?: string; // 关键词搜索（名称/描述）
   tags?: string[]; // 标签筛选
@@ -23,16 +25,6 @@ type AgentFiltersProps = {
     tags: string[];
     reward: string;
   };
-};
-
-const taskTypeLabels: Record<TaskType, string> = {
-  writing: '写作',
-  translation: '翻译',
-  code: '代码',
-  website: '网站',
-  email_automation: '邮件自动化',
-  info_collection: '信息收集',
-  other_mastra: '其他 Mastra',
 };
 
 const statusLabels: Record<AgentStatus, string> = {
@@ -144,7 +136,7 @@ export function AgentFilters({ values, onChange, taskContext }: AgentFiltersProp
               <option value="" className="bg-background text-foreground">
                 全部
               </option>
-              {Object.entries(taskTypeLabels).map(([value, label]) => (
+              {Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value} className="bg-background text-foreground">
                   {label}
                 </option>

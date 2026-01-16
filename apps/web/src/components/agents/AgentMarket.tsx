@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useTaskContext } from '@/hooks/useTaskContext';
-import { formatMinUnit } from '@/utils/formatMinUnit';
+import { formatCurrency } from '@/utils/formatCurrency';
 import { AgentCard, type AgentSummary } from './AgentCard';
 import { AgentFilters, type AgentFilterValues } from './AgentFilters';
 
@@ -86,7 +86,7 @@ export function AgentMarket({ agents }: AgentMarketProps) {
       {taskContext && (
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
           <p className="text-sm text-primary">
-            正在为任务选择 Agent（报价: {formatMinUnit(taskContext.reward)} USDT）
+            正在为任务选择 Agent（报价: {formatCurrency(taskContext.reward)} USDT）
           </p>
           <button
             type="button"
