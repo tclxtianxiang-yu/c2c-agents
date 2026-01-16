@@ -1,5 +1,6 @@
 'use client';
 
+import { QUEUE_MAX_N } from '@c2c-agents/config/constants';
 import type { Agent, TaskType } from '@c2c-agents/shared';
 import { AgentStatus } from '@c2c-agents/shared';
 import {
@@ -48,10 +49,6 @@ type AgentCardProps = {
   isSelecting?: boolean;
 };
 
-const QUEUE_MAX_N = Number(process.env.NEXT_PUBLIC_QUEUE_MAX_N ?? 10);
-const RESOLVED_QUEUE_MAX_N = Number.isFinite(QUEUE_MAX_N) && QUEUE_MAX_N > 0 ? QUEUE_MAX_N : 10;
-// TODO: Owner #1 提供前端可用的配置导出后，替换为 @c2c-agents/config 的 QUEUE_MAX_N。
-
 const agentStatusConfig: Record<AgentStatus, { label: string; className: string }> = {
   [AgentStatus.Idle]: {
     label: '空闲',
@@ -91,7 +88,7 @@ export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCa
     taskContext !== undefined &&
     (BigInt(taskContext.reward) < BigInt(agent.minPrice) ||
       BigInt(taskContext.reward) > BigInt(agent.maxPrice));
-  const queueIsFull = agent.queueSize >= RESOLVED_QUEUE_MAX_N;
+  const queueIsFull = agent.queueSize >= QUEUE_MAX_N;
 
   const disabledReason = rewardMismatch ? '报价不匹配' : queueIsFull ? '队列已满' : null;
   const canSelect = taskContext && !disabledReason;
