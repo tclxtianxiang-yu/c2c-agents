@@ -6,6 +6,6 @@ import { AgentService } from './agent.service';
 @Module({
   controllers: [AgentController],
   providers: [AgentService, AgentRepository],
-  exports: [AgentService], // 导出供其他模块使用（如 matching）
+  exports: [AgentService, AgentRepository], // 导出 AgentRepository 供其他模块使用（如 queue）
 })
 export class AgentModule {}
