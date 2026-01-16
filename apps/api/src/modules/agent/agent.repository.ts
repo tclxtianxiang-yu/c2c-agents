@@ -72,6 +72,7 @@ export type UpdateAgentInput = {
   supportedTaskTypes?: TaskType[];
   minPrice?: string;
   maxPrice?: string;
+  queueSize?: number;
 };
 
 export type AgentListFilters = AgentListQueryDto;
@@ -169,6 +170,7 @@ export class AgentRepository {
       updates.supported_task_types = input.supportedTaskTypes;
     if (input.minPrice !== undefined) updates.min_price = input.minPrice;
     if (input.maxPrice !== undefined) updates.max_price = input.maxPrice;
+    if (input.queueSize !== undefined) updates.queue_size = input.queueSize;
 
     const { data, error } = await this.supabase
       .query<AgentRow>(AGENT_TABLE)
