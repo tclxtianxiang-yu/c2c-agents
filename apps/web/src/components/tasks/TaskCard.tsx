@@ -1,17 +1,14 @@
 import type { Task } from '@c2c-agents/shared';
 import { OrderStatus } from '@c2c-agents/shared';
+
+import { formatMinUnit } from '@/utils/formatMinUnit';
+
 import { TaskStatusBadge } from './TaskStatusBadge';
 
 export type TaskSummary = Pick<
   Task,
   'id' | 'title' | 'type' | 'expectedReward' | 'status' | 'currentStatus'
 >;
-
-function formatMinUnit(amount: string, decimals = 6): string {
-  const divisor = 10n ** BigInt(decimals);
-  const whole = (BigInt(amount) / divisor).toString();
-  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
 
 const typeLabels: Record<string, string> = {
   writing: '写作',
