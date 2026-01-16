@@ -41,4 +41,49 @@ describe('AgentCard', () => {
     expect(markup).toContain('选择此 Agent');
     expect(markup).toContain('报价不匹配');
   });
+
+  it('renders estimated completion time for idle agent', () => {
+    const markup = renderToStaticMarkup(
+      <AgentCard agent={{ ...baseAgent, status: AgentStatus.Idle, queueSize: 0 }} />
+    );
+
+    expect(markup).toContain('预计完成');
+    expect(markup).toContain('立即开始');
+  });
+
+  it('renders estimated completion time for busy agent without queue', () => {
+    const markup = renderToStaticMarkup(
+      <AgentCard agent={{ ...baseAgent, status: AgentStatus.Busy, queueSize: 0 }} />
+    );
+
+    expect(markup).toContain('预计 1 个工作日');
+  });
+
+  it('renders estimated completion time for busy agent with queue', () => {
+    const markup = renderToStaticMarkup(
+      <AgentCard agent={{ ...baseAgent, status: AgentStatus.Busy, queueSize: 5 }} />
+    );
+
+    expect(markup).toContain('预计 6 个工作日');
+  });
+
+  it('shows loading state when selecting', () => {
+    const markup = renderToStaticMarkup(
+      <AgentCard
+        agent={baseAgent}
+        taskContext={{ taskId: 'task-1', reward: '1500000', type: 'code' }}
+        onSelect={() => undefined}
+        isSelecting
+      />
+    );
+
+    expect(markup).toContain('选择中...');
+    expect(markup).toContain('aria-busy="true"');
+  });
+
+  it('adds aria-label to status badge', () => {
+    const markup = renderToStaticMarkup(<AgentCard agent={baseAgent} />);
+
+    expect(markup).toContain('aria-label="状态：忙碌"');
+  });
 });

@@ -1,3 +1,5 @@
+'use client';
+
 import type { Agent, TaskType } from '@c2c-agents/shared';
 import { AgentStatus } from '@c2c-agents/shared';
 import {
@@ -10,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@c2c-agents/ui';
+import { useId, useState } from 'react';
 
 import { formatCurrency } from '@/utils/formatCurrency';
 import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
@@ -41,9 +44,13 @@ type AgentCardProps = {
   };
   /** 选择回调（手动选择模式） */
   onSelect?: (agentId: string) => void;
+  /** 外部控制选择状态 */
+  isSelecting?: boolean;
 };
 
-const QUEUE_MAX_N = 10;
+const QUEUE_MAX_N = Number(process.env.NEXT_PUBLIC_QUEUE_MAX_N ?? 10);
+const RESOLVED_QUEUE_MAX_N = Number.isFinite(QUEUE_MAX_N) && QUEUE_MAX_N > 0 ? QUEUE_MAX_N : 10;
+// TODO: Owner #1 提供前端可用的配置导出后，替换为 @c2c-agents/config 的 QUEUE_MAX_N。
 
 const agentStatusConfig: Record<AgentStatus, { label: string; className: string }> = {
   [AgentStatus.Idle]: {
@@ -71,33 +78,54 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-export function AgentCard({ agent, taskContext, onSelect }: AgentCardProps) {
+export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCardProps) {
+  const nameId = useId();
+  const [isSelectingInternal, setIsSelectingInternal] = useState(false);
   const statusConfig = agentStatusConfig[agent.status];
   const tags = agent.tags.slice(0, 3);
   const remainingTagCount = agent.tags.length - tags.length;
   const showQueue = agent.status !== AgentStatus.Idle;
+  const selecting = isSelecting ?? isSelectingInternal;
 
   const rewardMismatch =
     taskContext !== undefined &&
     (BigInt(taskContext.reward) < BigInt(agent.minPrice) ||
       BigInt(taskContext.reward) > BigInt(agent.maxPrice));
-  const queueIsFull = agent.queueSize >= QUEUE_MAX_N;
+  const queueIsFull = agent.queueSize >= RESOLVED_QUEUE_MAX_N;
 
   const disabledReason = rewardMismatch ? '报价不匹配' : queueIsFull ? '队列已满' : null;
   const canSelect = taskContext && !disabledReason;
+  const estimatedCompletionTime =
+    agent.status === AgentStatus.Idle
+      ? '立即开始'
+      : agent.queueSize > 0
+        ? `预计 ${agent.queueSize + 1} 个工作日`
+        : '预计 1 个工作日';
+
+  const handleSelect = () => {
+    if (!disabledReason && onSelect) {
+      if (isSelecting === undefined) {
+        setIsSelectingInternal(true);
+      }
+      onSelect(agent.id);
+    }
+  };
 
   const actionButton = taskContext ? (
     <Button
       type="button"
       className="w-full"
-      disabled={Boolean(disabledReason)}
-      onClick={() => {
-        if (!disabledReason && onSelect) {
-          onSelect(agent.id);
-        }
-      }}
+      disabled={Boolean(disabledReason) || selecting}
+      onClick={handleSelect}
+      aria-busy={selecting}
     >
-      选择此 Agent
+      {selecting && (
+        <span
+          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          aria-hidden="true"
+        />
+      )}
+      {selecting ? '选择中...' : '选择此 Agent'}
     </Button>
   ) : (
     <Button type="button" variant="outline" className="w-full">
@@ -106,7 +134,10 @@ export function AgentCard({ agent, taskContext, onSelect }: AgentCardProps) {
   );
 
   return (
-    <article className="group relative flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/50">
+    <article
+      className="group relative flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/50 focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background"
+      aria-labelledby={nameId}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
@@ -114,7 +145,9 @@ export function AgentCard({ agent, taskContext, onSelect }: AgentCardProps) {
             <AvatarFallback>{getInitials(agent.name)}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-lg font-semibold text-foreground">{agent.name}</p>
+            <p id={nameId} className="text-lg font-semibold text-foreground">
+              {agent.name}
+            </p>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
               {agent.supportedTaskTypes.map((type) => TASK_TYPE_LABELS[type] ?? type).join(' / ')}
             </p>
@@ -122,6 +155,8 @@ export function AgentCard({ agent, taskContext, onSelect }: AgentCardProps) {
         </div>
         <span
           className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusConfig.className}`}
+          role="img"
+          aria-label={`状态：${statusConfig.label}`}
         >
           {statusConfig.label}
         </span>
@@ -159,6 +194,10 @@ export function AgentCard({ agent, taskContext, onSelect }: AgentCardProps) {
             ⭐ {agent.avgRating.toFixed(1)} ({agent.ratingCount} 条评价)
           </span>
           <span>{agent.completedOrderCount} 单</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+          <span>预计完成</span>
+          <span>{estimatedCompletionTime}</span>
         </div>
         {showQueue && (
           <div className="mt-2 text-xs text-muted-foreground">队列 {agent.queueSize}</div>
