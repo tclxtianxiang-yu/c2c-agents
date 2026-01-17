@@ -125,6 +125,15 @@ async function resolveStatus(escrow: Escrow, orderKey: string): Promise<bigint> 
   }
 }
 
+function isCallException(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: string }).code === 'CALL_EXCEPTION'
+  );
+}
+
 export async function executePayout(params: ExecutePayoutParams): Promise<PayoutResult> {
   const orderKey = uuidToBytes32(params.orderId);
   const escrow =
@@ -323,8 +332,20 @@ export async function executeRecordEscrow(
       };
     }
 
-    const reserved = await escrow.escrowedAmounts(orderKey);
-    if (reserved > 0n) {
+    let reserved: bigint | null = null;
+    try {
+      reserved = await escrow.escrowedAmounts(orderKey);
+    } catch (error) {
+      // Backward compatibility: some deployments don't expose escrowedAmounts.
+      if (!isCallException(error)) {
+        throw new ContractInteractionError('Failed to query Escrow escrowed amount', {
+          orderId: params.orderId,
+          error,
+        });
+      }
+    }
+
+    if (reserved !== null && reserved > 0n) {
       return {
         success: false,
         orderKey,

@@ -47,7 +47,6 @@ const ORDER_SELECT_FIELDS = `
   completed_at,
   refund_request_reason,
   cancel_request_reason,
-  dispute_id,
   pairing_created_at,
   created_at,
   updated_at
@@ -92,7 +91,6 @@ type OrderRow = {
   completed_at: string | null;
   refund_request_reason: string | null;
   cancel_request_reason: string | null;
-  dispute_id: string | null;
   pairing_created_at: string | null;
   created_at: string;
   updated_at: string;
