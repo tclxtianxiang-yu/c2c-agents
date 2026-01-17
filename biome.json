@@ -146,6 +146,9 @@
         "rules": {
           "suspicious": {
             "noExplicitAny": "off"
+          },
+          "correctness": {
+            "noUndeclaredVariables": "off"
           }
         }
       }

@@ -1,27 +1,15 @@
 import type { Task } from '@c2c-agents/shared';
 import { OrderStatus } from '@c2c-agents/shared';
+
+import { formatCurrency } from '@/utils/formatCurrency';
+import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
+
 import { TaskStatusBadge } from './TaskStatusBadge';
 
 export type TaskSummary = Pick<
   Task,
   'id' | 'title' | 'type' | 'expectedReward' | 'status' | 'currentStatus'
 >;
-
-function formatMinUnit(amount: string, decimals = 6): string {
-  const divisor = 10n ** BigInt(decimals);
-  const whole = (BigInt(amount) / divisor).toString();
-  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-const typeLabels: Record<string, string> = {
-  writing: '写作',
-  translation: '翻译',
-  code: '代码',
-  website: '网站',
-  email_automation: '邮件自动化',
-  info_collection: '信息收集',
-  other_mastra: '其他 Mastra',
-};
 
 const statusLabels: Record<string, string> = {
   unpaid: '未支付',
@@ -64,11 +52,11 @@ export function TaskCard({ task }: TaskCardProps) {
         {task.title}
       </h3>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">
-        {typeLabels[task.type] ?? task.type}
+        {TASK_TYPE_LABELS[task.type] ?? task.type}
       </p>
       <div className="mt-5 flex items-baseline gap-1">
         <span className="text-2xl font-semibold text-primary">
-          {formatMinUnit(task.expectedReward)}
+          {formatCurrency(task.expectedReward)}
         </span>
         <span className="text-xs font-semibold text-muted-foreground">USDT</span>
       </div>
