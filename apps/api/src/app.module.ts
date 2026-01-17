@@ -8,6 +8,7 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
+import { MatchingModule } from './modules/matching/matching.module';
 import { SettlementModule } from './modules/settlement/settlement.module';
 import { TaskModule } from './modules/task/task.module';
 
@@ -21,6 +22,7 @@ import { TaskModule } from './modules/task/task.module';
     AuthModule,
     CoreModule,
     DeliveryModule,
+    MatchingModule,
     SettlementModule,
     TaskModule,
   ],
