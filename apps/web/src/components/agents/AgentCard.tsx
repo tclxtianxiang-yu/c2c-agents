@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@c2c-agents/ui';
+import Link from 'next/link';
 import { useId, useState } from 'react';
 import { AGENT_STATUS_LABELS } from '@/utils/agentStatusLabels';
 import { formatCurrency } from '@/utils/formatCurrency';
@@ -77,6 +78,14 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+function normalizeMinUnit(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '0';
+  const raw = typeof value === 'number' ? Math.trunc(value).toString() : String(value).trim();
+  if (!raw) return '0';
+  const [whole] = raw.split('.');
+  return /^\d+$/.test(whole) ? whole : '0';
+}
+
 export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCardProps) {
   const nameId = useId();
   const [isSelectingInternal, setIsSelectingInternal] = useState(false);
@@ -84,21 +93,27 @@ export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCa
   const tags = agent.tags.slice(0, 3);
   const remainingTagCount = agent.tags.length - tags.length;
   const showQueue = agent.status !== AgentStatus.Idle;
+  const queueSize = Number(agent.queueSize ?? 0);
+  const avgRating = Number(agent.avgRating ?? 0);
+  const ratingCount = Number(agent.ratingCount ?? 0);
+  const completedOrderCount = Number(agent.completedOrderCount ?? 0);
+  const minPriceValue = normalizeMinUnit(agent.minPrice);
+  const maxPriceValue = normalizeMinUnit(agent.maxPrice);
   const selecting = isSelecting ?? isSelectingInternal;
 
   const rewardMismatch =
     taskContext !== undefined &&
-    (BigInt(taskContext.reward) < BigInt(agent.minPrice) ||
-      BigInt(taskContext.reward) > BigInt(agent.maxPrice));
-  const queueIsFull = agent.queueSize >= RESOLVED_QUEUE_MAX_N;
+    (BigInt(taskContext.reward) < BigInt(minPriceValue) ||
+      BigInt(taskContext.reward) > BigInt(maxPriceValue));
+  const queueIsFull = queueSize >= RESOLVED_QUEUE_MAX_N;
 
   const disabledReason = rewardMismatch ? '报价不匹配' : queueIsFull ? '队列已满' : null;
   const canSelect = taskContext && !disabledReason;
   const estimatedCompletionTime =
     agent.status === AgentStatus.Idle
       ? '立即开始'
-      : agent.queueSize > 0
-        ? `预计 ${agent.queueSize + 1} 个工作日`
+      : queueSize > 0
+        ? `预计 ${queueSize + 1} 个工作日`
         : '预计 1 个工作日';
 
   const handleSelect = () => {
@@ -127,8 +142,8 @@ export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCa
       {selecting ? '选择中...' : '选择此 Agent'}
     </Button>
   ) : (
-    <Button type="button" variant="outline" className="w-full">
-      查看详情
+    <Button asChild type="button" variant="outline" className="w-full">
+      <Link href={`/agents/${agent.id}`}>查看详情</Link>
     </Button>
   );
 
@@ -185,22 +200,20 @@ export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCa
         <div className="flex items-baseline justify-between">
           <span className="text-muted-foreground">报价范围</span>
           <span className="font-semibold text-foreground">
-            {formatCurrency(agent.minPrice)} ~ {formatCurrency(agent.maxPrice)} USDT
+            {formatCurrency(minPriceValue)} ~ {formatCurrency(maxPriceValue)} USDT
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-muted-foreground">
           <span>
-            ⭐ {agent.avgRating.toFixed(1)} ({agent.ratingCount} 条评价)
+            ⭐ {avgRating.toFixed(1)} ({ratingCount} 条评价)
           </span>
-          <span>{agent.completedOrderCount} 单</span>
+          <span>{completedOrderCount} 单</span>
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <span>预计完成</span>
           <span>{estimatedCompletionTime}</span>
         </div>
-        {showQueue && (
-          <div className="mt-2 text-xs text-muted-foreground">队列 {agent.queueSize}</div>
-        )}
+        {showQueue && <div className="mt-2 text-xs text-muted-foreground">队列 {queueSize}</div>}
       </div>
 
       {taskContext && !canSelect && disabledReason && (

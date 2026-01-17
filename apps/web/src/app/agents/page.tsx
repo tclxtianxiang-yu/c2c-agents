@@ -6,8 +6,9 @@ import type { AgentSummary } from '@/components/agents/AgentCard';
 import { AgentMarket } from '@/components/agents/AgentMarket';
 
 async function getAgents(): Promise<AgentSummary[]> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-  const response = await fetch(`${apiUrl}/api/agents?isListed=true`, {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+  console.log(apiUrl);
+  const response = await fetch(`${apiUrl}/agents?isListed=true`, {
     cache: 'no-store',
   });
 
