@@ -67,7 +67,8 @@ export function AgentSelectModal({
       });
 
       if (!response.success) {
-        throw new Error('匹配失败，请稍后重试');
+        const errorMessage = response.error?.message || '匹配失败，请稍后重试';
+        throw new Error(errorMessage);
       }
 
       onOpenChange(false);
