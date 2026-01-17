@@ -47,12 +47,14 @@ const orderStatusLabels: Record<string, string> = {
 
 type TaskCardProps = {
   task: TaskSummary;
+  onViewStatus?: (taskId: string) => void;
 };
 
-export function TaskCard({ task }: TaskCardProps) {
+export function TaskCard({ task, onViewStatus }: TaskCardProps) {
   const isStandby = task.currentStatus === OrderStatus.Standby;
   const isPairing = task.currentStatus === OrderStatus.Pairing;
   const actionLabel = isStandby ? '自动匹配' : isPairing ? '确认匹配' : '查看状态';
+  const handleViewStatus = () => onViewStatus?.(task.id);
 
   return (
     <article className="group relative flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/50">
@@ -85,6 +87,7 @@ export function TaskCard({ task }: TaskCardProps) {
       <div className="mt-auto pt-6">
         <button
           type="button"
+          onClick={actionLabel === '查看状态' ? handleViewStatus : undefined}
           className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow transition hover:opacity-90"
         >
           {actionLabel}

@@ -61,6 +61,7 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
     [tags]
   );
 
+  const rewardValue = BigInt(reward || '0');
   const rewardAmount = formatAmount(reward);
   const feeAmount = formatAmount(String(Number(reward || '0') * PLATFORM_FEE_RATE));
   const totalAmount = formatAmount(String(Number(reward || '0') * (1 + PLATFORM_FEE_RATE)));
@@ -112,6 +113,11 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
 
   const handleCreate = async () => {
     if (!userId) return;
+    if (rewardValue <= 0n) {
+      setPaymentStatus('error');
+      setPaymentMessage('赏金金额需大于 0，建议至少设置 1 USDT。');
+      return;
+    }
     setLoading(true);
     try {
       const expectedReward = toMinUnit(reward || '0', USDT_DECIMALS);
@@ -339,6 +345,11 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
                     USDT
                   </div>
                 </div>
+                {reward && rewardValue <= 0n && (
+                  <span className="text-xs text-warning">
+                    赏金金额需大于 0，建议至少设置 1 USDT。
+                  </span>
+                )}
               </label>
               <div className="rounded-lg border border-border bg-background/70 p-4">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -359,7 +370,7 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
               <button
                 type="button"
                 onClick={handleCreate}
-                disabled={loading || !isConnected || !userId}
+                disabled={loading || !isConnected || !userId || rewardValue <= 0n}
                 className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? '创建中...' : '支付并发布 →'}

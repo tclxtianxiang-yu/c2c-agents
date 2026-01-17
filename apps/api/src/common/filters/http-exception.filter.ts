@@ -1,4 +1,6 @@
+import { inspect } from 'node:util';
 import {
+  AppError,
   ContractInteractionError,
   ErrorCode,
   IdempotencyViolationError,
@@ -47,7 +49,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (statusCode >= 500) {
       const errorMessage =
         exception instanceof Error ? (exception.stack ?? exception.message) : String(exception);
-      console.error(`[api-error] requestId=${requestId ?? 'unknown'} ${errorMessage}`);
+      const details =
+        exception instanceof AppError && exception.details !== undefined
+          ? `\nDetails: ${inspect(exception.details, { depth: 6 })}`
+          : '';
+      console.error(`[api-error] requestId=${requestId ?? 'unknown'} ${errorMessage}${details}`);
     }
 
     response.status(statusCode).json({

@@ -24,11 +24,16 @@ function formatWholeAmount(minUnitAmount: string): string {
 
 export default function WalletPage() {
   const { address, isConnected } = useAccount();
+  const [mounted, setMounted] = useState(false);
   const [walletState, setWalletState] = useState<WalletState>({
     balance: '0',
     status: 'idle',
   });
   const [isMinting, setIsMinting] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const mockUsdtAddress = useMemo(() => {
     try {
@@ -167,7 +172,9 @@ export default function WalletPage() {
               </div>
               <div className="mt-4 flex items-center justify-between gap-4">
                 <span className="text-muted-foreground">当前钱包地址</span>
-                <span className="font-mono text-xs text-foreground">{address ?? '未连接'}</span>
+                <span className="font-mono text-xs text-foreground">
+                  {mounted ? (address ?? '未连接') : '连接中...'}
+                </span>
               </div>
             </div>
 
