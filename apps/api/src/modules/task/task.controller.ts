@@ -1,5 +1,5 @@
 import { OrderStatus, TaskStatus, ValidationError } from '@c2c-agents/shared';
-import { Body, Controller, Get, Headers, Inject, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Inject, Param, Post, Query } from '@nestjs/common';
 import type { ConfirmPaymentDto } from './dtos/confirm-payment.dto';
 import type { CreateTaskDto } from './dtos/create-task.dto';
 import type { TaskListQueryDto } from './dtos/task-list-query.dto';
@@ -55,6 +55,14 @@ export class TaskController {
   @Get(':id')
   getTask(@Param('id') taskId: string) {
     return this.taskQueryService.findById(taskId);
+  }
+
+  @Delete(':id')
+  deleteTask(@Headers('x-user-id') userId: string | undefined, @Param('id') taskId: string) {
+    if (!userId) {
+      throw new ValidationError('x-user-id header is required');
+    }
+    return this.taskService.deleteTask(userId, taskId);
   }
 
   @Get()

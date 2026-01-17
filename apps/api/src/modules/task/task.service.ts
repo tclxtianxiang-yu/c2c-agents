@@ -177,6 +177,44 @@ export class TaskService {
     };
   }
 
+  async deleteTask(userId: string, taskId: string) {
+    const resolvedUserId = await this.resolveUserId(userId);
+    if (!resolvedUserId) {
+      throw new ValidationError('x-user-id header is required');
+    }
+
+    const task = await this.repository.findTaskById(taskId);
+    if (!task) {
+      throw new HttpException(
+        { code: ErrorCode.BUSINESS_RESOURCE_NOT_FOUND, message: 'Task not found' },
+        404
+      );
+    }
+
+    if (task.creatorId !== resolvedUserId) {
+      throw new HttpException(
+        { code: ErrorCode.AUTH_FORBIDDEN, message: 'Task does not belong to current user' },
+        403
+      );
+    }
+
+    if (task.status === TaskStatus.Archived) {
+      return { taskId: task.id, status: task.status };
+    }
+
+    const canDelete =
+      task.status === TaskStatus.Unpaid || task.currentStatus === OrderStatus.Completed;
+    if (!canDelete) {
+      throw new ValidationError('Task can only be deleted when unpaid or completed');
+    }
+
+    const updated = await this.repository.updateTask(task.id, {
+      status: TaskStatus.Archived,
+    });
+
+    return { taskId: updated.id, status: updated.status };
+  }
+
   private validateCreateTask(input: CreateTaskDto): void {
     if (!isNonEmptyText(input.title)) {
       throw new ValidationError('title is required');

@@ -1,4 +1,5 @@
-import type { Order, OrderStatus, Task, TaskStatus, TaskType } from '@c2c-agents/shared';
+import type { Order, OrderStatus, Task, TaskType } from '@c2c-agents/shared';
+import { TaskStatus } from '@c2c-agents/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { SupabaseService } from '../../database/supabase.service';
 import type { TaskListQueryDto } from './dtos/task-list-query.dto';
@@ -261,7 +262,11 @@ export class TaskRepository {
     let query = this.supabase.query<TaskRow>(TASK_TABLE).select(TASK_SELECT_FIELDS);
 
     if (filters.creatorId) query = query.eq('creator_id', filters.creatorId);
-    if (filters.status) query = query.eq('status', filters.status);
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    } else {
+      query = query.neq('status', TaskStatus.Archived);
+    }
     if (filters.currentStatus) query = query.eq('current_status', filters.currentStatus);
     if (filters.type) query = query.eq('type', filters.type);
     if (filters.tags?.length) query = query.contains('tags', filters.tags);

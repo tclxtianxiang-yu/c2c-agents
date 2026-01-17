@@ -36,13 +36,17 @@ const orderStatusLabels: Record<string, string> = {
 type TaskCardProps = {
   task: TaskSummary;
   onViewStatus?: (taskId: string) => void;
+  onAutoMatch?: (taskId: string) => void;
+  onManualSelect?: (taskId: string) => void;
 };
 
-export function TaskCard({ task, onViewStatus }: TaskCardProps) {
+export function TaskCard({ task, onViewStatus, onAutoMatch, onManualSelect }: TaskCardProps) {
   const isStandby = task.currentStatus === OrderStatus.Standby;
   const isPairing = task.currentStatus === OrderStatus.Pairing;
   const actionLabel = isStandby ? '自动匹配' : isPairing ? '确认匹配' : '查看状态';
   const handleViewStatus = () => onViewStatus?.(task.id);
+  const handleAutoMatch = () => onAutoMatch?.(task.id);
+  const handleManualSelect = () => onManualSelect?.(task.id);
 
   return (
     <article className="group relative flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/50">
@@ -73,13 +77,34 @@ export function TaskCard({ task, onViewStatus }: TaskCardProps) {
         )}
       </div>
       <div className="mt-auto pt-6">
-        <button
-          type="button"
-          onClick={actionLabel === '查看状态' ? handleViewStatus : undefined}
-          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow transition hover:opacity-90"
-        >
-          {actionLabel}
-        </button>
+        {isStandby ? (
+          <div className="grid gap-2">
+            <button
+              type="button"
+              onClick={handleAutoMatch}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(14,116,219,0.35)] transition hover:opacity-90"
+            >
+              <span aria-hidden="true">⚡</span>
+              自动匹配 (Auto Match)
+            </button>
+            <button
+              type="button"
+              onClick={handleManualSelect}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background/60 px-4 py-2.5 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+            >
+              <span aria-hidden="true">🖐️</span>
+              手动选择 (Select)
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={actionLabel === '查看状态' ? handleViewStatus : undefined}
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow transition hover:opacity-90"
+          >
+            {actionLabel}
+          </button>
+        )}
       </div>
     </article>
   );
