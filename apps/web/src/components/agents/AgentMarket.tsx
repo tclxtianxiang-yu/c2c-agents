@@ -1,7 +1,10 @@
+// Purpose: Render agent marketplace with task-context selection modal workflow.
 'use client';
 
+import { toast } from '@c2c-agents/ui';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { AgentSelectModal } from '@/components/agent/AgentSelectModal';
 import { useTaskContext } from '@/hooks/useTaskContext';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { AgentCard, type AgentSummary } from './AgentCard';
@@ -14,6 +17,8 @@ type AgentMarketProps = {
 export function AgentMarket({ agents }: AgentMarketProps) {
   const taskContext = useTaskContext();
   const router = useRouter();
+  const [selectedAgent, setSelectedAgent] = useState<AgentSummary | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const initialFilters = useMemo<AgentFilterValues>(() => {
     if (!taskContext) return {};
@@ -71,14 +76,12 @@ export function AgentMarket({ agents }: AgentMarketProps) {
     });
   }, [agents, filters]);
 
-  const handleSelectAgent = async (_agentId: string) => {
+  const handleSelectAgent = (agentId: string) => {
     if (!taskContext) return;
-
-    // TODO: 调用后端 API 创建 Pairing 或 QueueItem
-    // POST /api/matching/manual-select
-    // { taskId, orderId, agentId }
-
-    router.push(`/tasks/${taskContext.taskId}`);
+    const agent = agents.find((item) => item.id === agentId);
+    if (!agent) return;
+    setSelectedAgent(agent);
+    setIsModalOpen(true);
   };
 
   return (
@@ -127,12 +130,41 @@ export function AgentMarket({ agents }: AgentMarketProps) {
                 : undefined
             }
             onSelect={taskContext ? handleSelectAgent : undefined}
+            isSelecting={false}
           />
         ))}
       </div>
 
       {filteredAgents.length === 0 && (
         <div className="py-12 text-center text-muted-foreground">暂无符合条件的 Agent</div>
+      )}
+
+      {selectedAgent && taskContext && (
+        <AgentSelectModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          taskContext={{
+            taskId: taskContext.taskId,
+            orderId: taskContext.orderId,
+            reward: taskContext.reward,
+            type: taskContext.type,
+          }}
+          agent={{
+            id: selectedAgent.id,
+            name: selectedAgent.name,
+            status: selectedAgent.status,
+          }}
+          onSuccess={() => {
+            router.push(`/tasks/${taskContext.taskId}`);
+          }}
+          onError={(error) => {
+            toast({
+              title: '选择失败',
+              description: error.message,
+              variant: 'destructive',
+            });
+          }}
+        />
       )}
     </div>
   );
