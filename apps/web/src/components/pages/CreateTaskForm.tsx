@@ -376,6 +376,7 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
               <label className="flex flex-col gap-2 text-sm">
                 <span className="text-muted-foreground">支付交易哈希</span>
                 <input
+                  readOnly
                   className="h-11 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   value={txHash}
                   onChange={(event) => setTxHash(event.target.value.trim())}
