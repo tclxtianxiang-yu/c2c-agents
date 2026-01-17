@@ -1,12 +1,6 @@
 import { QUEUE_MAX_N } from '@c2c-agents/config/constants';
 import { ErrorCode, type QueueItem } from '@c2c-agents/shared';
-import {
-  BadRequestException,
-  ConflictException,
-  HttpException,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common';
 import { AgentRepository } from '../agent/agent.repository';
 import type { QueueStatusDto } from './dtos/queue-status.dto';
 import { QueueRepository } from './queue.repository';
