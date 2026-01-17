@@ -27,7 +27,7 @@ describe('AgentFilterPanel', () => {
       title: 'Smart Contract Audit',
       type: 'code' as const,
       tags: ['Solidity', 'Security'],
-      reward: '500000000',
+      expectedReward: '500000000',
     };
 
     render(

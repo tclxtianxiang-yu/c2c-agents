@@ -1,6 +1,6 @@
 'use client';
 
-import type { TaskType } from '@c2c-agents/shared';
+import type { Task } from '@c2c-agents/shared';
 import { fromMinUnit, toMinUnit } from '@c2c-agents/shared';
 import { cn, Input } from '@c2c-agents/ui';
 import { useEffect, useState } from 'react';
@@ -12,13 +12,7 @@ export type AgentFilterPanelValues = {
   tags?: string[];
 };
 
-export type TaskContext = {
-  id: string;
-  title: string;
-  type: TaskType;
-  tags: string[];
-  reward: string;
-};
+export type TaskContext = Pick<Task, 'id' | 'title' | 'type' | 'tags' | 'expectedReward'>;
 
 type AgentFilterPanelProps = {
   values: AgentFilterPanelValues;
@@ -99,7 +93,7 @@ export function AgentFilterPanel({
             <div className="mt-2 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Budget</span>
               <span className="font-semibold text-primary">
-                {formatDisplayAmount(fromMinUnit(taskContext.reward, 6))} USDC
+                {formatDisplayAmount(fromMinUnit(taskContext.expectedReward, 6))} USDC
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
