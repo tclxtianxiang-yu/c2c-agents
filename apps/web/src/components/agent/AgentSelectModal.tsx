@@ -2,7 +2,6 @@
 'use client';
 
 import type { AgentStatus, TaskType } from '@c2c-agents/shared';
-import { AgentStatus as AgentStatusEnum } from '@c2c-agents/shared';
 import {
   Button,
   Dialog,
@@ -15,14 +14,9 @@ import {
 import { useState } from 'react';
 
 import { manualSelectAgent } from '@/lib/api/matching';
+import { AGENT_STATUS_LABELS } from '@/utils/agentStatusLabels';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
-
-const agentStatusLabel: Record<AgentStatus, string> = {
-  [AgentStatusEnum.Idle]: '空闲',
-  [AgentStatusEnum.Busy]: '忙碌',
-  [AgentStatusEnum.Queueing]: '排队中',
-};
 
 type AgentSelectModalProps = {
   open: boolean;
@@ -120,7 +114,9 @@ export function AgentSelectModal({
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">当前状态</span>
-              <span className="font-medium text-foreground">{agentStatusLabel[agent.status]}</span>
+              <span className="font-medium text-foreground">
+                {AGENT_STATUS_LABELS[agent.status]}
+              </span>
             </div>
           </div>
 

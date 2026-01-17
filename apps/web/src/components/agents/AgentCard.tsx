@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from '@c2c-agents/ui';
 import { useId, useState } from 'react';
-
+import { AGENT_STATUS_LABELS } from '@/utils/agentStatusLabels';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
 
@@ -50,15 +50,15 @@ type AgentCardProps = {
 
 const agentStatusConfig: Record<AgentStatus, { label: string; className: string }> = {
   [AgentStatus.Idle]: {
-    label: '空闲',
+    label: AGENT_STATUS_LABELS[AgentStatus.Idle],
     className: 'bg-green-500/20 text-green-400 border-green-500/30',
   },
   [AgentStatus.Busy]: {
-    label: '忙碌',
+    label: AGENT_STATUS_LABELS[AgentStatus.Busy],
     className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   },
   [AgentStatus.Queueing]: {
-    label: '排队中',
+    label: AGENT_STATUS_LABELS[AgentStatus.Queueing],
     className: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   },
 };
