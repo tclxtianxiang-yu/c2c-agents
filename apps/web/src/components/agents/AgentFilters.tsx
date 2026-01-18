@@ -14,6 +14,7 @@ export type AgentFilterValues = {
   status?: AgentStatus; // Agent 状态
   minPrice?: string; // 报价下限（最小单位）
   maxPrice?: string; // 报价上限（最小单位）
+  mine?: boolean; // 只看我创建的 Agent
 };
 
 type AgentFiltersProps = {
@@ -107,150 +108,172 @@ export function AgentFilters({ values, onChange, taskContext }: AgentFiltersProp
       <div
         className={cn('mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3', !isOpen && 'hidden sm:grid')}
       >
-        <label
-          htmlFor={keywordId}
-          className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
-        >
-          <span>关键词</span>
-          <Input
-            id={keywordId}
-            value={values.keyword ?? ''}
-            placeholder="名称 / 描述"
-            onChange={(event) => onChange({ ...values, keyword: event.target.value || undefined })}
-          />
-        </label>
-
-        <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          任务类型
-          <div className="relative">
-            <select
-              className="h-10 w-full appearance-none rounded-md border border-input bg-background/80 px-3 py-2 pr-8 text-sm text-foreground shadow-[0_8px_18px_rgba(15,23,42,0.18)] backdrop-blur focus:border-primary focus:outline-none"
-              value={values.taskType ?? ''}
-              onChange={(event) =>
-                onChange({
-                  ...values,
-                  taskType: event.target.value ? (event.target.value as TaskType) : undefined,
-                })
-              }
+        {isOpen && (
+          <>
+            <label
+              htmlFor={keywordId}
+              className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
             >
-              <option value="" className="bg-background text-foreground">
-                全部
-              </option>
-              {Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value} className="bg-background text-foreground">
-                  {label}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none">
-                <path
-                  d="M6 8l4 4 4-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </div>
-        </label>
+              <span>关键词</span>
+              <Input
+                id={keywordId}
+                value={values.keyword ?? ''}
+                placeholder="名称 / 描述"
+                onChange={(event) =>
+                  onChange({ ...values, keyword: event.target.value || undefined })
+                }
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              任务类型
+              <div className="relative">
+                <select
+                  className="h-10 w-full appearance-none rounded-md border border-input bg-background/80 px-3 py-2 pr-8 text-sm text-foreground shadow-[0_8px_18px_rgba(15,23,42,0.18)] backdrop-blur focus:border-primary focus:outline-none"
+                  value={values.taskType ?? ''}
+                  onChange={(event) =>
+                    onChange({
+                      ...values,
+                      taskType: event.target.value ? (event.target.value as TaskType) : undefined,
+                    })
+                  }
+                >
+                  <option value="" className="bg-background text-foreground">
+                    全部
+                  </option>
+                  {Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value} className="bg-background text-foreground">
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M6 8l4 4 4-4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </label>
 
-        <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          状态
-          <div className="relative">
-            <select
-              className="h-10 w-full appearance-none rounded-md border border-input bg-background/80 px-3 py-2 pr-8 text-sm text-foreground shadow-[0_8px_18px_rgba(15,23,42,0.18)] backdrop-blur focus:border-primary focus:outline-none"
-              value={values.status ?? ''}
-              onChange={(event) =>
-                onChange({
-                  ...values,
-                  status: event.target.value ? (event.target.value as AgentStatus) : undefined,
-                })
-              }
+            <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              状态
+              <div className="relative">
+                <select
+                  className="h-10 w-full appearance-none rounded-md border border-input bg-background/80 px-3 py-2 pr-8 text-sm text-foreground shadow-[0_8px_18px_rgba(15,23,42,0.18)] backdrop-blur focus:border-primary focus:outline-none"
+                  value={values.status ?? ''}
+                  onChange={(event) =>
+                    onChange({
+                      ...values,
+                      status: event.target.value ? (event.target.value as AgentStatus) : undefined,
+                    })
+                  }
+                >
+                  <option value="" className="bg-background text-foreground">
+                    全部
+                  </option>
+                  {Object.entries(statusLabels).map(([value, label]) => (
+                    <option key={value} value={value} className="bg-background text-foreground">
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M6 8l4 4 4-4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 rounded-md border border-input bg-background/80 px-3 py-2 text-sm text-foreground shadow-[0_8px_18px_rgba(15,23,42,0.18)]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-border bg-background text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                checked={Boolean(values.mine)}
+                onChange={(event) =>
+                  onChange({
+                    ...values,
+                    mine: event.target.checked || undefined,
+                  })
+                }
+              />
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                我创建的 Agent
+              </span>
+            </label>
+
+            <label
+              htmlFor={minPriceId}
+              className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
             >
-              <option value="" className="bg-background text-foreground">
-                全部
-              </option>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <option key={value} value={value} className="bg-background text-foreground">
-                  {label}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none">
-                <path
-                  d="M6 8l4 4 4-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </div>
-        </label>
+              <span>最低价 (USDT)</span>
+              <Input
+                id={minPriceId}
+                value={minInput}
+                placeholder="0"
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setMinInput(nextValue);
+                  const nextMin = parseMinUnit(nextValue);
+                  onChange({
+                    ...values,
+                    minPrice: nextMin,
+                  });
+                }}
+              />
+            </label>
 
-        <label
-          htmlFor={minPriceId}
-          className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
-        >
-          <span>最低价 (USDT)</span>
-          <Input
-            id={minPriceId}
-            value={minInput}
-            placeholder="0"
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              setMinInput(nextValue);
-              const nextMin = parseMinUnit(nextValue);
-              onChange({
-                ...values,
-                minPrice: nextMin,
-              });
-            }}
-          />
-        </label>
+            <label
+              htmlFor={maxPriceId}
+              className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+            >
+              <span>最高价 (USDT)</span>
+              <Input
+                id={maxPriceId}
+                value={maxInput}
+                placeholder="0"
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setMaxInput(nextValue);
+                  const nextMax = parseMinUnit(nextValue);
+                  onChange({
+                    ...values,
+                    maxPrice: nextMax,
+                  });
+                }}
+              />
+            </label>
 
-        <label
-          htmlFor={maxPriceId}
-          className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
-        >
-          <span>最高价 (USDT)</span>
-          <Input
-            id={maxPriceId}
-            value={maxInput}
-            placeholder="0"
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              setMaxInput(nextValue);
-              const nextMax = parseMinUnit(nextValue);
-              onChange({
-                ...values,
-                maxPrice: nextMax,
-              });
-            }}
-          />
-        </label>
-
-        <label
-          htmlFor={tagsId}
-          className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
-        >
-          <span>标签</span>
-          <Input
-            id={tagsId}
-            value={selectedTags}
-            placeholder="多个标签用逗号分隔"
-            onChange={(event) =>
-              onChange({
-                ...values,
-                tags: normalizeTags(event.target.value),
-              })
-            }
-          />
-        </label>
+            <label
+              htmlFor={tagsId}
+              className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+            >
+              <span>标签</span>
+              <Input
+                id={tagsId}
+                value={selectedTags}
+                placeholder="多个标签用逗号分隔"
+                onChange={(event) =>
+                  onChange({
+                    ...values,
+                    tags: normalizeTags(event.target.value),
+                  })
+                }
+              />
+            </label>
+          </>
+        )}
       </div>
     </section>
   );
