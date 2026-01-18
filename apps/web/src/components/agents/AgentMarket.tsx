@@ -2,12 +2,13 @@
 
 import { toast } from '@c2c-agents/ui';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AgentSelectModal } from '@/components/agent/AgentSelectModal';
 import { useTaskContext } from '@/hooks/useTaskContext';
 import { useUserId } from '@/lib/useUserId';
 import { AgentCard, type AgentSummary } from './AgentCard';
 import { AgentFilters, type AgentFilterValues } from './AgentFilters';
+import { CreateAgentForm } from './CreateAgentForm';
 
 type AgentMarketProps = {
   agents: AgentSummary[];
@@ -28,6 +29,7 @@ export function AgentMarket({ agents }: AgentMarketProps) {
   const { userId } = useUserId('B');
   const [selectedAgent, setSelectedAgent] = useState<AgentSummary | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
 
   const initialFilters = useMemo<AgentFilterValues>(() => {
@@ -39,6 +41,20 @@ export function AgentMarket({ agents }: AgentMarketProps) {
   }, [taskContext]);
 
   const [filters, setFilters] = useState<AgentFilterValues>(initialFilters);
+
+  // 处理创建弹窗的键盘事件和滚动锁定
+  useEffect(() => {
+    if (!isCreateOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsCreateOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCreateOpen]);
 
   const filteredAndSortedAgents = useMemo(() => {
     let filtered = agents.filter((agent) => {
@@ -126,6 +142,15 @@ export function AgentMarket({ agents }: AgentMarketProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {!taskContext && (
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+            >
+              创建 Agent
+            </button>
+          )}
           <span className="text-sm text-muted-foreground hidden sm:inline-block">排序:</span>
           <div className="relative">
             <select
@@ -229,6 +254,28 @@ export function AgentMarket({ agents }: AgentMarketProps) {
             });
           }}
         />
+      )}
+
+      {/* Create Agent Modal */}
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-background/80 backdrop-blur"
+            onClick={() => setIsCreateOpen(false)}
+            aria-label="关闭创建 Agent 弹窗"
+          />
+          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl">
+            <CreateAgentForm
+              onClose={() => setIsCreateOpen(false)}
+              onSuccess={() => {
+                setIsCreateOpen(false);
+                // 刷新页面以显示新创建的 Agent
+                window.location.reload();
+              }}
+            />
+          </div>
+        </div>
       )}
     </>
   );
