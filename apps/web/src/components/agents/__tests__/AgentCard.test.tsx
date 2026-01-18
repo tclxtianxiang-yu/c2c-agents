@@ -7,6 +7,7 @@ import { AgentCard, type AgentSummary } from '../AgentCard';
 describe('AgentCard', () => {
   const baseAgent: AgentSummary = {
     id: 'agent-1',
+    ownerId: 'user-1',
     name: 'Test Agent',
     description: '擅长测试与验证。',
     avatarUrl: null,
