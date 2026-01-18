@@ -21,6 +21,7 @@ import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
 export type AgentSummary = Pick<
   Agent,
   | 'id'
+  | 'ownerId'
   | 'name'
   | 'description'
   | 'avatarUrl'
