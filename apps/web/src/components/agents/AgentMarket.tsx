@@ -2,10 +2,13 @@
 
 import { toast } from '@c2c-agents/ui';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { AgentSelectModal } from '@/components/agent/AgentSelectModal';
 import { useTaskContext } from '@/hooks/useTaskContext';
+import { apiFetch } from '@/lib/api';
 import { useUserId } from '@/lib/useUserId';
+
 import { AgentCard, type AgentSummary } from './AgentCard';
 import { AgentFilters, type AgentFilterValues } from './AgentFilters';
 import { CreateAgentForm } from './CreateAgentForm';
@@ -23,14 +26,16 @@ const SORT_LABELS: Record<SortOption, string> = {
   completion: '完成数',
 };
 
-export function AgentMarket({ agents }: AgentMarketProps) {
+export function AgentMarket({ agents: initialAgents }: AgentMarketProps) {
   const taskContext = useTaskContext();
   const router = useRouter();
   const { userId } = useUserId('B');
+  const [agents, setAgents] = useState<AgentSummary[]>(initialAgents);
   const [selectedAgent, setSelectedAgent] = useState<AgentSummary | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
+  const [loading, setLoading] = useState(false);
 
   const initialFilters = useMemo<AgentFilterValues>(() => {
     if (!taskContext) return {};
@@ -41,6 +46,39 @@ export function AgentMarket({ agents }: AgentMarketProps) {
   }, [taskContext]);
 
   const [filters, setFilters] = useState<AgentFilterValues>(initialFilters);
+
+  // 根据筛选条件重新加载 Agent 列表
+  const refreshAgents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('isListed', 'true');
+
+      if (filters.keyword) params.set('keyword', filters.keyword);
+      if (filters.taskType) params.set('taskType', filters.taskType);
+      if (filters.status) params.set('status', filters.status);
+      if (filters.minPrice) params.set('minPrice', filters.minPrice);
+      if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+      if (filters.tags?.length) params.set('tags', filters.tags.join(','));
+      if (filters.mine) params.set('mine', 'true');
+
+      const response = await apiFetch<AgentSummary[]>(`/agents?${params.toString()}`, {
+        headers: userId ? { 'x-user-id': userId } : undefined,
+        cache: 'no-store',
+      });
+
+      setAgents(response);
+    } catch (error) {
+      console.error('Failed to refresh agents:', error);
+      toast({
+        title: '加载失败',
+        description: error instanceof Error ? error.message : '无法加载 Agent 列表',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, userId]);
 
   // 处理创建弹窗的键盘事件和滚动锁定
   useEffect(() => {
@@ -201,30 +239,37 @@ export function AgentMarket({ agents }: AgentMarketProps) {
 
       {/* Agent Grid */}
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-        {filteredAndSortedAgents.length === 0 && (
+        {loading && (
+          <div className="col-span-full rounded-lg border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+            加载中...
+          </div>
+        )}
+        {!loading && filteredAndSortedAgents.length === 0 && (
           <div className="col-span-full rounded-lg border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
             {filters.mine && !userId
               ? '请先连接钱包查看你创建的 Agent'
               : '暂无符合条件的 Agent，请调整筛选条件'}
           </div>
         )}
-        {filteredAndSortedAgents.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            agent={agent}
-            taskContext={
-              taskContext
-                ? {
-                    taskId: taskContext.taskId,
-                    reward: taskContext.reward,
-                    type: taskContext.type,
-                  }
-                : undefined
-            }
-            onSelect={taskContext ? handleSelectAgent : undefined}
-            isSelecting={false}
-          />
-        ))}
+        {!loading &&
+          filteredAndSortedAgents.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              taskContext={
+                taskContext
+                  ? {
+                      taskId: taskContext.taskId,
+                      reward: taskContext.reward,
+                      type: taskContext.type,
+                    }
+                  : undefined
+              }
+              onSelect={taskContext ? handleSelectAgent : undefined}
+              onAgentUpdated={() => refreshAgents()}
+              isSelecting={false}
+            />
+          ))}
       </section>
 
       {/* Select Modal */}
@@ -270,8 +315,8 @@ export function AgentMarket({ agents }: AgentMarketProps) {
               onClose={() => setIsCreateOpen(false)}
               onSuccess={() => {
                 setIsCreateOpen(false);
-                // 刷新页面以显示新创建的 Agent
-                window.location.reload();
+                // 根据当前筛选条件重新加载 Agent 列表
+                refreshAgents();
               }}
             />
           </div>
