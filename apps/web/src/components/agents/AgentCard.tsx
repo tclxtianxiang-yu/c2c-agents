@@ -12,11 +12,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@c2c-agents/ui';
-import Link from 'next/link';
 import { useId, useState } from 'react';
+
 import { AGENT_STATUS_LABELS } from '@/utils/agentStatusLabels';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
+
+import { AgentDetailModal } from './AgentDetailModal';
 
 export type AgentSummary = Pick<
   Agent,
@@ -46,6 +48,8 @@ type AgentCardProps = {
   };
   /** 选择回调（手动选择模式） */
   onSelect?: (agentId: string) => void;
+  /** Agent 更新回调（编辑后） */
+  onAgentUpdated?: () => void;
   /** 外部控制选择状态 */
   isSelecting?: boolean;
 };
@@ -87,9 +91,16 @@ function normalizeMinUnit(value: string | number | null | undefined): string {
   return /^\d+$/.test(whole) ? whole : '0';
 }
 
-export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCardProps) {
+export function AgentCard({
+  agent,
+  taskContext,
+  onSelect,
+  onAgentUpdated,
+  isSelecting,
+}: AgentCardProps) {
   const nameId = useId();
   const [isSelectingInternal, setIsSelectingInternal] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const statusConfig = agentStatusConfig[agent.status];
   const tags = agent.tags.slice(0, 3);
   const remainingTagCount = agent.tags.length - tags.length;
@@ -143,8 +154,13 @@ export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCa
       {selecting ? '选择中...' : '选择此 Agent'}
     </Button>
   ) : (
-    <Button asChild type="button" variant="outline" className="w-full">
-      <Link href={`/agents/${agent.id}`}>查看详情</Link>
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full"
+      onClick={() => setIsDetailModalOpen(true)}
+    >
+      查看详情
     </Button>
   );
 
@@ -235,6 +251,16 @@ export function AgentCard({ agent, taskContext, onSelect, isSelecting }: AgentCa
           actionButton
         )}
       </div>
+
+      <AgentDetailModal
+        agent={agent as Agent}
+        open={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+        onAgentUpdated={() => {
+          // 当 Agent 被编辑更新后，通知父组件刷新列表
+          onAgentUpdated?.();
+        }}
+      />
     </article>
   );
 }
