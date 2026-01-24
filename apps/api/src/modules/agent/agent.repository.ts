@@ -77,6 +77,7 @@ export type UpdateAgentInput = {
   description?: string;
   avatarUrl?: string | null;
   mastraUrl?: string;
+  mastraTokenId?: string | null;
   tags?: string[];
   supportedTaskTypes?: TaskType[];
   minPrice?: string;
@@ -176,6 +177,7 @@ export class AgentRepository {
     if (input.description !== undefined) updates.description = input.description;
     if (input.avatarUrl !== undefined) updates.avatar_url = input.avatarUrl;
     if (input.mastraUrl !== undefined) updates.mastra_url = input.mastraUrl;
+    if (input.mastraTokenId !== undefined) updates.mastra_token_id = input.mastraTokenId;
     if (input.tags !== undefined) updates.tags = input.tags;
     if (input.supportedTaskTypes !== undefined)
       updates.supported_task_types = input.supportedTaskTypes;
