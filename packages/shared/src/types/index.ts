@@ -113,6 +113,35 @@ export interface Order {
 }
 
 // ============================================================
+// Mastra Token Types
+// ============================================================
+
+/**
+ * MastraToken DTO - Mastra Cloud Access Token
+ * 用户从 Mastra Cloud 获取的 Access Token，在平台中管理
+ */
+export interface MastraToken {
+  id: string; // uuid
+  ownerId: string; // uuid → auth.users（B 用户）
+
+  name: string; // 用户定义名称
+  token: string; // Mastra Cloud Access Token
+
+  createdAt: string; // timestamptz → ISO 8601
+  updatedAt: string; // timestamptz → ISO 8601
+}
+
+/**
+ * MastraTokenSummary - 不包含敏感 token 的摘要
+ * 用于列表展示和选择器
+ */
+export interface MastraTokenSummary {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+// ============================================================
 // Agent Types
 // ============================================================
 
@@ -128,6 +157,7 @@ export interface Agent {
   description: string;
   avatarUrl: string | null;
   mastraUrl: string; // Mastra Cloud 的 Agent URL（外部执行入口）
+  mastraTokenId: string | null; // uuid | null → mastra_tokens.id
 
   tags: string[];
   supportedTaskTypes: TaskType[];
