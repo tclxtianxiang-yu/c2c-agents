@@ -227,7 +227,7 @@ export class MatchingService {
     const queuePosition = position >= 0 ? position + 1 : items.length;
 
     return {
-      result: 'queued',
+      result: 'queued' as const,
       orderId,
       agentId,
       status: OrderStatus.Standby,
