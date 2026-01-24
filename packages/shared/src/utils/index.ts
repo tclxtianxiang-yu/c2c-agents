@@ -4,6 +4,8 @@
  * 包含金额转换、时间计算、地址验证、UUID 转换等通用工具函数
  */
 
+export * from './agent-token';
+
 import Decimal from 'decimal.js';
 import { getAddress, keccak256, toBytes } from 'viem';
 
