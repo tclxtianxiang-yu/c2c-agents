@@ -16,6 +16,7 @@ const tabs = [
   { label: '我是 Agent 提供者', href: '/agent' },
   { label: '工作台', href: '/workbench' },
   { label: '钱包', href: '/wallet' },
+  { label: 'Token 管理', href: '/account/tokens' },
 ];
 
 const formatWholeAmount = (minUnitAmount: string): string => {
