@@ -57,7 +57,18 @@
       "Bash(git push:*)",
       "Bash(git commit:*)",
       "Bash(gh pr view:*)",
-      "Bash(gh pr create --title \"[docs] 添加环境变量自动生成规范与 NestJS 开发范式\" --body \"$\\(cat <<''EOF''\n## 变更摘要\n\n- 新增 AI 自动生成环境变量文件功能规范（CONTEXT.md）\n- 添加 `apps/web/.env.local` 和 `apps/api/.env` 的生成规则表\n- 添加 NestJS 依赖注入规范（禁止 `import type` 导入服务）\n- 修复 biome 配置支持参数装饰器（`unsafeParameterDecoratorsEnabled`）\n- 更新常见问题文档\n\n## 影响范围\n\n| 文件 | 变更 |\n|------|------|\n| `docs/CONTEXT.md` | 添加 6.5 章节：环境变量自动生成规范 |\n| `CLAUDE.md` | 添加 NestJS DI 规范、Monorepo 环境变量配置、常见问题 |\n| `biome.json` | 启用 `unsafeParameterDecoratorsEnabled` |\n| `apps/api/src/modules/core/health.controller.ts` | 修复依赖注入（@Inject 装饰器） |\n\n## 新增 Prompt 模板\n\n开发者可使用以下 prompt 自动生成环境变量文件：\n\n```\n@CONTEXT.md 请基于根目录 .env 自动生成 apps/ 下各项目所需的环境变量文件\n```\n\n## 测试计划\n\n- [x] `pnpm check` 通过\n- [x] `pnpm typecheck` 通过\n- [x] `curl http://localhost:3001/api/health` 返回正常响应\n\n🤖 Generated with [Claude Code]\\(https://claude.ai/code\\)\nEOF\n\\)\")"
+      "Bash(gh pr create --title \"[docs] 添加环境变量自动生成规范与 NestJS 开发范式\" --body \"$\\(cat <<''EOF''\n## 变更摘要\n\n- 新增 AI 自动生成环境变量文件功能规范（CONTEXT.md）\n- 添加 `apps/web/.env.local` 和 `apps/api/.env` 的生成规则表\n- 添加 NestJS 依赖注入规范（禁止 `import type` 导入服务）\n- 修复 biome 配置支持参数装饰器（`unsafeParameterDecoratorsEnabled`）\n- 更新常见问题文档\n\n## 影响范围\n\n| 文件 | 变更 |\n|------|------|\n| `docs/CONTEXT.md` | 添加 6.5 章节：环境变量自动生成规范 |\n| `CLAUDE.md` | 添加 NestJS DI 规范、Monorepo 环境变量配置、常见问题 |\n| `biome.json` | 启用 `unsafeParameterDecoratorsEnabled` |\n| `apps/api/src/modules/core/health.controller.ts` | 修复依赖注入（@Inject 装饰器） |\n\n## 新增 Prompt 模板\n\n开发者可使用以下 prompt 自动生成环境变量文件：\n\n```\n@CONTEXT.md 请基于根目录 .env 自动生成 apps/ 下各项目所需的环境变量文件\n```\n\n## 测试计划\n\n- [x] `pnpm check` 通过\n- [x] `pnpm typecheck` 通过\n- [x] `curl http://localhost:3001/api/health` 返回正常响应\n\n🤖 Generated with [Claude Code]\\(https://claude.ai/code\\)\nEOF\n\\)\")",
+      "Bash(git remote:*)",
+      "mcp__plugin_github_github__issue_write",
+      "Skill(superpowers:writing-plans)",
+      "Bash(find:*)",
+      "Bash(timeout 15 pnpm:*)",
+      "Bash(npx tsx:*)",
+      "mcp__plugin_supabase_supabase__list_projects",
+      "Skill(superpowers:subagent-driven-development)",
+      "mcp__plugin_supabase_supabase__apply_migration",
+      "mcp__plugin_supabase_supabase__list_tables",
+      "Bash(npx biome check:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -1,6 +1,5 @@
 import { AgentStatus, ValidationError } from '@c2c-agents/shared';
 import { Body, Controller, Get, Headers, Inject, Param, Patch, Post, Query } from '@nestjs/common';
-import { min } from 'rxjs';
 import { AgentService } from './agent.service';
 import type { AgentListQueryDto } from './dtos/agent-list-query.dto';
 import type { CreateAgentDto } from './dtos/create-agent.dto';
