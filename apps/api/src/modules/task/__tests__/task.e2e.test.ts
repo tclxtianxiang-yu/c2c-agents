@@ -4,6 +4,8 @@ import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { DatabaseModule } from '../../../database/database.module';
+import { SupabaseService } from '../../../database/supabase.service';
 import { ChainService } from '../../core/chain.service';
 import { CoreModule } from '../../core/core.module';
 import { TaskModule } from '../task.module';
@@ -153,7 +155,22 @@ class InMemoryTaskRepository {
   async getActiveWalletAddress(userId: string, role: 'A' | 'B'): Promise<string | null> {
     return this.walletBindings.get(`${userId}:${role}`) ?? null;
   }
+
+  async findActiveUserIdByAddress(address: string): Promise<string | null> {
+    // For tests, if address looks like a userId (not starting with 0x), return it as-is
+    if (!address.startsWith('0x')) return null;
+    // Otherwise, look up in wallet bindings
+    for (const [key, addr] of this.walletBindings.entries()) {
+      if (addr.toLowerCase() === address.toLowerCase()) {
+        return key.split(':')[0];
+      }
+    }
+    return null;
+  }
 }
+
+// Use valid UUID for test user
+const TEST_USER_ID = '11111111-1111-4111-8111-111111111111';
 
 function seedEnv() {
   process.env.CHAIN_RPC_URL = 'https://rpc.example';
@@ -171,11 +188,16 @@ describe('TaskModule (e2e)', () => {
   beforeAll(async () => {
     seedEnv();
     repository = new InMemoryTaskRepository();
-    repository.seedWallet('user-1', 'A', '0xabc');
+    repository.seedWallet(TEST_USER_ID, 'A', '0xabc');
 
     const moduleRef = await Test.createTestingModule({
-      imports: [CoreModule, TaskModule],
+      imports: [DatabaseModule, CoreModule, TaskModule],
     })
+      .overrideProvider(SupabaseService)
+      .useValue({
+        checkHealth: jest.fn(async () => ({ ok: true })),
+        query: jest.fn(),
+      })
       .overrideProvider(TaskRepository)
       .useValue(repository)
       .overrideProvider(ChainService)
@@ -193,7 +215,7 @@ describe('TaskModule (e2e)', () => {
           confirmations: 1,
           amount: '1000000',
         })),
-      } as unknown as ChainService)
+      })
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -207,7 +229,7 @@ describe('TaskModule (e2e)', () => {
   it('creates task and confirms payment', async () => {
     const createResponse = await request(app.getHttpServer())
       .post('/tasks')
-      .set('x-user-id', 'user-1')
+      .set('x-user-id', TEST_USER_ID)
       .send({
         title: 'Build landing',
         description: 'Need a page',
@@ -222,7 +244,7 @@ describe('TaskModule (e2e)', () => {
 
     const confirmResponse = await request(app.getHttpServer())
       .post(`/tasks/${taskId}/payments/confirm`)
-      .set('x-user-id', 'user-1')
+      .set('x-user-id', TEST_USER_ID)
       .send({ payTxHash: '0xpay' })
       .expect(201);
 
