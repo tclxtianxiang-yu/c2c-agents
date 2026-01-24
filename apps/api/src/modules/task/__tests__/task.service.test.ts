@@ -13,18 +13,22 @@ function seedEnv() {
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test';
 }
 
+// Use valid UUIDs for test user IDs
+const TEST_USER_ID = '11111111-1111-4111-8111-111111111111';
+
 describe('TaskService', () => {
   beforeAll(seedEnv);
 
   it('validates create task input', async () => {
     const repository = {
       createTask: jest.fn(),
+      findActiveUserIdByAddress: jest.fn(async () => null),
     } as unknown as TaskRepository;
     const chainService = {} as ChainService;
     const service = new TaskService(repository, chainService);
 
     await expect(
-      service.createTask('user-1', {
+      service.createTask(TEST_USER_ID, {
         title: '',
         description: 'desc',
         type: 'website',
@@ -37,11 +41,12 @@ describe('TaskService', () => {
     const repository = {
       createTask: jest.fn(async () => ({ id: 'task-1', status: TaskStatus.Unpaid })),
       addTaskAttachments: jest.fn(async () => undefined),
+      findActiveUserIdByAddress: jest.fn(async () => null),
     } as unknown as TaskRepository;
     const chainService = {} as ChainService;
     const service = new TaskService(repository, chainService);
 
-    const result = await service.createTask('user-1', {
+    const result = await service.createTask(TEST_USER_ID, {
       title: 'New task',
       description: 'desc',
       type: 'website',
@@ -56,9 +61,10 @@ describe('TaskService', () => {
 
   it('confirms payment and publishes task', async () => {
     const repository = {
+      findActiveUserIdByAddress: jest.fn(async () => null),
       findTaskById: jest.fn(async () => ({
         id: 'task-1',
-        creatorId: 'user-1',
+        creatorId: TEST_USER_ID,
         title: 'Task',
         description: 'desc',
         type: 'website',
@@ -77,7 +83,7 @@ describe('TaskService', () => {
       createOrder: jest.fn(async () => ({
         id: 'order-1',
         taskId: 'task-1',
-        creatorId: 'user-1',
+        creatorId: TEST_USER_ID,
         providerId: null,
         agentId: null,
         status: OrderStatus.Standby,
@@ -102,7 +108,7 @@ describe('TaskService', () => {
       })),
       updateTask: jest.fn(async () => ({
         id: 'task-1',
-        creatorId: 'user-1',
+        creatorId: TEST_USER_ID,
         title: 'Task',
         description: 'desc',
         type: 'website',
@@ -137,7 +143,7 @@ describe('TaskService', () => {
 
     const service = new TaskService(repository, chainService);
 
-    const result = await service.confirmPayment('user-1', 'task-1', '0xpay');
+    const result = await service.confirmPayment(TEST_USER_ID, 'task-1', '0xpay');
     expect(result).toEqual({
       taskId: 'task-1',
       orderId: 'order-1',

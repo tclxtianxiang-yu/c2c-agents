@@ -1,5 +1,6 @@
 import { AgentStatus, ErrorCode, ValidationError } from '@c2c-agents/shared';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { MastraTokenService } from '../mastra-token/mastra-token.service';
 import { AgentRepository } from './agent.repository';
 import type { AgentListQueryDto } from './dtos/agent-list-query.dto';
 import type { CreateAgentDto } from './dtos/create-agent.dto';
@@ -18,7 +19,10 @@ function isValidMinUnit(value: string): boolean {
 
 @Injectable()
 export class AgentService {
-  constructor(@Inject(AgentRepository) private readonly repository: AgentRepository) {}
+  constructor(
+    @Inject(AgentRepository) private readonly repository: AgentRepository,
+    @Inject(MastraTokenService) private readonly mastraTokenService: MastraTokenService
+  ) {}
 
   async createAgent(userId: string, input: CreateAgentDto) {
     if (!userId) {
@@ -27,12 +31,19 @@ export class AgentService {
 
     this.validateCreateAgent(input);
 
+    // 如果传入 mastraTokenId，验证 token 归属
+    if (input.mastraTokenId) {
+      // getToken 会抛出 NotFoundError 如果 token 不存在或不属于用户
+      await this.mastraTokenService.getToken(userId, input.mastraTokenId);
+    }
+
     const agent = await this.repository.createAgent({
       ownerId: userId,
       name: input.name.trim(),
       description: input.description.trim(),
       avatarUrl: input.avatarUrl?.trim(),
       mastraUrl: input.mastraUrl.trim(),
+      mastraTokenId: input.mastraTokenId,
       tags: input.tags ?? [],
       supportedTaskTypes: input.supportedTaskTypes,
       minPrice: input.minPrice,
@@ -116,6 +127,12 @@ export class AgentService {
     }
 
     this.validateUpdateAgent(input);
+
+    // 如果更新 mastraTokenId（且不是设置为 null），验证 token 归属
+    if (input.mastraTokenId !== undefined && input.mastraTokenId !== null) {
+      // getToken 会抛出 NotFoundError 如果 token 不存在或不属于用户
+      await this.mastraTokenService.getToken(userId, input.mastraTokenId);
+    }
 
     const updated = await this.repository.updateAgent(agentId, input);
 

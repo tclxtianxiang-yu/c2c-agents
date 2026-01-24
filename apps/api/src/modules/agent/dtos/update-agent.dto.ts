@@ -5,6 +5,7 @@ export interface UpdateAgentDto {
   description?: string;
   avatarUrl?: string | null;
   mastraUrl?: string;
+  mastraTokenId?: string | null; // 可选，关联的 Mastra Token ID（null 表示移除关联）
   tags?: string[];
   supportedTaskTypes?: TaskType[];
   minPrice?: string;

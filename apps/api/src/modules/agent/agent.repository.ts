@@ -20,6 +20,7 @@ const AGENT_SELECT_FIELDS = `
   description,
   avatar_url,
   mastra_url,
+  mastra_token_id,
   tags,
   supported_task_types,
   min_price,
@@ -42,6 +43,7 @@ type AgentRow = {
   description: string;
   avatar_url: string | null;
   mastra_url: string;
+  mastra_token_id: string | null;
   tags: string[];
   supported_task_types: TaskType[];
   min_price: string | number;
@@ -63,6 +65,7 @@ export type CreateAgentInput = {
   description: string;
   avatarUrl?: string;
   mastraUrl: string;
+  mastraTokenId?: string | null;
   tags: string[];
   supportedTaskTypes: TaskType[];
   minPrice: string;
@@ -74,6 +77,7 @@ export type UpdateAgentInput = {
   description?: string;
   avatarUrl?: string | null;
   mastraUrl?: string;
+  mastraTokenId?: string | null;
   tags?: string[];
   supportedTaskTypes?: TaskType[];
   minPrice?: string;
@@ -91,6 +95,7 @@ function toAgent(row: AgentRow): Agent {
     description: row.description,
     avatarUrl: row.avatar_url,
     mastraUrl: row.mastra_url,
+    mastraTokenId: row.mastra_token_id,
     tags: row.tags ?? [],
     supportedTaskTypes: row.supported_task_types ?? [],
     minPrice: String(row.min_price),
@@ -126,6 +131,7 @@ export class AgentRepository {
         description: input.description,
         avatar_url: input.avatarUrl ?? null,
         mastra_url: input.mastraUrl,
+        mastra_token_id: input.mastraTokenId ?? null,
         tags: input.tags,
         supported_task_types: input.supportedTaskTypes,
         min_price: input.minPrice,
@@ -171,6 +177,7 @@ export class AgentRepository {
     if (input.description !== undefined) updates.description = input.description;
     if (input.avatarUrl !== undefined) updates.avatar_url = input.avatarUrl;
     if (input.mastraUrl !== undefined) updates.mastra_url = input.mastraUrl;
+    if (input.mastraTokenId !== undefined) updates.mastra_token_id = input.mastraTokenId;
     if (input.tags !== undefined) updates.tags = input.tags;
     if (input.supportedTaskTypes !== undefined)
       updates.supported_task_types = input.supportedTaskTypes;

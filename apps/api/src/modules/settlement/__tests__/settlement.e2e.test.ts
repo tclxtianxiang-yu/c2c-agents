@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { OrderStatus } from '@c2c-agents/shared';
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
+import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { DatabaseModule } from '../../../database/database.module';
+import { SupabaseService } from '../../../database/supabase.service';
 import { ChainService } from '../../core/chain.service';
 import { CoreModule } from '../../core/core.module';
 import { SettlementModule } from '../settlement.module';
@@ -68,9 +70,15 @@ describe('SettlementModule (e2e)', () => {
 
   beforeAll(async () => {
     repository = new InMemorySettlementRepository();
+
     const moduleRef = await Test.createTestingModule({
-      imports: [CoreModule, SettlementModule],
+      imports: [DatabaseModule, CoreModule, SettlementModule],
     })
+      .overrideProvider(SupabaseService)
+      .useValue({
+        checkHealth: jest.fn(async () => ({ ok: true })),
+        query: jest.fn(),
+      })
       .overrideProvider(SettlementRepository)
       .useValue(repository)
       .overrideProvider(ChainService)
