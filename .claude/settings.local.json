@@ -68,7 +68,9 @@
       "Skill(superpowers:subagent-driven-development)",
       "mcp__plugin_supabase_supabase__apply_migration",
       "mcp__plugin_supabase_supabase__list_tables",
-      "Bash(npx biome check:*)"
+      "Bash(npx biome check:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr create:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
