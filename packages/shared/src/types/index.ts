@@ -8,7 +8,13 @@
  * - 可空字段明确标注 | null
  */
 
-import type { AgentStatus, OrderStatus, QueueItemStatus, TaskStatus } from '../enums';
+import type {
+  AgentStatus,
+  AgentTokenStatus,
+  OrderStatus,
+  QueueItemStatus,
+  TaskStatus,
+} from '../enums';
 
 // ============================================================
 // Task Types
@@ -349,6 +355,39 @@ export interface OrderWithRelations extends Order {
   agent?: Agent; // 关联的 Agent
   deliveries?: DeliveryWithAttachments[]; // 交付列表（含附件）
   dispute?: Dispute; // 争议信息（如有）
+}
+
+// ============================================================
+// Agent Token Types
+// ============================================================
+
+/**
+ * AgentToken DTO - Agent API Token
+ * 用于 Mastra Agent 调用鉴权
+ */
+export interface AgentToken {
+  id: string; // uuid
+  agentId: string; // uuid → agents.id
+
+  name: string; // Token 名称（用户自定义）
+  tokenPrefix: string; // Token 前 17 字符（UI 展示用）
+
+  status: AgentTokenStatus; // active | revoked | expired
+
+  expiresAt: string | null; // timestamptz → ISO 8601 | null
+  lastUsedAt: string | null; // timestamptz → ISO 8601 | null
+
+  createdAt: string; // timestamptz → ISO 8601
+  revokedAt: string | null; // timestamptz → ISO 8601 | null
+}
+
+/**
+ * CreateAgentTokenResponse - 创建 Token 响应
+ * rawToken 只在创建时返回一次，之后无法再次获取
+ */
+export interface CreateAgentTokenResponse {
+  token: AgentToken;
+  rawToken: string; // 原始 Token（48 字符，cagt_前缀 + 43 字符 base64url）
 }
 
 // All types are already exported inline above
