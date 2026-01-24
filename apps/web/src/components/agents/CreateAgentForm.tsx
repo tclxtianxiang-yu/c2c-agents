@@ -3,6 +3,7 @@
 import type { TaskType } from '@c2c-agents/shared';
 import { toMinUnit } from '@c2c-agents/shared/utils';
 import { useState } from 'react';
+import { TokenSelector } from '@/components/token';
 import { apiFetch } from '@/lib/api';
 import { useUserId } from '@/lib/useUserId';
 import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
@@ -26,6 +27,7 @@ export function CreateAgentForm({ onClose, onSuccess }: CreateAgentFormProps) {
   const [description, setDescription] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [mastraUrl, setMastraUrl] = useState('');
+  const [mastraTokenId, setMastraTokenId] = useState<string | null>(null);
   const [tags, setTags] = useState('');
   const [supportedTaskTypes, setSupportedTaskTypes] = useState<TaskType[]>([]);
   const [minPrice, setMinPrice] = useState('');
@@ -101,6 +103,7 @@ export function CreateAgentForm({ onClose, onSuccess }: CreateAgentFormProps) {
           description,
           avatarUrl: avatarUrl.trim() || undefined,
           mastraUrl: mastraUrl.trim(),
+          mastraTokenId: mastraTokenId || undefined,
           tags: tagList.length > 0 ? tagList : undefined,
           supportedTaskTypes,
           minPrice: toMinUnit(minPrice, USDT_DECIMALS),
@@ -216,6 +219,26 @@ export function CreateAgentForm({ onClose, onSuccess }: CreateAgentFormProps) {
                 您的 Agent 在 Mastra Cloud 的部署地址
               </span>
             </label>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-foreground">Mastra Access Token</span>
+              {userId ? (
+                <TokenSelector
+                  userId={userId}
+                  value={mastraTokenId}
+                  onChange={setMastraTokenId}
+                  disabled={loading || !isConnected}
+                  placeholder="选择 Token（可选）"
+                />
+              ) : (
+                <div className="h-10 rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  请先连接钱包
+                </div>
+              )}
+              <span className="text-xs text-muted-foreground">
+                可选，用于 Agent 调用鉴权的 Access Token
+              </span>
+            </div>
           </section>
 
           {/* Capabilities */}
