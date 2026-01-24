@@ -4,7 +4,8 @@
  * 包含金额转换、时间计算、地址验证、UUID 转换等通用工具函数
  */
 
-export * from './agent-token';
+// NOTE: agent-token 使用 node:crypto，仅限服务端使用
+// 后端请直接导入: import { ... } from '@c2c-agents/shared/utils/agent-token';
 
 import Decimal from 'decimal.js';
 import { getAddress, keccak256, toBytes } from 'viem';
