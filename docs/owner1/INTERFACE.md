@@ -12,7 +12,8 @@
 - [1. 链上交互网关 (已落地)](#1-链上交互网关-已落地)
 - [2. 队列系统 API (Owner #4 专用)](#2-队列系统-api-owner-4-专用)
 - [3. 核心共享服务 (已落地)](#3-核心共享服务-已落地)
-- [4. 测试数据工厂 (开发环境)](#4-测试数据工厂-开发环境)
+- [4. Agent Token 系统 (基础设施已落地)](#4-agent-token-系统-基础设施已落地)
+- [5. 测试数据工厂 (开发环境)](#5-测试数据工厂-开发环境)
 
 ---
 
@@ -548,7 +549,141 @@ export class QueueService {
 
 ---
 
-## 4. 测试数据工厂 (开发环境)
+## 4. Agent Token 系统 (基础设施已落地)
+
+> **状态**: ✅ 基础设施已落地 (Tasks 1-4)，API 层待实现 (Tasks 5-11)
+> **用途**: Mastra Agent 调用鉴权
+
+### 4.1 数据库 Schema
+
+```sql
+-- Token 状态枚举
+CREATE TYPE agent_token_status AS ENUM ('active', 'revoked', 'expired');
+
+-- Agent Tokens 表
+CREATE TABLE agent_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  token_prefix TEXT NOT NULL,      -- 前 17 字符 (UI 展示用)
+  token_hash TEXT NOT NULL,        -- SHA-256 哈希 (安全存储)
+  name TEXT NOT NULL,              -- Token 名称 (用户自定义)
+  status agent_token_status NOT NULL DEFAULT 'active',
+  expires_at TIMESTAMPTZ,          -- 过期时间 (可选)
+  last_used_at TIMESTAMPTZ,        -- 最后使用时间
+  revoked_at TIMESTAMPTZ,          -- 吊销时间
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 索引
+CREATE INDEX idx_agent_tokens_agent ON agent_tokens(agent_id);
+CREATE INDEX idx_agent_tokens_status ON agent_tokens(status);
+CREATE INDEX idx_agent_tokens_agent_status ON agent_tokens(agent_id, status);
+CREATE UNIQUE INDEX uq_agent_tokens_hash ON agent_tokens(token_hash);
+```
+
+### 4.2 Token 格式
+
+```
+cagt_<43-char-base64url>
+^^^^  ^^^^^^^^^^^^^^^^^^^^
+前缀   32 bytes 随机数 (base64url 编码)
+
+总长度: 48 字符
+显示前缀: 17 字符 (cagt_abcdef12345)
+```
+
+### 4.3 共享库工具函数
+
+从 `@c2c-agents/shared/utils` 导入:
+
+```typescript
+import {
+  generateAgentToken,      // 生成新 Token
+  hashAgentToken,          // SHA-256 哈希
+  getTokenPrefix,          // 获取展示前缀
+  isValidAgentTokenFormat, // 格式验证
+} from '@c2c-agents/shared/utils';
+
+// 生成并存储 Token
+const rawToken = generateAgentToken();           // 'cagt_...' (48 chars)
+const tokenHash = hashAgentToken(rawToken);      // SHA-256 hex (64 chars)
+const tokenPrefix = getTokenPrefix(rawToken);    // 'cagt_abcdef12345' (17 chars)
+
+// 存储到数据库
+await db.query(`
+  INSERT INTO agent_tokens (agent_id, token_prefix, token_hash, name)
+  VALUES ($1, $2, $3, $4)
+  RETURNING *
+`, [agentId, tokenPrefix, tokenHash, tokenName]);
+
+// 返回给用户 (rawToken 只在创建时返回一次!)
+return { token: createdToken, rawToken };
+```
+
+### 4.4 类型定义
+
+从 `@c2c-agents/shared` 导入:
+
+```typescript
+import {
+  AgentToken,
+  AgentTokenStatus,
+  CreateAgentTokenResponse,
+} from '@c2c-agents/shared';
+
+// AgentToken 接口
+interface AgentToken {
+  id: string;
+  agentId: string;
+  name: string;
+  tokenPrefix: string;
+  status: AgentTokenStatus;  // 'active' | 'revoked' | 'expired'
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+// 创建响应 (rawToken 只在创建时返回)
+interface CreateAgentTokenResponse {
+  token: AgentToken;
+  rawToken: string;
+}
+```
+
+### 4.5 错误码
+
+```typescript
+import { ErrorCode } from '@c2c-agents/shared/errors';
+
+// Agent Token 错误码 (6000-6999)
+ErrorCode.AGENT_TOKEN_INVALID        // Token 格式无效
+ErrorCode.AGENT_TOKEN_REVOKED        // Token 已吊销
+ErrorCode.AGENT_TOKEN_EXPIRED        // Token 已过期
+ErrorCode.AGENT_TOKEN_LIMIT_EXCEEDED // Token 数量超限
+ErrorCode.AGENT_TOKEN_NOT_FOUND      // Token 不存在
+```
+
+### 4.6 安全规范
+
+1. **永不存储原始 Token**: 数据库只存储 `token_hash` (SHA-256)
+2. **一次性返回**: `rawToken` 只在创建时返回，之后无法再次获取
+3. **256-bit 熵**: Token 使用 32 bytes 密码学安全随机数生成
+4. **前缀展示**: UI 使用 `token_prefix` (前 17 字符) 展示，帮助用户识别
+
+### 4.7 待实现 API (Tasks 5-11)
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/agents/:agentId/tokens` | POST | 创建 Token |
+| `/agents/:agentId/tokens` | GET | 列表 Tokens |
+| `/agents/:agentId/tokens/:tokenId` | DELETE | 吊销 Token |
+| Agent Callback Guard | - | 验证 Token 鉴权 |
+
+---
+
+## 5. 测试数据工厂 (开发环境)
 
 > **状态**: 🟡 待实现
 > **用途**: 快速生成测试数据用于开发调试
@@ -595,7 +730,7 @@ const agent = createMockAgent({
 
 ---
 
-## 5. 数据库高级模式
+## 6. 数据库高级模式
 
 ### 5.1 触发器 (已实现)
 
@@ -778,7 +913,7 @@ const createOrderSchema = z.object({
 
 ---
 
-## 6. 开发环境配置
+## 7. 开发环境配置
 
 ### 6.1 Supabase 本地环境
 
@@ -885,6 +1020,6 @@ SELECT * FROM pg_stat_statements WHERE query LIKE '%trigger%';
 
 ---
 
-**最后更新**: 2026-01-09
+**最后更新**: 2026-01-24
 **维护者**: Owner #1
-**版本**: v1.0.1
+**版本**: v1.1.0

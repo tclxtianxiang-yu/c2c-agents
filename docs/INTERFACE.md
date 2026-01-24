@@ -56,12 +56,15 @@ import {
   Delivery,
   Dispute,
   WalletBinding,
+  AgentToken,
+  CreateAgentTokenResponse,
 
   // 枚举类型
   OrderStatus,
   AgentStatus,
   TaskStatus,
   QueueItemStatus,
+  AgentTokenStatus,
 } from '@c2c-agents/shared';
 ```
 
@@ -131,7 +134,50 @@ const { feeAmount, netAmount } = calculateFee('1000000', 0.15);
 // feeAmount: '150000', netAmount: '850000'
 ```
 
-### 2.4 时间戳字段规范
+### 2.4 Agent Token 类型规范
+
+Agent Token 用于 Mastra Agent 调用鉴权:
+
+```typescript
+import { AgentToken, AgentTokenStatus, CreateAgentTokenResponse } from '@c2c-agents/shared';
+
+// Token 状态枚举
+// AgentTokenStatus.Active   - 可用
+// AgentTokenStatus.Revoked  - 已吊销
+// AgentTokenStatus.Expired  - 已过期
+
+// Token DTO
+const token: AgentToken = {
+  id: 'uuid',
+  agentId: 'agent-uuid',
+  name: 'Production Token',
+  tokenPrefix: 'cagt_abcdef12345',  // 前 17 字符用于 UI 展示
+  status: AgentTokenStatus.Active,
+  expiresAt: '2027-01-01T00:00:00.000Z',  // 可为 null
+  lastUsedAt: null,
+  createdAt: '2026-01-24T12:00:00.000Z',
+  revokedAt: null,
+};
+
+// 创建 Token 响应（rawToken 只在创建时返回一次）
+const response: CreateAgentTokenResponse = {
+  token,
+  rawToken: 'cagt_abcdef123456789012345678901234567890123',  // 48 字符
+};
+```
+
+**Token 格式规范**:
+
+```
+cagt_<43-char-base64url>
+^^^^  ^^^^^^^^^^^^^^^^^^^^
+前缀   32 bytes 随机数 (base64url 编码)
+
+总长度: 48 字符
+显示前缀: 17 字符 (cagt_abcdef12345)
+```
+
+### 2.5 时间戳字段规范
 
 所有时间戳字段使用 `string` (ISO 8601 格式):
 
@@ -325,6 +371,39 @@ const bytes32 = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
 // Solidity 对应：keccak256(abi.encodePacked(uuid))
 ```
 
+### 4.4 Agent Token 工具函数
+
+```typescript
+import {
+  generateAgentToken,
+  hashAgentToken,
+  getTokenPrefix,
+  isValidAgentTokenFormat,
+} from '@c2c-agents/shared/utils';
+
+// 生成新 Token (48 字符，cagt_ 前缀 + 43 字符 base64url)
+const rawToken = generateAgentToken();
+// 'cagt_abcdef123456789012345678901234567890123'
+
+// 计算 Token 的 SHA-256 哈希 (用于数据库存储，永不存储原始 Token)
+const tokenHash = hashAgentToken(rawToken);
+// '64 字符十六进制哈希'
+
+// 获取展示前缀 (前 17 字符，用于 UI 展示)
+const prefix = getTokenPrefix(rawToken);
+// 'cagt_abcdef12345'
+
+// 验证 Token 格式
+isValidAgentTokenFormat(rawToken);  // true
+isValidAgentTokenFormat('invalid'); // false
+```
+
+**安全说明**:
+
+- `rawToken` 只在创建时返回一次，之后无法再次获取
+- 数据库只存储 `tokenHash`，不存储原始 Token
+- Token 使用 256-bit (32 bytes) 密码学随机数生成
+
 ---
 
 ## 5. 错误处理规范
@@ -335,7 +414,16 @@ const bytes32 = uuidToBytes32('550e8400-e29b-41d4-a716-446655440000');
 import {
   InvalidTransitionError,
   ValidationError,
+  // Agent Token 相关错误码
+  ErrorCode,
 } from '@c2c-agents/shared/errors';
+
+// Agent Token 错误码 (6000-6999)
+// ErrorCode.AGENT_TOKEN_INVALID       - Token 格式无效
+// ErrorCode.AGENT_TOKEN_REVOKED       - Token 已吊销
+// ErrorCode.AGENT_TOKEN_EXPIRED       - Token 已过期
+// ErrorCode.AGENT_TOKEN_LIMIT_EXCEEDED - Token 数量超限
+// ErrorCode.AGENT_TOKEN_NOT_FOUND     - Token 不存在
 ```
 
 ### 5.2 错误类使用示例
@@ -663,6 +751,11 @@ import {
   toMinUnit,
   fromMinUnit,
   calculateFee,
+  // Agent Token 工具
+  generateAgentToken,
+  hashAgentToken,
+  getTokenPrefix,
+  isValidAgentTokenFormat,
 } from '@c2c-agents/shared/utils';
 
 // 错误类
@@ -732,6 +825,6 @@ calculateFee('1000000', 0.15) → { feeAmount: '150000', netAmount: '850000' }
 
 ---
 
-**最后更新**: 2026-01-09
+**最后更新**: 2026-01-24
 **维护者**: Owner #1
-**版本**: v1.0.0
+**版本**: v1.1.0
