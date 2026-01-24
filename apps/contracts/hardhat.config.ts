@@ -1,8 +1,8 @@
 import type { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-toolbox';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { config as dotenvConfig } from 'dotenv';
-import { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
 
 // ESM 模式下获取 __dirname
 const __filename = fileURLToPath(import.meta.url);

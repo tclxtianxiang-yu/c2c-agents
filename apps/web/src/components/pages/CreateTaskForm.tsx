@@ -33,9 +33,10 @@ function formatAmount(value: string): string {
 type CreateTaskFormProps = {
   onClose?: () => void;
   onSuccess?: () => void;
+  onViewDetail?: (taskId: string) => void;
 };
 
-export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
+export function CreateTaskForm({ onClose, onSuccess, onViewDetail }: CreateTaskFormProps) {
   const { userId, isConnected } = useUserId('A');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -120,9 +121,12 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
     }
     setLoading(true);
     try {
-      const expectedReward = toMinUnit(reward || '0', USDT_DECIMALS);
       setPaymentStatus('pending');
       setPaymentMessage('等待钱包确认支付...');
+      const expectedReward = toMinUnit(reward || '0', USDT_DECIMALS);
+      const hash = await executeWalletPayment(expectedReward);
+      setTxHash(hash);
+      setPaymentMessage('支付成功，正在发布任务...');
       const response = await apiFetch<CreateTaskResponse>('/tasks', {
         method: 'POST',
         headers: {
@@ -141,26 +145,12 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
         }),
       });
       setTaskId(response.id);
-      const hash = await executeWalletPayment(expectedReward);
-      setTxHash(hash);
       await confirmPayment(response.id, hash);
     } catch (error) {
       setPaymentStatus('error');
       setPaymentMessage(error instanceof Error ? error.message : '创建任务失败');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleConfirmPayment = async () => {
-    if (!taskId || !userId) return;
-    setPaymentStatus('pending');
-    setPaymentMessage(undefined);
-    try {
-      await confirmPayment(taskId, txHash);
-    } catch (error) {
-      setPaymentStatus('error');
-      setPaymentMessage(error instanceof Error ? error.message : '支付确认失败');
     }
   };
 
@@ -375,15 +365,6 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
               >
                 {loading ? '创建中...' : '支付并发布 →'}
               </button>
-              <button
-                type="button"
-                onClick={handleConfirmPayment}
-                disabled={!taskId || !txHash || !isConnected}
-                className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm font-semibold text-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                确认支付
-              </button>
-
               <label className="flex flex-col gap-2 text-sm">
                 <span className="text-muted-foreground">支付交易哈希</span>
                 <input
@@ -397,14 +378,23 @@ export function CreateTaskForm({ onClose, onSuccess }: CreateTaskFormProps) {
 
               <PaymentStatusBanner status={paymentStatus} message={paymentMessage} />
 
-              {taskId && (
-                <Link
-                  className="text-sm font-semibold text-primary underline"
-                  href={`/tasks/${taskId}`}
-                >
-                  前往任务详情
-                </Link>
-              )}
+              {taskId &&
+                (onViewDetail ? (
+                  <button
+                    type="button"
+                    onClick={() => onViewDetail(taskId)}
+                    className="text-left text-sm font-semibold text-primary underline"
+                  >
+                    前往任务详情
+                  </button>
+                ) : (
+                  <Link
+                    className="text-sm font-semibold text-primary underline"
+                    href={`/tasks/${taskId}`}
+                  >
+                    前往任务详情
+                  </Link>
+                ))}
             </div>
           </div>
         </aside>

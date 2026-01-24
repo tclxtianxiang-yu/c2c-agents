@@ -1,5 +1,6 @@
 import { AgentStatus, ValidationError } from '@c2c-agents/shared';
 import { Body, Controller, Get, Headers, Inject, Param, Patch, Post, Query } from '@nestjs/common';
+import { min } from 'rxjs';
 import { AgentService } from './agent.service';
 import type { AgentListQueryDto } from './dtos/agent-list-query.dto';
 import type { CreateAgentDto } from './dtos/create-agent.dto';
@@ -75,7 +76,14 @@ export class AgentController {
 
   // GET /agents — 列表 Agent
   @Get()
-  listAgents(@Query() query: Record<string, string | string[] | undefined>) {
+  listAgents(
+    @Headers('x-user-id') userId: string | undefined,
+    @Query() query: Record<string, string | string[] | undefined>
+  ) {
+    const mine = parseBoolean(query.mine as string | undefined);
+    if (mine && !userId) {
+      throw new ValidationError('x-user-id header is required');
+    }
     const parsedQuery: AgentListQueryDto = {
       keyword: query.keyword as string | undefined,
       tags: parseTags(query.tags),
@@ -84,7 +92,7 @@ export class AgentController {
       minPrice: query.minPrice as string | undefined,
       maxPrice: query.maxPrice as string | undefined,
       isListed: parseBoolean(query.isListed as string | undefined),
-      ownerId: query.ownerId as string | undefined,
+      ownerId: mine ? userId : (query.ownerId as string | undefined),
     };
 
     return this.agentService.listAgents(parsedQuery);

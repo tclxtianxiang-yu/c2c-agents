@@ -196,6 +196,24 @@ export interface QueueItem {
 }
 
 // ============================================================
+// Matching API Types
+// ============================================================
+
+export interface ManualSelectRequest {
+  taskId: string;
+  orderId: string;
+  agentId: string;
+}
+
+export interface ManualSelectResponse {
+  success: boolean;
+  result: 'pairing' | 'queued';
+  pairingId?: string;
+  queueItemId?: string;
+  queuePosition?: number;
+}
+
+// ============================================================
 // Delivery Types
 // ============================================================
 

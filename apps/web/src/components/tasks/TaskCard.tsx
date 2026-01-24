@@ -1,27 +1,15 @@
 import type { Task } from '@c2c-agents/shared';
 import { OrderStatus } from '@c2c-agents/shared';
+
+import { formatCurrency } from '@/utils/formatCurrency';
+import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
+
 import { TaskStatusBadge } from './TaskStatusBadge';
 
 export type TaskSummary = Pick<
   Task,
   'id' | 'title' | 'type' | 'expectedReward' | 'status' | 'currentStatus'
 >;
-
-function formatMinUnit(amount: string, decimals = 6): string {
-  const divisor = 10n ** BigInt(decimals);
-  const whole = (BigInt(amount) / divisor).toString();
-  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-const typeLabels: Record<string, string> = {
-  writing: '写作',
-  translation: '翻译',
-  code: '代码',
-  website: '网站',
-  email_automation: '邮件自动化',
-  info_collection: '信息收集',
-  other_mastra: '其他 Mastra',
-};
 
 const statusLabels: Record<string, string> = {
   unpaid: '未支付',
@@ -48,13 +36,17 @@ const orderStatusLabels: Record<string, string> = {
 type TaskCardProps = {
   task: TaskSummary;
   onViewStatus?: (taskId: string) => void;
+  onAutoMatch?: (taskId: string) => void;
+  onManualSelect?: (taskId: string) => void;
 };
 
-export function TaskCard({ task, onViewStatus }: TaskCardProps) {
+export function TaskCard({ task, onViewStatus, onAutoMatch, onManualSelect }: TaskCardProps) {
   const isStandby = task.currentStatus === OrderStatus.Standby;
   const isPairing = task.currentStatus === OrderStatus.Pairing;
   const actionLabel = isStandby ? '自动匹配' : isPairing ? '确认匹配' : '查看状态';
   const handleViewStatus = () => onViewStatus?.(task.id);
+  const handleAutoMatch = () => onAutoMatch?.(task.id);
+  const handleManualSelect = () => onManualSelect?.(task.id);
 
   return (
     <article className="group relative flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/50">
@@ -66,11 +58,11 @@ export function TaskCard({ task, onViewStatus }: TaskCardProps) {
         {task.title}
       </h3>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">
-        {typeLabels[task.type] ?? task.type}
+        {TASK_TYPE_LABELS[task.type] ?? task.type}
       </p>
       <div className="mt-5 flex items-baseline gap-1">
         <span className="text-2xl font-semibold text-primary">
-          {formatMinUnit(task.expectedReward)}
+          {formatCurrency(task.expectedReward)}
         </span>
         <span className="text-xs font-semibold text-muted-foreground">USDT</span>
       </div>
@@ -85,13 +77,34 @@ export function TaskCard({ task, onViewStatus }: TaskCardProps) {
         )}
       </div>
       <div className="mt-auto pt-6">
-        <button
-          type="button"
-          onClick={actionLabel === '查看状态' ? handleViewStatus : undefined}
-          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow transition hover:opacity-90"
-        >
-          {actionLabel}
-        </button>
+        {isStandby ? (
+          <div className="grid gap-2">
+            <button
+              type="button"
+              onClick={handleAutoMatch}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(14,116,219,0.35)] transition hover:opacity-90"
+            >
+              <span aria-hidden="true">⚡</span>
+              自动匹配 (Auto Match)
+            </button>
+            <button
+              type="button"
+              onClick={handleManualSelect}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background/60 px-4 py-2.5 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+            >
+              <span aria-hidden="true">🖐️</span>
+              手动选择 (Select)
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={actionLabel === '查看状态' ? handleViewStatus : undefined}
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow transition hover:opacity-90"
+          >
+            {actionLabel}
+          </button>
+        )}
       </div>
     </article>
   );

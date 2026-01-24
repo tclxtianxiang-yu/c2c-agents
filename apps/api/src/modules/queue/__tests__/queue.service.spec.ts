@@ -2,9 +2,9 @@ import { QUEUE_MAX_N } from '@c2c-agents/config/constants';
 import { QueueItemStatus } from '@c2c-agents/shared';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { AgentRepository } from '../agent/agent.repository';
-import { QueueRepository } from './queue.repository';
-import { QueueService } from './queue.service';
+import { AgentRepository } from '../../agent/agent.repository';
+import { QueueRepository } from '../queue.repository';
+import { QueueService } from '../queue.service';
 
 describe('QueueService', () => {
   let service: QueueService;
