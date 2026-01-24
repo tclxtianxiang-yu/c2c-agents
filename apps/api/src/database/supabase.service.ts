@@ -31,6 +31,14 @@ export class SupabaseService {
     return this.client.from<string, T>(table);
   }
 
+  rpc(
+    fn: string,
+    args?: Record<string, unknown>,
+    options?: { head?: boolean; count?: 'exact' | 'planned' | 'estimated' }
+  ): ReturnType<SupabaseClient['rpc']> {
+    return this.client.rpc(fn, args, options);
+  }
+
   async checkHealth(): Promise<SupabaseHealthResult> {
     const { error } = await this.client
       .from('user_profiles')

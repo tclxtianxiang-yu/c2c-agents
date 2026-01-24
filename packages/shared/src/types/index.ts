@@ -211,6 +211,10 @@ export interface ManualSelectResponse {
   pairingId?: string;
   queueItemId?: string;
   queuePosition?: number;
+  error?: {
+    code?: string;
+    message?: string;
+  };
 }
 
 // ============================================================
