@@ -64,9 +64,32 @@ export class AgentService {
 
     const agents = await this.repository.findAgentsByOwnerId(userId);
 
-    // 批量计算状态
-    for (const agent of agents) {
-      agent.status = await this.computeAgentStatus(agent.id);
+    if (agents.length === 0) {
+      return agents;
+    }
+
+    // 批量计算状态（2 次查询替代 2N 次）
+    try {
+      const agentIds = agents.map((a) => a.id);
+      const statusDataMap = await this.repository.batchGetAgentStatusData(agentIds);
+
+      for (const agent of agents) {
+        const data = statusDataMap.get(agent.id);
+        if (!data || !data.hasInProgress) {
+          agent.status = AgentStatus.Idle;
+        } else {
+          agent.status = data.queuedCount > 0 ? AgentStatus.Queueing : AgentStatus.Busy;
+        }
+      }
+    } catch (error) {
+      // 如果 orders 或 queue_items 表还不存在，默认所有 agent 为 Idle
+      console.warn(
+        '[AgentService.findByOwnerId] Failed to batch compute status, defaulting to Idle:',
+        error instanceof Error ? error.message : error
+      );
+      for (const agent of agents) {
+        agent.status = AgentStatus.Idle;
+      }
     }
 
     return agents;
@@ -105,9 +128,32 @@ export class AgentService {
   async listAgents(query: AgentListQueryDto) {
     const agents = await this.repository.listAgents(query);
 
-    // 批量计算状态
-    for (const agent of agents) {
-      agent.status = await this.computeAgentStatus(agent.id);
+    if (agents.length === 0) {
+      return agents;
+    }
+
+    // 批量计算状态（2 次查询替代 2N 次）
+    try {
+      const agentIds = agents.map((a) => a.id);
+      const statusDataMap = await this.repository.batchGetAgentStatusData(agentIds);
+
+      for (const agent of agents) {
+        const data = statusDataMap.get(agent.id);
+        if (!data || !data.hasInProgress) {
+          agent.status = AgentStatus.Idle;
+        } else {
+          agent.status = data.queuedCount > 0 ? AgentStatus.Queueing : AgentStatus.Busy;
+        }
+      }
+    } catch (error) {
+      // 如果 orders 或 queue_items 表还不存在，默认所有 agent 为 Idle
+      console.warn(
+        '[AgentService.listAgents] Failed to batch compute status, defaulting to Idle:',
+        error instanceof Error ? error.message : error
+      );
+      for (const agent of agents) {
+        agent.status = AgentStatus.Idle;
+      }
     }
 
     return agents;

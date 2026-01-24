@@ -1,4 +1,10 @@
-import type { Agent, AgentStatus, TaskType } from '@c2c-agents/shared';
+import {
+  type Agent,
+  type AgentStatus,
+  OrderStatus,
+  QueueItemStatus,
+  type TaskType,
+} from '@c2c-agents/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { SupabaseService } from '../../database/supabase.service';
 import type { AgentListQueryDto } from './dtos/agent-list-query.dto';
@@ -218,7 +224,7 @@ export class AgentRepository {
       .query(QUEUE_ITEMS_TABLE)
       .select('*', { count: 'exact', head: true })
       .eq('agent_id', agentId)
-      .eq('status', 'queued');
+      .eq('status', QueueItemStatus.Queued);
 
     ensureNoError(error, 'Failed to count queued items');
 
@@ -230,11 +236,68 @@ export class AgentRepository {
       .query(ORDER_TABLE)
       .select('id')
       .eq('agent_id', agentId)
-      .eq('status', 'InProgress')
+      .eq('status', OrderStatus.InProgress)
       .maybeSingle();
 
     ensureNoError(error, 'Failed to check InProgress order');
 
     return !!data;
+  }
+
+  /**
+   * 批量获取 agents 的状态数据
+   * 返回 Map<agentId, { hasInProgress: boolean, queuedCount: number }>
+   */
+  async batchGetAgentStatusData(
+    agentIds: string[]
+  ): Promise<Map<string, { hasInProgress: boolean; queuedCount: number }>> {
+    if (agentIds.length === 0) return new Map();
+
+    // 并行执行两个批量查询
+    const [inProgressResults, queuedResults] = await Promise.all([
+      // 查询哪些 agents 有 InProgress 订单
+      this.supabase
+        .query(ORDER_TABLE)
+        .select('agent_id')
+        .in('agent_id', agentIds)
+        .eq('status', OrderStatus.InProgress),
+      // 查询每个 agent 的排队数量
+      this.supabase
+        .query(QUEUE_ITEMS_TABLE)
+        .select('agent_id')
+        .in('agent_id', agentIds)
+        .eq('status', QueueItemStatus.Queued),
+    ]);
+
+    ensureNoError(inProgressResults.error, 'Failed to batch check InProgress orders');
+    ensureNoError(queuedResults.error, 'Failed to batch count queued items');
+
+    // 处理 InProgress 订单结果
+    const inProgressSet = new Set<string>();
+    if (inProgressResults.data) {
+      for (const row of inProgressResults.data) {
+        inProgressSet.add((row as { agent_id: string }).agent_id);
+      }
+    }
+
+    // 处理排队数量结果 (手动计数)
+    const queuedCountMap = new Map<string, number>();
+    if (queuedResults.data) {
+      for (const row of queuedResults.data) {
+        const agentId = (row as { agent_id: string }).agent_id;
+        const count = queuedCountMap.get(agentId) ?? 0;
+        queuedCountMap.set(agentId, count + 1);
+      }
+    }
+
+    // 构建结果 Map
+    const result = new Map<string, { hasInProgress: boolean; queuedCount: number }>();
+    for (const id of agentIds) {
+      result.set(id, {
+        hasInProgress: inProgressSet.has(id),
+        queuedCount: queuedCountMap.get(id) ?? 0,
+      });
+    }
+    return result;
   }
 }

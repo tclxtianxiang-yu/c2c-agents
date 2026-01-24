@@ -71,7 +71,13 @@
       "Bash(npx biome check:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr create:*)",
-      "Bash(gh pr edit:*)"
+      "Bash(gh pr edit:*)",
+      "Bash(supabase:*)",
+      "Bash(for i in 1 2 3)",
+      "Bash(do time curl -s -o /dev/null -w \"Request $i: %{time_total}s\\\\n\" \"http://localhost:3001/agents?isListed=true\")",
+      "Bash(done)",
+      "Bash(git -C /Users/yutianxiang/p/C2CAgents add -A)",
+      "Bash(git -C /Users/yutianxiang/p/C2CAgents commit --amend --no-edit)"
     ]
   },
   "enableAllProjectMcpServers": true,
