@@ -10,6 +10,7 @@ import {
 } from '@c2c-agents/shared';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { MatchingRepository } from './matching.repository';
+import { sortAgents } from './sorting';
 
 type MatchResult =
   | {
@@ -55,24 +56,46 @@ export class MatchingService {
   async autoMatch(userId: string, taskId: string): Promise<MatchResult> {
     const { task, order } = await this.loadTaskAndOrder(userId, taskId);
 
-    const candidates = await this.repository.listCandidateAgents(
+    const rawCandidates = await this.repository.listCandidateAgents(
       task.type,
       String(task.expected_reward)
     );
-    if (!candidates.length) {
+    if (!rawCandidates.length) {
       throw new ValidationError('No eligible agents found');
     }
 
-    for (const agent of candidates) {
-      const queueCount = await this.repository.getQueueCount(agent.id);
+    // 使用 queue_size 字段进行排序（数据库已包含此冗余字段）
+    // 排序规则：Idle > Busy, avgRating DESC, completedOrderCount DESC, queueSize ASC, createdAt ASC
+    const sortedCandidates = sortAgents(
+      rawCandidates.map((agent) => ({
+        id: agent.id,
+        name: agent.name,
+        status: agent.status,
+        avgRating: agent.avg_rating,
+        completedOrderCount: agent.completed_order_count,
+        queueSize: agent.queue_size,
+        createdAt: agent.created_at,
+      }))
+    );
+
+    // 遍历排序后的候选者
+    for (const sorted of sortedCandidates) {
+      // 双重校验队列容量（防止 queue_size 字段过期）
+      const queueCount = await this.repository.getQueueCount(sorted.id);
       if (queueCount >= QUEUE_MAX_N) {
         continue;
       }
 
-      if (agent.status === AgentStatus.Idle) {
+      // 查找原始 agent 数据（需要 owner_id）
+      const agent = rawCandidates.find((a) => a.id === sorted.id);
+      if (!agent) continue;
+
+      // Idle Agent → 直接创建 Pairing
+      if (sorted.status === AgentStatus.Idle) {
         return this.createPairing(task.id, order.id, agent.id, agent.owner_id);
       }
 
+      // Busy Agent → 加入队列
       return this.enqueueOrder(task.id, order.id, agent.id);
     }
 
@@ -142,6 +165,29 @@ export class MatchingService {
     }
 
     return result;
+  }
+
+  /**
+   * 计算 Agent 状态
+   * @param agentId Agent ID
+   * @returns Agent 状态：Idle | Busy | Queueing
+   *
+   * 逻辑：
+   * - 查询 InProgress 订单数
+   * - 查询队列长度
+   * - InProgress > 0 && queue_size > 0 → Queueing
+   * - InProgress > 0 → Busy
+   * - 否则 → Idle
+   */
+  async getAgentStatus(agentId: string): Promise<AgentStatus> {
+    const inProgressCount = await this.repository.getInProgressOrderCount(agentId);
+    const queueCount = await this.repository.getQueueCount(agentId);
+
+    if (inProgressCount > 0) {
+      return queueCount > 0 ? AgentStatus.Queueing : AgentStatus.Busy;
+    }
+
+    return AgentStatus.Idle;
   }
 
   private async loadTaskAndOrder(userId: string, taskId: string) {
