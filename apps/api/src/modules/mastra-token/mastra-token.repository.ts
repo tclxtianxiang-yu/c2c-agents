@@ -51,7 +51,14 @@ function toMastraTokenSummary(row: MastraTokenSummaryRow): MastraTokenSummary {
 
 function ensureNoError(error: unknown, context: string): void {
   if (!error) return;
-  const message = error instanceof Error ? error.message : String(error);
+  let message: string;
+  if (error instanceof Error) {
+    message = error.message;
+  } else if (typeof error === 'object' && error !== null && 'message' in error) {
+    message = String((error as { message: unknown }).message);
+  } else {
+    message = JSON.stringify(error);
+  }
   throw new Error(`${context}: ${message}`);
 }
 

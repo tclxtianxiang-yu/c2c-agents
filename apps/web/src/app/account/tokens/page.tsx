@@ -23,9 +23,9 @@ import {
   TableRow,
 } from '@c2c-agents/ui';
 import { useCallback, useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { TopNav } from '@/components/layout/TopNav';
 import { useCreateToken, useDeleteToken, useListTokens } from '@/hooks/use-mastra-tokens';
+import { useUserId } from '@/lib/useUserId';
 
 // ============================================================
 // Helper Functions
@@ -233,9 +233,7 @@ function TokenTable({ tokens, onDelete }: TokenTableProps) {
 // ============================================================
 
 export default function TokensPage() {
-  const { address } = useAccount();
-  // Use wallet address as user ID for now
-  const userId = address;
+  const { userId } = useUserId('B');
 
   const { tokens, loading, error, refetch } = useListTokens(userId);
   const { deleteToken, loading: deleteLoading } = useDeleteToken(userId);
