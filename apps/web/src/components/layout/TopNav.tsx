@@ -13,7 +13,7 @@ const USDT_DECIMALS = 6;
 
 const tabs = [
   { label: '我是发布者', href: '/task' },
-  { label: '我是 Agent 提供者', href: '/agent' },
+  { label: '我是 Agent 提供者', href: '/agents' },
   { label: '工作台', href: '/workbench' },
   { label: '钱包', href: '/wallet' },
   { label: 'Token 管理', href: '/account/tokens' },
