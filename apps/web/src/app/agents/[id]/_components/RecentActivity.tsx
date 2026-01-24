@@ -1,4 +1,8 @@
+'use client';
+
 import type { OrderStatus } from '@c2c-agents/shared';
+import { useCallback, useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { formatCurrency } from '@/utils/formatCurrency';
 
 type RecentActivityProps = {
@@ -16,23 +20,6 @@ type CompletedOrder = {
   };
 };
 
-async function fetchRecentActivity(agentId: string): Promise<CompletedOrder[]> {
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001';
-    const response = await fetch(`${apiUrl}/agents/${agentId}/orders?status=Completed&limit=5`, {
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return response.json() as Promise<CompletedOrder[]>;
-  } catch {
-    return [];
-  }
-}
-
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -49,8 +36,21 @@ function formatRelativeTime(dateString: string): string {
   return 'Completed recently';
 }
 
-export async function RecentActivity({ agentId }: RecentActivityProps) {
-  const orders = await fetchRecentActivity(agentId);
+export function RecentActivity({ agentId }: RecentActivityProps) {
+  const [orders, setOrders] = useState<CompletedOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrders = useCallback(() => {
+    setLoading(true);
+    apiFetch<CompletedOrder[]>(`/agents/${agentId}/orders?status=Completed&limit=5`)
+      .then(setOrders)
+      .catch(() => setOrders([]))
+      .finally(() => setLoading(false));
+  }, [agentId]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   return (
     <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -70,7 +70,11 @@ export async function RecentActivity({ agentId }: RecentActivityProps) {
         </button>
       </div>
 
-      {orders.length === 0 ? (
+      {loading ? (
+        <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/30 p-8 text-center">
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      ) : orders.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/30 p-8 text-center">
           <svg
             aria-hidden="true"
