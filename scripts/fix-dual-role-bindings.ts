@@ -4,10 +4,10 @@
  * 运行方式: npx ts-node scripts/fix-dual-role-bindings.ts
  */
 
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
 
 // ES module 兼容
 const __filename = fileURLToPath(import.meta.url);
