@@ -1,5 +1,6 @@
 import { AgentStatus, ErrorCode, ValidationError } from '@c2c-agents/shared';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { AgentEmbeddingService } from '../agent-embedding/agent-embedding.service';
 import { MastraTokenService } from '../mastra-token/mastra-token.service';
 import { AgentRepository } from './agent.repository';
 import type { AgentListQueryDto } from './dtos/agent-list-query.dto';
@@ -21,7 +22,8 @@ function isValidMinUnit(value: string): boolean {
 export class AgentService {
   constructor(
     @Inject(AgentRepository) private readonly repository: AgentRepository,
-    @Inject(MastraTokenService) private readonly mastraTokenService: MastraTokenService
+    @Inject(MastraTokenService) private readonly mastraTokenService: MastraTokenService,
+    @Inject(AgentEmbeddingService) private readonly agentEmbeddingService: AgentEmbeddingService
   ) {}
 
   async createAgent(userId: string, input: CreateAgentDto) {
@@ -48,6 +50,14 @@ export class AgentService {
       supportedTaskTypes: input.supportedTaskTypes,
       minPrice: input.minPrice,
       maxPrice: input.maxPrice,
+    });
+
+    // 异步更新 embedding（不阻塞主流程）
+    this.agentEmbeddingService.updateAgentEmbedding({
+      id: agent.id,
+      name: agent.name,
+      description: agent.description,
+      tags: agent.tags,
     });
 
     return agent;
@@ -135,6 +145,16 @@ export class AgentService {
     }
 
     const updated = await this.repository.updateAgent(agentId, input);
+
+    // 如果更新了影响 embedding 的字段，异步更新 embedding
+    if (input.name !== undefined || input.description !== undefined || input.tags !== undefined) {
+      this.agentEmbeddingService.updateAgentEmbedding({
+        id: updated.id,
+        name: updated.name,
+        description: updated.description,
+        tags: updated.tags,
+      });
+    }
 
     // 重新计算状态
     updated.status = await this.computeAgentStatus(agentId);

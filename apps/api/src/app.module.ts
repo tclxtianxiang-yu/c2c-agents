@@ -6,9 +6,12 @@ import { AuthPlaceholderMiddleware } from './common/middleware/auth-placeholder.
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { DatabaseModule } from './database/database.module';
 import { AgentModule } from './modules/agent/agent.module';
+import { AgentEmbeddingModule } from './modules/agent-embedding/agent-embedding.module';
+import { AgentRecommendationModule } from './modules/agent-recommendation/agent-recommendation.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
+import { EmbeddingModule } from './modules/embedding/embedding.module';
 import { MastraTokenModule } from './modules/mastra-token/mastra-token.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { QueueModule } from './modules/queue/queue.module';
@@ -31,6 +34,9 @@ import { TaskModule } from './modules/task/task.module';
     QueueModule,
     SettlementModule,
     TaskModule,
+    EmbeddingModule,
+    AgentEmbeddingModule,
+    AgentRecommendationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

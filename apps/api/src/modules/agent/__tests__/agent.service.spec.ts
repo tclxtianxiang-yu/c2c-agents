@@ -1,6 +1,8 @@
 import { AgentStatus, ValidationError } from '@c2c-agents/shared';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { AgentEmbeddingService } from '../../agent-embedding/agent-embedding.service';
+import { MastraTokenService } from '../../mastra-token/mastra-token.service';
 import { AgentRepository } from '../agent.repository';
 import { AgentService } from '../agent.service';
 
@@ -15,6 +17,18 @@ describe('AgentService', () => {
     listAgents: jest.fn(),
     getQueuedItemCount: jest.fn(),
     hasInProgressOrder: jest.fn(),
+    batchGetAgentStatusData: jest.fn(),
+  };
+
+  const mockMastraTokenService = {
+    getToken: jest.fn(),
+  };
+
+  const mockAgentEmbeddingService = {
+    updateAgentEmbedding: jest.fn(),
+    deleteAgentEmbedding: jest.fn(),
+    searchAgentsByTask: jest.fn(),
+    isEnabled: jest.fn().mockReturnValue(true),
   };
 
   beforeEach(async () => {
@@ -24,6 +38,14 @@ describe('AgentService', () => {
         {
           provide: AgentRepository,
           useValue: mockRepository,
+        },
+        {
+          provide: MastraTokenService,
+          useValue: mockMastraTokenService,
+        },
+        {
+          provide: AgentEmbeddingService,
+          useValue: mockAgentEmbeddingService,
         },
       ],
     }).compile();
@@ -77,10 +99,17 @@ describe('AgentService', () => {
         description: validCreateInput.description,
         avatarUrl: undefined,
         mastraUrl: validCreateInput.mastraUrl,
+        mastraTokenId: undefined,
         tags: [],
         supportedTaskTypes: validCreateInput.supportedTaskTypes,
         minPrice: validCreateInput.minPrice,
         maxPrice: validCreateInput.maxPrice,
+      });
+      expect(mockAgentEmbeddingService.updateAgentEmbedding).toHaveBeenCalledWith({
+        id: mockAgent.id,
+        name: mockAgent.name,
+        description: mockAgent.description,
+        tags: mockAgent.tags,
       });
     });
 
@@ -247,6 +276,7 @@ describe('AgentService', () => {
         description: 'Description 1',
         avatarUrl: null,
         mastraUrl: 'https://mastra.cloud/agent/1',
+        mastraTokenId: null,
         tags: ['tag1'],
         supportedTaskTypes: ['writing'] as const,
         minPrice: '1000000',
@@ -265,8 +295,17 @@ describe('AgentService', () => {
 
     it('should list agents with computed status', async () => {
       mockRepository.listAgents.mockResolvedValue(mockAgents);
-      mockRepository.hasInProgressOrder.mockResolvedValue(false);
-      mockRepository.getQueuedItemCount.mockResolvedValue(0);
+      mockRepository.batchGetAgentStatusData.mockResolvedValue(
+        new Map([
+          [
+            'agent-1',
+            {
+              hasInProgress: false,
+              queuedCount: 0,
+            },
+          ],
+        ])
+      );
 
       const result = await service.listAgents({});
 
