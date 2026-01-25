@@ -65,6 +65,10 @@ const envSchema = z.object({
     .refine((n) => n >= 1, 'Gas price multiplier must be >= 1')
     .optional(),
 
+  // ========== OpenAI 配置 ==========
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
+
   // ========== 前端公开配置（NEXT_PUBLIC_ 前缀） ==========
   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: z.string().optional(),
   NEXT_PUBLIC_MOCK_USDT_ADDRESS: evmAddressSchema.optional(),
