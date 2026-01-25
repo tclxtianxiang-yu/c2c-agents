@@ -407,7 +407,64 @@ export class MatchingService {
   }
 
   /**
-   * Asynchronously trigger Mastra executions for selected agents
+   * Execute a single agent and update execution status
+   * Returns void - errors are caught and logged internally
+   */
+  private async executeOneAgent(
+    execution: Execution,
+    task: { id: string; title?: string; type: string; description?: string }
+  ): Promise<void> {
+    try {
+      // Update execution status to running
+      await this.executionRepository.updateExecution(execution.id, {
+        status: 'running',
+        startedAt: new Date().toISOString(),
+      });
+
+      // Call Mastra to execute task
+      const result = await this.mastraService.executeTask({
+        agentId: execution.agentId,
+        taskTitle: task.title,
+        taskDescription: task.description ?? '',
+        taskType: task.type,
+      });
+
+      // Update with Mastra runId and status
+      await this.executionRepository.updateExecution(execution.id, {
+        mastraRunId: result.runId,
+        mastraStatus: result.status,
+      });
+
+      if (result.status === 'completed') {
+        await this.executionRepository.updateExecution(execution.id, {
+          status: 'completed',
+          resultContent: result.content,
+          resultPreview: result.preview,
+          resultUrl: result.url,
+          completedAt: new Date().toISOString(),
+        });
+      } else if (result.status === 'failed') {
+        await this.executionRepository.updateExecution(execution.id, {
+          status: 'failed',
+          errorMessage: result.error,
+          completedAt: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to trigger Mastra execution for execution ${execution.id}, agent ${execution.agentId}:`,
+        error
+      );
+      await this.executionRepository.updateExecution(execution.id, {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        completedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Asynchronously trigger Mastra executions for selected agents IN PARALLEL
    * This method does not block the autoMatch return
    */
   private triggerMastraExecutions(
@@ -416,64 +473,33 @@ export class MatchingService {
     executions: Execution[],
     _agents: Array<{ id: string }>
   ): void {
+    if (executions.length === 0) {
+      this.logger.warn(`No executions to trigger for order ${order.id}`);
+      return;
+    }
+
     // Fire and forget - execute in background
     (async () => {
-      for (const execution of executions) {
-        try {
-          // Update execution status to running
-          await this.executionRepository.updateExecution(execution.id, {
-            status: 'running',
-            startedAt: new Date().toISOString(),
-          });
+      // Execute all agents IN PARALLEL
+      this.logger.log(
+        `Starting parallel execution for ${executions.length} agents on order ${order.id}`
+      );
 
-          // Call Mastra to execute task
-          const result = await this.mastraService.executeTask({
-            agentId: execution.agentId,
-            taskTitle: task.title,
-            taskDescription: task.description ?? '',
-            taskType: task.type,
-          });
-
-          // Update with Mastra runId and status
-          await this.executionRepository.updateExecution(execution.id, {
-            mastraRunId: result.runId,
-            mastraStatus: result.status,
-          });
-
-          if (result.status === 'completed') {
-            await this.executionRepository.updateExecution(execution.id, {
-              status: 'completed',
-              resultContent: result.content,
-              resultPreview: result.preview,
-              resultUrl: result.url,
-              completedAt: new Date().toISOString(),
-            });
-          } else if (result.status === 'failed') {
-            await this.executionRepository.updateExecution(execution.id, {
-              status: 'failed',
-              errorMessage: result.error,
-              completedAt: new Date().toISOString(),
-            });
-          }
-        } catch (error) {
-          this.logger.error(`Failed to trigger Mastra execution for ${execution.id}:`, error);
-          await this.executionRepository.updateExecution(execution.id, {
-            status: 'failed',
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            completedAt: new Date().toISOString(),
-          });
-        }
-      }
+      await Promise.allSettled(
+        executions.map((execution) => this.executeOneAgent(execution, task))
+      );
 
       // All executions finished - transition to selecting phase
       this.logger.log(
         `All executions completed for order ${order.id}, transitioning to selecting phase`
       );
-      await this.repository.updateOrderStatus(order.id, OrderStatus.Selecting);
-      await this.repository.updateOrderExecutionPhase(order.id, 'selecting');
-      await this.repository.updateTaskCurrentStatus(task.id, OrderStatus.Selecting);
+      await Promise.all([
+        this.repository.updateOrderStatus(order.id, OrderStatus.Selecting),
+        this.repository.updateOrderExecutionPhase(order.id, 'selecting'),
+        this.repository.updateTaskCurrentStatus(task.id, OrderStatus.Selecting),
+      ]);
     })().catch((err) => {
-      this.logger.error('Error in triggerMastraExecutions:', err);
+      this.logger.error(`Error in triggerMastraExecutions for order ${order.id}:`, err);
     });
   }
 }
