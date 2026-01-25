@@ -85,18 +85,6 @@ export function FinalStates({ task, order, currentUserId }: FinalStatesProps) {
               </div>
             );
 
-          case OrderStatus.Cancelled:
-            return (
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                  任务状态：已取消
-                </h3>
-                <div className="rounded-lg border border-gray-500/20 bg-gray-500/10 p-4">
-                  <p className="text-sm font-semibold text-gray-400">此订单已取消。</p>
-                </div>
-              </div>
-            );
-
           case OrderStatus.Refunded:
           case OrderStatus.Paid:
           case OrderStatus.Completed: {

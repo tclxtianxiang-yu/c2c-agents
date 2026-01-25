@@ -235,11 +235,13 @@ export function StandbyActions({ task, order }: StandbyActionsProps) {
                 <p className="mt-1 text-sm text-muted-foreground">
                   您的任务已加入 Agent 队列，请耐心等待。Agent 完成当前任务后会自动处理您的任务。
                 </p>
-                <div className="mt-3 flex items-center gap-2 text-sm">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    Agent ID: {order.agentId.slice(0, 8)}...{order.agentId.slice(-4)}
-                  </span>
-                </div>
+                {order.agentId && (
+                  <div className="mt-3 flex items-center gap-2 text-sm">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      Agent ID: {order.agentId.slice(0, 8)}...{order.agentId.slice(-4)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

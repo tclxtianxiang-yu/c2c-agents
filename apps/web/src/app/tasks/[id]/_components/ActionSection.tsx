@@ -63,7 +63,8 @@ export function ActionSection({ task, order }: ActionSectionProps) {
       case OrderStatus.Completed:
       case OrderStatus.Refunded:
       case OrderStatus.Paid:
-      case OrderStatus.Cancelled: {
+      case OrderStatus.Accepted:
+      case OrderStatus.AutoAccepted: {
         // 假设这是个最终状态，需要展示
         // 模拟发布者视角，以便在 Completed/Paid 状态下演示“评价 Agent”按钮
         const finalStatesUserId = task.creatorId;
