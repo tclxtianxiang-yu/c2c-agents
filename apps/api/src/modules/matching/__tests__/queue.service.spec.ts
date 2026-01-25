@@ -1,5 +1,5 @@
 import { AgentStatus, OrderStatus } from '@c2c-agents/shared';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { MatchingRepository } from '../matching.repository';
 import type { PairingService } from '../pairing.service';
 import { QueueService } from '../queue.service';
@@ -12,23 +12,23 @@ describe('QueueService', () => {
   beforeEach(() => {
     // Mock MatchingRepository
     mockRepository = {
-      findAgentById: vi.fn(),
-      getInProgressOrderCount: vi.fn(),
-      atomicConsumeQueueItem: vi.fn(),
-      findOrderById: vi.fn(),
-      updateAgentStatus: vi.fn(),
+      findAgentById: jest.fn(),
+      getInProgressOrderCount: jest.fn(),
+      atomicConsumeQueueItem: jest.fn(),
+      findOrderById: jest.fn(),
+      updateAgentStatus: jest.fn(),
     } as unknown as MatchingRepository;
 
     // Mock PairingService
     mockPairingService = {
-      createPairing: vi.fn(),
+      createPairing: jest.fn(),
     } as unknown as PairingService;
 
     service = new QueueService(mockRepository, mockPairingService);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('consumeNext', () => {
@@ -68,12 +68,12 @@ describe('QueueService', () => {
         pairingCreatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
-      vi.mocked(mockRepository.atomicConsumeQueueItem).mockResolvedValue(mockQueueItem as any);
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockPairingService.createPairing).mockResolvedValue(mockPairingInfo as any);
-      vi.mocked(mockRepository.updateAgentStatus).mockResolvedValue();
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
+      (mockRepository.atomicConsumeQueueItem as jest.Mock).mockResolvedValue(mockQueueItem as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockPairingService.createPairing as jest.Mock).mockResolvedValue(mockPairingInfo as any);
+      (mockRepository.updateAgentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.consumeNext(agentId);
 
@@ -95,7 +95,7 @@ describe('QueueService', () => {
     });
 
     it('should return consumed: false if agent not found', async () => {
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(null);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(null);
 
       const result = await service.consumeNext('non-existent-agent');
 
@@ -115,10 +115,12 @@ describe('QueueService', () => {
         status: AgentStatus.Busy,
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(1);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(1);
 
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {
+        /* noop */
+      });
 
       const result = await service.consumeNext(agentId);
 
@@ -141,9 +143,9 @@ describe('QueueService', () => {
         status: AgentStatus.Idle,
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
-      vi.mocked(mockRepository.atomicConsumeQueueItem).mockResolvedValue(null);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
+      (mockRepository.atomicConsumeQueueItem as jest.Mock).mockResolvedValue(null);
 
       const result = await service.consumeNext(agentId);
 
@@ -164,12 +166,14 @@ describe('QueueService', () => {
         order_id: 'order-1',
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
-      vi.mocked(mockRepository.atomicConsumeQueueItem).mockResolvedValue(mockQueueItem as any);
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(null);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
+      (mockRepository.atomicConsumeQueueItem as jest.Mock).mockResolvedValue(mockQueueItem as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(null);
 
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {
+        /* noop */
+      });
 
       const result = await service.consumeNext(agentId);
 
@@ -199,12 +203,14 @@ describe('QueueService', () => {
         status: OrderStatus.InProgress,
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
-      vi.mocked(mockRepository.atomicConsumeQueueItem).mockResolvedValue(mockQueueItem as any);
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
+      (mockRepository.atomicConsumeQueueItem as jest.Mock).mockResolvedValue(mockQueueItem as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
 
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {
+        /* noop */
+      });
 
       const result = await service.consumeNext(agentId);
 
@@ -248,12 +254,12 @@ describe('QueueService', () => {
         pairingCreatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
-      vi.mocked(mockRepository.atomicConsumeQueueItem).mockResolvedValue(firstQueueItem as any);
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockPairingService.createPairing).mockResolvedValue(mockPairingInfo as any);
-      vi.mocked(mockRepository.updateAgentStatus).mockResolvedValue();
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
+      (mockRepository.atomicConsumeQueueItem as jest.Mock).mockResolvedValue(firstQueueItem as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockPairingService.createPairing as jest.Mock).mockResolvedValue(mockPairingInfo as any);
+      (mockRepository.updateAgentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.consumeNext(agentId);
 
@@ -310,24 +316,24 @@ describe('QueueService', () => {
         pairingCreatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
 
       // Mock sequence: consume 2 items, then empty queue
-      vi.mocked(mockRepository.atomicConsumeQueueItem)
+      (mockRepository.atomicConsumeQueueItem as jest.Mock)
         .mockResolvedValueOnce(mockQueueItem1 as any)
         .mockResolvedValueOnce(mockQueueItem2 as any)
         .mockResolvedValueOnce(null);
 
-      vi.mocked(mockRepository.findOrderById)
+      (mockRepository.findOrderById as jest.Mock)
         .mockResolvedValueOnce(mockOrder1 as any)
         .mockResolvedValueOnce(mockOrder2 as any);
 
-      vi.mocked(mockPairingService.createPairing)
+      (mockPairingService.createPairing as jest.Mock)
         .mockResolvedValueOnce(mockPairingInfo1 as any)
         .mockResolvedValueOnce(mockPairingInfo2 as any);
 
-      vi.mocked(mockRepository.updateAgentStatus).mockResolvedValue();
+      (mockRepository.updateAgentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const results = await service.consumeBatch(agentId, maxCount);
 
@@ -338,7 +344,7 @@ describe('QueueService', () => {
       expect(results[1].orderId).toBe('order-2');
 
       // Should stop when queue is empty (3rd call returns null)
-      expect(mockRepository.atomicConsumeQueueItem).toHaveBeenCalledTimes(2);
+      expect(mockRepository.atomicConsumeQueueItem).toHaveBeenCalledTimes(3);
     });
 
     it('should stop consuming when maxCount is reached', async () => {
@@ -368,12 +374,12 @@ describe('QueueService', () => {
         pairingCreatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
-      vi.mocked(mockRepository.atomicConsumeQueueItem).mockResolvedValue(mockQueueItem as any);
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockPairingService.createPairing).mockResolvedValue(mockPairingInfo as any);
-      vi.mocked(mockRepository.updateAgentStatus).mockResolvedValue();
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
+      (mockRepository.atomicConsumeQueueItem as jest.Mock).mockResolvedValue(mockQueueItem as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockPairingService.createPairing as jest.Mock).mockResolvedValue(mockPairingInfo as any);
+      (mockRepository.updateAgentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const results = await service.consumeBatch(agentId, maxCount);
 
@@ -389,10 +395,12 @@ describe('QueueService', () => {
         status: AgentStatus.Busy,
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(1);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(1);
 
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {
+        /* noop */
+      });
 
       const results = await service.consumeBatch(agentId, 3);
 
@@ -434,17 +442,17 @@ describe('QueueService', () => {
         pairingCreatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
 
       // First consume succeeds, second returns null (queue empty)
-      vi.mocked(mockRepository.atomicConsumeQueueItem)
+      (mockRepository.atomicConsumeQueueItem as jest.Mock)
         .mockResolvedValueOnce(mockQueueItem1 as any)
         .mockResolvedValueOnce(null);
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder1 as any);
-      vi.mocked(mockPairingService.createPairing).mockResolvedValue(mockPairingInfo as any);
-      vi.mocked(mockRepository.updateAgentStatus).mockResolvedValue();
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder1 as any);
+      (mockPairingService.createPairing as jest.Mock).mockResolvedValue(mockPairingInfo as any);
+      (mockRepository.updateAgentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const results = await service.consumeBatch(agentId, 5);
 
@@ -464,9 +472,9 @@ describe('QueueService', () => {
         status: AgentStatus.Idle,
       };
 
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.getInProgressOrderCount).mockResolvedValue(0);
-      vi.mocked(mockRepository.atomicConsumeQueueItem).mockResolvedValue(null);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.getInProgressOrderCount as jest.Mock).mockResolvedValue(0);
+      (mockRepository.atomicConsumeQueueItem as jest.Mock).mockResolvedValue(null);
 
       const result = await service.consumeNext(agentId);
 

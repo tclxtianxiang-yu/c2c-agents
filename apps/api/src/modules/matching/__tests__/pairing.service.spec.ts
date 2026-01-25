@@ -1,7 +1,6 @@
 import { PAIRING_TTL_HOURS } from '@c2c-agents/config/constants';
 import { AgentStatus, OrderStatus, ValidationError } from '@c2c-agents/shared';
 import { HttpException } from '@nestjs/common';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MatchingRepository } from '../matching.repository';
 import { PairingService } from '../pairing.service';
 
@@ -12,23 +11,23 @@ describe('PairingService', () => {
   beforeEach(() => {
     // Mock MatchingRepository
     mockRepository = {
-      findOrderById: vi.fn(),
-      findAgentById: vi.fn(),
-      findTaskById: vi.fn(),
-      updateOrderPairing: vi.fn(),
-      updateTaskCurrentStatus: vi.fn(),
-      updateOrderStatus: vi.fn(),
-      updateAgentStatus: vi.fn(),
-      clearOrderPairing: vi.fn(),
-      cancelQueueItem: vi.fn(),
-      findExpiredPairings: vi.fn(),
+      findOrderById: jest.fn(),
+      findAgentById: jest.fn(),
+      findTaskById: jest.fn(),
+      updateOrderPairing: jest.fn(),
+      updateTaskCurrentStatus: jest.fn(),
+      updateOrderStatus: jest.fn(),
+      updateAgentStatus: jest.fn(),
+      clearOrderPairing: jest.fn(),
+      cancelQueueItem: jest.fn(),
+      findExpiredPairings: jest.fn(),
     } as unknown as MatchingRepository;
 
     service = new PairingService(mockRepository);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('createPairing', () => {
@@ -60,11 +59,11 @@ describe('PairingService', () => {
         creator_id: 'user-1',
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue(mockTask as any);
-      vi.mocked(mockRepository.updateOrderPairing).mockResolvedValue({} as any);
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue(mockTask as any);
+      (mockRepository.updateOrderPairing as jest.Mock).mockResolvedValue({} as any);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.createPairing(orderId, agentId);
 
@@ -85,7 +84,7 @@ describe('PairingService', () => {
     });
 
     it('should throw error if order not found', async () => {
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(null);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.createPairing('order-1', 'agent-1')).rejects.toThrow(HttpException);
       await expect(service.createPairing('order-1', 'agent-1')).rejects.toThrow('Order not found');
@@ -97,7 +96,7 @@ describe('PairingService', () => {
         status: OrderStatus.Pairing,
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
 
       await expect(service.createPairing('order-1', 'agent-1')).rejects.toThrow(ValidationError);
       await expect(service.createPairing('order-1', 'agent-1')).rejects.toThrow(
@@ -111,8 +110,8 @@ describe('PairingService', () => {
         status: OrderStatus.Standby,
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(null);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.createPairing('order-1', 'agent-1')).rejects.toThrow(HttpException);
       await expect(service.createPairing('order-1', 'agent-1')).rejects.toThrow(
@@ -139,10 +138,10 @@ describe('PairingService', () => {
 
       const mockTask = { id: taskId };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findAgentById).mockResolvedValue(mockAgent as any);
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue(mockTask as any);
-      vi.mocked(mockRepository.updateOrderPairing).mockResolvedValue({} as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findAgentById as jest.Mock).mockResolvedValue(mockAgent as any);
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue(mockTask as any);
+      (mockRepository.updateOrderPairing as jest.Mock).mockResolvedValue({} as any);
 
       const beforeCall = Date.now();
       const result = await service.createPairing(orderId, agentId);
@@ -176,11 +175,11 @@ describe('PairingService', () => {
 
       const mockTask = { id: taskId };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue(mockTask as any);
-      vi.mocked(mockRepository.updateOrderStatus).mockResolvedValue();
-      vi.mocked(mockRepository.updateAgentStatus).mockResolvedValue();
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue(mockTask as any);
+      (mockRepository.updateOrderStatus as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateAgentStatus as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.acceptPairing(orderId, userId, 'A');
 
@@ -219,11 +218,11 @@ describe('PairingService', () => {
 
       const mockTask = { id: 'task-1' };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue(mockTask as any);
-      vi.mocked(mockRepository.updateOrderStatus).mockResolvedValue();
-      vi.mocked(mockRepository.updateAgentStatus).mockResolvedValue();
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue(mockTask as any);
+      (mockRepository.updateOrderStatus as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateAgentStatus as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.acceptPairing(orderId, providerId, 'B');
 
@@ -231,7 +230,7 @@ describe('PairingService', () => {
     });
 
     it('should throw error if order not found', async () => {
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(null);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.acceptPairing('order-1', 'user-1', 'A')).rejects.toThrow(HttpException);
     });
@@ -242,7 +241,7 @@ describe('PairingService', () => {
         status: OrderStatus.Standby,
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
 
       await expect(service.acceptPairing('order-1', 'user-1', 'A')).rejects.toThrow(
         ValidationError
@@ -261,7 +260,7 @@ describe('PairingService', () => {
         pairing_created_at: new Date().toISOString(),
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
 
       await expect(service.acceptPairing('order-1', 'wrong-user', 'A')).rejects.toThrow(
         HttpException
@@ -280,7 +279,7 @@ describe('PairingService', () => {
         pairing_created_at: new Date().toISOString(),
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
 
       await expect(service.acceptPairing('order-1', 'wrong-provider', 'B')).rejects.toThrow(
         HttpException
@@ -301,7 +300,7 @@ describe('PairingService', () => {
         pairing_created_at: expiredTime.toISOString(),
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
 
       await expect(service.acceptPairing('order-1', 'user-1', 'A')).rejects.toThrow(
         ValidationError
@@ -331,11 +330,11 @@ describe('PairingService', () => {
 
       const mockTask = { id: taskId };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue(mockTask as any);
-      vi.mocked(mockRepository.clearOrderPairing).mockResolvedValue();
-      vi.mocked(mockRepository.cancelQueueItem).mockResolvedValue();
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue(mockTask as any);
+      (mockRepository.clearOrderPairing as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.cancelQueueItem as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.rejectPairing(orderId, userId, 'A');
 
@@ -367,11 +366,11 @@ describe('PairingService', () => {
 
       const mockTask = { id: 'task-1' };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue(mockTask as any);
-      vi.mocked(mockRepository.clearOrderPairing).mockResolvedValue();
-      vi.mocked(mockRepository.cancelQueueItem).mockResolvedValue();
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue(mockTask as any);
+      (mockRepository.clearOrderPairing as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.cancelQueueItem as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.rejectPairing(orderId, providerId, 'B');
 
@@ -379,7 +378,7 @@ describe('PairingService', () => {
     });
 
     it('should throw error if order not found', async () => {
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(null);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.rejectPairing('order-1', 'user-1', 'A')).rejects.toThrow(HttpException);
     });
@@ -390,7 +389,7 @@ describe('PairingService', () => {
         status: OrderStatus.InProgress,
       };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
 
       await expect(service.rejectPairing('order-1', 'user-1', 'A')).rejects.toThrow(
         ValidationError
@@ -410,10 +409,10 @@ describe('PairingService', () => {
 
       const mockTask = { id: 'task-1' };
 
-      vi.mocked(mockRepository.findOrderById).mockResolvedValue(mockOrder as any);
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue(mockTask as any);
-      vi.mocked(mockRepository.clearOrderPairing).mockResolvedValue();
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.findOrderById as jest.Mock).mockResolvedValue(mockOrder as any);
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue(mockTask as any);
+      (mockRepository.clearOrderPairing as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
       await service.rejectPairing('order-1', 'user-1', 'A');
 
@@ -445,18 +444,18 @@ describe('PairingService', () => {
       const mockTask1 = { id: 'task-1' };
       const mockTask2 = { id: 'task-2' };
 
-      vi.mocked(mockRepository.findExpiredPairings).mockResolvedValue([
+      (mockRepository.findExpiredPairings as jest.Mock).mockResolvedValue([
         expiredOrder1,
         expiredOrder2,
       ] as any);
 
-      vi.mocked(mockRepository.findTaskById)
+      (mockRepository.findTaskById as jest.Mock)
         .mockResolvedValueOnce(mockTask1 as any)
         .mockResolvedValueOnce(mockTask2 as any);
 
-      vi.mocked(mockRepository.clearOrderPairing).mockResolvedValue();
-      vi.mocked(mockRepository.cancelQueueItem).mockResolvedValue();
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.clearOrderPairing as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.cancelQueueItem as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.checkPairingExpiration();
 
@@ -469,7 +468,7 @@ describe('PairingService', () => {
     });
 
     it('should return zero count if no expired pairings', async () => {
-      vi.mocked(mockRepository.findExpiredPairings).mockResolvedValue([]);
+      (mockRepository.findExpiredPairings as jest.Mock).mockResolvedValue([]);
 
       const result = await service.checkPairingExpiration();
 
@@ -490,20 +489,22 @@ describe('PairingService', () => {
         agent_id: 'agent-2',
       };
 
-      vi.mocked(mockRepository.findExpiredPairings).mockResolvedValue([
+      (mockRepository.findExpiredPairings as jest.Mock).mockResolvedValue([
         expiredOrder1,
         expiredOrder2,
       ] as any);
 
-      vi.mocked(mockRepository.clearOrderPairing)
+      (mockRepository.clearOrderPairing as jest.Mock)
         .mockRejectedValueOnce(new Error('Database error'))
         .mockResolvedValueOnce(undefined);
 
-      vi.mocked(mockRepository.findTaskById).mockResolvedValue({ id: 'task-2' } as any);
-      vi.mocked(mockRepository.cancelQueueItem).mockResolvedValue();
-      vi.mocked(mockRepository.updateTaskCurrentStatus).mockResolvedValue();
+      (mockRepository.findTaskById as jest.Mock).mockResolvedValue({ id: 'task-2' } as any);
+      (mockRepository.cancelQueueItem as jest.Mock).mockResolvedValue(undefined);
+      (mockRepository.updateTaskCurrentStatus as jest.Mock).mockResolvedValue(undefined);
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {
+        /* noop */
+      });
 
       const result = await service.checkPairingExpiration();
 

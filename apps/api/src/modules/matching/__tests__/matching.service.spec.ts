@@ -16,7 +16,7 @@ import { MatchingService } from '../matching.service';
 describe('MatchingService', () => {
   let service: MatchingService;
 
-  const testUserId = '11111111-1111-1111-1111-111111111111';
+  const testUserId = '11111111-1111-4111-8111-111111111111';
   const mockTask = {
     id: 'task-1',
     creator_id: testUserId,
@@ -65,6 +65,7 @@ describe('MatchingService', () => {
     findAgentById: jest.fn(),
     listCandidateAgents: jest.fn(),
     getQueueCount: jest.fn(),
+    getInProgressOrderCount: jest.fn(),
     findQueuedItem: jest.fn(),
     enqueueQueueItem: jest.fn(),
     listQueuedItems: jest.fn(),
@@ -392,6 +393,150 @@ describe('MatchingService', () => {
       await service.manualSelect(testUserId, mockTask.id, mockBusyAgent.id);
 
       expect(mockRepository.enqueueQueueItem).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getAgentStatus', () => {
+    it('should return Idle when agent has no in-progress orders and no queue', async () => {
+      mockRepository.getInProgressOrderCount.mockResolvedValue(0);
+      mockRepository.getQueueCount.mockResolvedValue(0);
+
+      const status = await service.getAgentStatus('agent-1');
+
+      expect(status).toBe(AgentStatus.Idle);
+      expect(mockRepository.getInProgressOrderCount).toHaveBeenCalledWith('agent-1');
+      expect(mockRepository.getQueueCount).toHaveBeenCalledWith('agent-1');
+    });
+
+    it('should return Busy when agent has in-progress orders but no queue', async () => {
+      mockRepository.getInProgressOrderCount.mockResolvedValue(1);
+      mockRepository.getQueueCount.mockResolvedValue(0);
+
+      const status = await service.getAgentStatus('agent-1');
+
+      expect(status).toBe(AgentStatus.Busy);
+    });
+
+    it('should return Queueing when agent has both in-progress orders and queue', async () => {
+      mockRepository.getInProgressOrderCount.mockResolvedValue(1);
+      mockRepository.getQueueCount.mockResolvedValue(3);
+
+      const status = await service.getAgentStatus('agent-1');
+
+      expect(status).toBe(AgentStatus.Queueing);
+    });
+
+    it('should return Idle when agent has queue but no in-progress orders', async () => {
+      mockRepository.getInProgressOrderCount.mockResolvedValue(0);
+      mockRepository.getQueueCount.mockResolvedValue(2);
+
+      const status = await service.getAgentStatus('agent-1');
+
+      expect(status).toBe(AgentStatus.Idle);
+    });
+  });
+
+  describe('autoMatch - multiple agent scenarios', () => {
+    it('should skip agents with full queue and select next available agent', async () => {
+      const mockIdleAgent1 = {
+        ...mockIdleAgent,
+        id: 'agent-1',
+        name: 'First Idle Agent',
+        avg_rating: 4.5,
+        completed_order_count: 20,
+      };
+      const mockIdleAgent2 = {
+        ...mockIdleAgent,
+        id: 'agent-3',
+        name: 'Second Idle Agent',
+        avg_rating: 4.0,
+        completed_order_count: 10,
+      };
+
+      mockRepository.findTaskById.mockResolvedValue(mockTask);
+      mockRepository.findOrderById.mockResolvedValue(mockOrder);
+      mockRepository.listCandidateAgents.mockResolvedValue([mockIdleAgent1, mockIdleAgent2]);
+      // First idle agent has full queue, second has available queue
+      mockRepository.getQueueCount.mockResolvedValueOnce(QUEUE_MAX_N).mockResolvedValueOnce(0);
+      mockRepository.updateOrderPairing.mockResolvedValue({
+        ...mockOrder,
+        status: OrderStatus.Pairing,
+      });
+      mockRepository.updateTaskCurrentStatus.mockResolvedValue(undefined);
+
+      const result = await service.autoMatch(testUserId, mockTask.id);
+
+      expect(result.result).toBe('pairing');
+      expect(result.agentId).toBe(mockIdleAgent2.id);
+      expect(mockRepository.getQueueCount).toHaveBeenCalledTimes(2);
+    });
+
+    it('should try all agents before throwing error when all have full queues', async () => {
+      mockRepository.findTaskById.mockResolvedValue(mockTask);
+      mockRepository.findOrderById.mockResolvedValue(mockOrder);
+      mockRepository.listCandidateAgents.mockResolvedValue([mockIdleAgent, mockBusyAgent]);
+      // Both agents have full queues
+      mockRepository.getQueueCount.mockResolvedValue(QUEUE_MAX_N);
+
+      await expect(service.autoMatch(testUserId, mockTask.id)).rejects.toThrow(
+        'No available agents with queue capacity'
+      );
+      expect(mockRepository.getQueueCount).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('userId resolution', () => {
+    it('should throw error when userId is null or empty', async () => {
+      mockRepository.findTaskById.mockResolvedValue(mockTask);
+
+      await expect(service.autoMatch('', mockTask.id)).rejects.toThrow(
+        'x-user-id header is required'
+      );
+    });
+
+    it('should accept UUID format userId', async () => {
+      const uuidUserId = '11111111-1111-4111-8111-111111111111';
+      mockRepository.findTaskById.mockResolvedValue({
+        ...mockTask,
+        creator_id: uuidUserId,
+      });
+      mockRepository.findOrderById.mockResolvedValue(mockOrder);
+      mockRepository.listCandidateAgents.mockResolvedValue([mockIdleAgent]);
+      mockRepository.getQueueCount.mockResolvedValue(0);
+      mockRepository.updateOrderPairing.mockResolvedValue({
+        ...mockOrder,
+        status: OrderStatus.Pairing,
+      });
+      mockRepository.updateTaskCurrentStatus.mockResolvedValue(undefined);
+
+      const result = await service.autoMatch(uuidUserId, mockTask.id);
+
+      expect(result.result).toBe('pairing');
+      expect(mockRepository.findActiveUserIdByAddress).not.toHaveBeenCalled();
+    });
+
+    it('should resolve wallet address to userId', async () => {
+      const walletAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0';
+      const resolvedUserId = '11111111-1111-1111-1111-111111111111';
+
+      mockRepository.findActiveUserIdByAddress.mockResolvedValue(resolvedUserId);
+      mockRepository.findTaskById.mockResolvedValue({
+        ...mockTask,
+        creator_id: resolvedUserId,
+      });
+      mockRepository.findOrderById.mockResolvedValue(mockOrder);
+      mockRepository.listCandidateAgents.mockResolvedValue([mockIdleAgent]);
+      mockRepository.getQueueCount.mockResolvedValue(0);
+      mockRepository.updateOrderPairing.mockResolvedValue({
+        ...mockOrder,
+        status: OrderStatus.Pairing,
+      });
+      mockRepository.updateTaskCurrentStatus.mockResolvedValue(undefined);
+
+      const result = await service.autoMatch(walletAddress, mockTask.id);
+
+      expect(result.result).toBe('pairing');
+      expect(mockRepository.findActiveUserIdByAddress).toHaveBeenCalledWith(walletAddress);
     });
   });
 });
