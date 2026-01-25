@@ -84,14 +84,14 @@ export function ExecutionOrbs({ executions, onSelect, selectedIds }: ExecutionOr
       }
     }
 
-    // Create force simulation - no center force to prevent snapping back
+    // Create force simulation with strong link force for dragging effect
     const simulation = d3
       .forceSimulation<OrbNode>(nodes)
-      .force('link', d3.forceLink<OrbNode, OrbLink>(links).distance(150).strength(0.1))
-      .force('charge', d3.forceManyBody().strength(-100))
-      .force('collision', d3.forceCollide<OrbNode>().radius(orbRadius + 10))
-      .alphaDecay(0.05)
-      .velocityDecay(0.4);
+      .force('link', d3.forceLink<OrbNode, OrbLink>(links).distance(140).strength(0.5))
+      .force('charge', d3.forceManyBody().strength(-300))
+      .force('collision', d3.forceCollide<OrbNode>().radius(orbRadius + 15))
+      .alphaDecay(0.02)
+      .velocityDecay(0.3);
 
     simulationRef.current = simulation;
 
@@ -192,10 +192,12 @@ export function ExecutionOrbs({ executions, onSelect, selectedIds }: ExecutionOr
         d.fx = event.x;
         d.fy = event.y;
       })
-      .on('end', (event, _d) => {
+      .on('end', (event, d) => {
         if (!event.active) simulation.alphaTarget(0);
-        // Keep the node fixed at dropped position - don't snap back
-        // fx/fy remain set from drag, so node stays where user dropped it
+        // Release the node - physics will settle it at new equilibrium position
+        // Without forceCenter, it won't snap back to original position
+        d.fx = null;
+        d.fy = null;
         d3.select(event.sourceEvent.target.parentNode).style('cursor', 'grab');
       });
 
