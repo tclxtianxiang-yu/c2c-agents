@@ -37,11 +37,9 @@ const orderStatusLabels: Record<string, string> = {
 type TaskCardProps = {
   task: TaskSummary;
   onViewStatus?: (taskId: string) => void;
-  onAutoMatch?: (taskId: string) => void;
-  onManualSelect?: (taskId: string) => void;
 };
 
-export function TaskCard({ task, onViewStatus, onAutoMatch, onManualSelect }: TaskCardProps) {
+export function TaskCard({ task, onViewStatus }: TaskCardProps) {
   const isStandby = task.currentStatus === OrderStatus.Standby;
   const isPairing = task.currentStatus === OrderStatus.Pairing;
   const actionLabel = isStandby ? '自动匹配' : isPairing ? '确认匹配' : '查看状态';
@@ -49,16 +47,6 @@ export function TaskCard({ task, onViewStatus, onAutoMatch, onManualSelect }: Ta
     e.preventDefault();
     e.stopPropagation();
     onViewStatus?.(task.id);
-  };
-  const handleAutoMatch = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onAutoMatch?.(task.id);
-  };
-  const handleManualSelect = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onManualSelect?.(task.id);
   };
 
   return (
@@ -93,22 +81,22 @@ export function TaskCard({ task, onViewStatus, onAutoMatch, onManualSelect }: Ta
         <div className="mt-auto pt-6">
           {isStandby ? (
             <div className="grid gap-2">
-              <button
-                type="button"
-                onClick={handleAutoMatch}
+              <Link
+                href={`/tasks/${task.id}?action=auto`}
+                onClick={(e) => e.stopPropagation()}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(14,116,219,0.35)] transition hover:opacity-90"
               >
                 <span aria-hidden="true">⚡</span>
                 自动匹配 (Auto Match)
-              </button>
-              <button
-                type="button"
-                onClick={handleManualSelect}
+              </Link>
+              <Link
+                href={`/tasks/${task.id}?action=manual`}
+                onClick={(e) => e.stopPropagation()}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background/60 px-4 py-2.5 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
               >
                 <span aria-hidden="true">🖐️</span>
                 手动选择 (Select)
-              </button>
+              </Link>
             </div>
           ) : (
             <button

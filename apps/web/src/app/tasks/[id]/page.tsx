@@ -8,6 +8,9 @@ type TaskDetailPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    action?: 'auto' | 'manual';
+  }>;
 };
 
 async function fetchTask(id: string): Promise<Task | null> {
@@ -44,8 +47,9 @@ async function fetchOrder(orderId: string): Promise<Order | null> {
   }
 }
 
-export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
+export default async function TaskDetailPage({ params, searchParams }: TaskDetailPageProps) {
   const { id } = await params;
+  const { action } = await searchParams;
   const task = await fetchTask(id);
 
   if (!task) {
@@ -94,7 +98,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
         <div className="space-y-6">
           <TaskInfoSection task={task} />
           <OrderStatusSection order={order} />
-          <ActionSection task={task} order={order} />
+          <ActionSection task={task} order={order} initialAction={action} />
         </div>
       </div>
     </main>

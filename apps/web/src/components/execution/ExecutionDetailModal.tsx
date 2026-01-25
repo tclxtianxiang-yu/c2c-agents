@@ -101,7 +101,13 @@ export function ExecutionDetailModal({ execution, isOpen, onClose, onSelect, isS
             关闭
           </Button>
           {status === 'completed' && (
-            <Button onClick={onSelect} variant={isSelected ? 'secondary' : 'default'}>
+            <Button
+              onClick={() => {
+                onSelect();
+                onClose();
+              }}
+              variant={isSelected ? 'secondary' : 'default'}
+            >
               {isSelected ? '取消选择' : '选择此结果'}
             </Button>
           )}

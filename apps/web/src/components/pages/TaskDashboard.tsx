@@ -582,16 +582,6 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
     setModalAction('view');
   };
 
-  const handleAutoMatch = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setModalAction('auto');
-  };
-
-  const handleManualSelect = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setModalAction('manual');
-  };
-
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopNav />
@@ -682,13 +672,7 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
             </div>
           )}
           {tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onViewStatus={handleViewDetail}
-              onAutoMatch={handleAutoMatch}
-              onManualSelect={handleManualSelect}
-            />
+            <TaskCard key={task.id} task={task} onViewStatus={handleViewDetail} />
           ))}
         </section>
       </div>
