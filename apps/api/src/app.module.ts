@@ -14,6 +14,7 @@ import { MatchingModule } from './modules/matching/matching.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { SettlementModule } from './modules/settlement/settlement.module';
 import { TaskModule } from './modules/task/task.module';
+import { WorkbenchModule } from './modules/workbench/workbench.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TaskModule } from './modules/task/task.module';
     QueueModule,
     SettlementModule,
     TaskModule,
+    WorkbenchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
