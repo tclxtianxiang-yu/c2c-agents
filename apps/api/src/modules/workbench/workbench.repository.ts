@@ -84,8 +84,8 @@ export class WorkbenchRepository {
         `
         id, task_id, status, reward_amount, provider_id, agent_id,
         delivered_at, pairing_created_at, created_at,
-        task:tasks(id, title, type, description),
-        agent:agents(id, name)
+        task:tasks!orders_task_id_fkey(id, title, type, description),
+        agent:agents!orders_agent_id_fkey(id, name)
       `
       )
       .eq('provider_id', providerId)
@@ -130,7 +130,7 @@ export class WorkbenchRepository {
       .select(
         `
         id, agent_id, order_id, status, created_at,
-        order:orders(id, task_id, task:tasks(id, title, type))
+        order:orders!queue_items_order_id_fkey(id, task_id, task:tasks!orders_task_id_fkey(id, title, type))
       `
       )
       .in('agent_id', agentIds)
