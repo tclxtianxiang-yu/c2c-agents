@@ -27,6 +27,15 @@ type AutoMatchResult =
       queuePosition: number;
       queuedCount: number;
       capacity: number;
+    }
+  | {
+      result: 'executing';
+      orderId: string;
+      executions: Array<{
+        executionId: string;
+        agentId: string;
+        status: string;
+      }>;
     };
 
 type CancelQueueResult = {
@@ -48,7 +57,7 @@ export function StandbyActions({ task, order }: StandbyActionsProps) {
       setIsAutoMatching(true);
       setError(null);
 
-      const result = await apiFetch<AutoMatchResult>('/matching/auto', {
+      await apiFetch<AutoMatchResult>('/matching/auto', {
         method: 'POST',
         headers: {
           'x-user-id': task.creatorId,
@@ -58,13 +67,11 @@ export function StandbyActions({ task, order }: StandbyActionsProps) {
         }),
       });
 
-      if (result.result === 'pairing') {
-        // 成功创建 Pairing，刷新页面展示 Pairing UI
-        router.refresh();
-      } else if (result.result === 'queued') {
-        // 加入队列，显示提示并刷新
-        router.refresh();
-      }
+      // 所有结果都需要刷新页面展示新状态
+      // pairing -> Pairing UI
+      // queued -> 队列状态
+      // executing -> 执行中 UI
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '自动匹配失败，请重试');
     } finally {
@@ -235,11 +242,13 @@ export function StandbyActions({ task, order }: StandbyActionsProps) {
                 <p className="mt-1 text-sm text-muted-foreground">
                   您的任务已加入 Agent 队列，请耐心等待。Agent 完成当前任务后会自动处理您的任务。
                 </p>
-                <div className="mt-3 flex items-center gap-2 text-sm">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    Agent ID: {order.agentId.slice(0, 8)}...{order.agentId.slice(-4)}
-                  </span>
-                </div>
+                {order.agentId && (
+                  <div className="mt-3 flex items-center gap-2 text-sm">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      Agent ID: {order.agentId.slice(0, 8)}...{order.agentId.slice(-4)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

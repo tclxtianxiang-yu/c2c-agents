@@ -4,10 +4,12 @@ import type { Order, Task } from '@c2c-agents/shared';
 import { OrderStatus } from '@c2c-agents/shared';
 import { Card } from '@c2c-agents/ui';
 import { DeliveredActions } from './DeliveredActions';
+import { ExecutingActions } from './ExecutingActions';
 import { FinalStates } from './FinalStates';
 import { InProgressStatus } from './InProgressStatus';
 import { PairingActions } from './PairingActions';
 import { RequestActions } from './RequestActions';
+import { SelectingActions } from './SelectingActions';
 import { StandbyActions } from './StandbyActions';
 
 type ActionSectionProps = {
@@ -38,6 +40,18 @@ export function ActionSection({ task, order }: ActionSectionProps) {
       case OrderStatus.Pairing:
         return <PairingActions task={task} order={order} />;
 
+      case OrderStatus.Executing: {
+        // Mock user ID for demo - in real app this comes from auth context
+        const executingUserId = task.creatorId;
+        return <ExecutingActions task={task} order={order} currentUserId={executingUserId} />;
+      }
+
+      case OrderStatus.Selecting: {
+        // Mock user ID for demo - in real app this comes from auth context
+        const selectingUserId = task.creatorId;
+        return <SelectingActions task={task} order={order} currentUserId={selectingUserId} />;
+      }
+
       case OrderStatus.InProgress:
         return <InProgressStatus task={task} order={order} />;
 
@@ -63,7 +77,8 @@ export function ActionSection({ task, order }: ActionSectionProps) {
       case OrderStatus.Completed:
       case OrderStatus.Refunded:
       case OrderStatus.Paid:
-      case OrderStatus.Cancelled: {
+      case OrderStatus.Accepted:
+      case OrderStatus.AutoAccepted: {
         // 假设这是个最终状态，需要展示
         // 模拟发布者视角，以便在 Completed/Paid 状态下演示“评价 Agent”按钮
         const finalStatesUserId = task.creatorId;

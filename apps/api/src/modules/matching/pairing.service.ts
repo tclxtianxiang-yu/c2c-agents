@@ -43,6 +43,22 @@ export class PairingService {
       );
     }
 
+    // 幂等检查：如果已经是 Pairing 状态且 agent 匹配，直接返回现有信息
+    if (order.status === OrderStatus.Pairing && order.agent_id === agentId) {
+      const expiresAt = new Date(
+        new Date(order.pairing_created_at!).getTime() + PAIRING_TTL_HOURS * 60 * 60 * 1000
+      ).toISOString();
+
+      return {
+        orderId,
+        agentId,
+        providerId: order.provider_id!,
+        expiresAt,
+        pairingCreatedAt: order.pairing_created_at!,
+      };
+    }
+
+    // 非 Standby 状态报错
     if (order.status !== OrderStatus.Standby) {
       throw new ValidationError('Order is not in Standby status');
     }

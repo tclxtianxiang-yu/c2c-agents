@@ -4,8 +4,28 @@ import { assertTransition, canTransition, getAllowedTransitions } from './order-
 
 describe('订单状态机', () => {
   describe('assertTransition', () => {
-    it('应该允许合法的 Standby -> Pairing 转换', () => {
+    it('应该允许合法的 Standby -> Executing 转换（新流程）', () => {
+      expect(() => assertTransition(OrderStatus.Standby, OrderStatus.Executing)).not.toThrow();
+    });
+
+    it('应该允许合法的 Standby -> Pairing 转换（旧流程）', () => {
       expect(() => assertTransition(OrderStatus.Standby, OrderStatus.Pairing)).not.toThrow();
+    });
+
+    it('应该允许合法的 Executing -> Selecting 转换', () => {
+      expect(() => assertTransition(OrderStatus.Executing, OrderStatus.Selecting)).not.toThrow();
+    });
+
+    it('应该允许合法的 Executing -> Standby 回滚（超时）', () => {
+      expect(() => assertTransition(OrderStatus.Executing, OrderStatus.Standby)).not.toThrow();
+    });
+
+    it('应该允许合法的 Selecting -> InProgress 转换', () => {
+      expect(() => assertTransition(OrderStatus.Selecting, OrderStatus.InProgress)).not.toThrow();
+    });
+
+    it('应该允许合法的 Selecting -> Standby 回滚（超时）', () => {
+      expect(() => assertTransition(OrderStatus.Selecting, OrderStatus.Standby)).not.toThrow();
     });
 
     it('应该允许合法的 Pairing -> InProgress 转换', () => {
@@ -86,6 +106,12 @@ describe('订单状态机', () => {
       expect(() => assertTransition(OrderStatus.Refunded, OrderStatus.Completed)).not.toThrow();
     });
 
+    it('应该拒绝非法的 Executing -> InProgress 跳跃', () => {
+      expect(() => assertTransition(OrderStatus.Executing, OrderStatus.InProgress)).toThrow(
+        'Invalid transition: Executing -> InProgress'
+      );
+    });
+
     it('应该拒绝非法的 Standby -> InProgress 跳跃', () => {
       expect(() => assertTransition(OrderStatus.Standby, OrderStatus.InProgress)).toThrow(
         'Invalid transition: Standby -> InProgress'
@@ -134,7 +160,12 @@ describe('订单状态机', () => {
 
   describe('canTransition', () => {
     it('应该对合法转换返回 true', () => {
+      expect(canTransition(OrderStatus.Standby, OrderStatus.Executing)).toBe(true);
       expect(canTransition(OrderStatus.Standby, OrderStatus.Pairing)).toBe(true);
+      expect(canTransition(OrderStatus.Executing, OrderStatus.Selecting)).toBe(true);
+      expect(canTransition(OrderStatus.Executing, OrderStatus.Standby)).toBe(true);
+      expect(canTransition(OrderStatus.Selecting, OrderStatus.InProgress)).toBe(true);
+      expect(canTransition(OrderStatus.Selecting, OrderStatus.Standby)).toBe(true);
       expect(canTransition(OrderStatus.Pairing, OrderStatus.InProgress)).toBe(true);
       expect(canTransition(OrderStatus.InProgress, OrderStatus.Delivered)).toBe(true);
       expect(canTransition(OrderStatus.Disputed, OrderStatus.Delivered)).toBe(true);
@@ -154,8 +185,14 @@ describe('订单状态机', () => {
 
     it('应该与 assertTransition 保持一致', () => {
       const testCases: [OrderStatus, OrderStatus, boolean][] = [
+        [OrderStatus.Standby, OrderStatus.Executing, true],
         [OrderStatus.Standby, OrderStatus.Pairing, true],
         [OrderStatus.Standby, OrderStatus.Completed, false],
+        [OrderStatus.Executing, OrderStatus.Selecting, true],
+        [OrderStatus.Executing, OrderStatus.Standby, true],
+        [OrderStatus.Executing, OrderStatus.InProgress, false],
+        [OrderStatus.Selecting, OrderStatus.InProgress, true],
+        [OrderStatus.Selecting, OrderStatus.Standby, true],
         [OrderStatus.Pairing, OrderStatus.InProgress, true],
         [OrderStatus.Pairing, OrderStatus.Standby, true],
         [OrderStatus.InProgress, OrderStatus.Standby, false],
@@ -180,7 +217,17 @@ describe('订单状态机', () => {
   describe('getAllowedTransitions', () => {
     it('应该返回 Standby 的允许转换', () => {
       const allowed = getAllowedTransitions(OrderStatus.Standby);
-      expect(allowed).toEqual([OrderStatus.Pairing]);
+      expect(allowed).toEqual([OrderStatus.Executing, OrderStatus.Pairing]);
+    });
+
+    it('应该返回 Executing 的允许转换', () => {
+      const allowed = getAllowedTransitions(OrderStatus.Executing);
+      expect(allowed).toEqual([OrderStatus.Selecting, OrderStatus.Standby]);
+    });
+
+    it('应该返回 Selecting 的允许转换', () => {
+      const allowed = getAllowedTransitions(OrderStatus.Selecting);
+      expect(allowed).toEqual([OrderStatus.InProgress, OrderStatus.Standby]);
     });
 
     it('应该返回 Pairing 的允许转换', () => {
@@ -320,7 +367,24 @@ describe('订单状态机', () => {
   });
 
   describe('关键业务流程验证', () => {
-    it('正常流程：Standby -> Pairing -> InProgress -> Delivered -> Accepted -> Paid -> Completed', () => {
+    it('新流程：Standby -> Executing -> Selecting -> InProgress -> Delivered -> Accepted -> Paid -> Completed', () => {
+      const newFlow = [
+        OrderStatus.Standby,
+        OrderStatus.Executing,
+        OrderStatus.Selecting,
+        OrderStatus.InProgress,
+        OrderStatus.Delivered,
+        OrderStatus.Accepted,
+        OrderStatus.Paid,
+        OrderStatus.Completed,
+      ];
+
+      for (let i = 0; i < newFlow.length - 1; i++) {
+        expect(() => assertTransition(newFlow[i], newFlow[i + 1])).not.toThrow();
+      }
+    });
+
+    it('旧流程（兼容）：Standby -> Pairing -> InProgress -> Delivered -> Accepted -> Paid -> Completed', () => {
       const normalFlow = [
         OrderStatus.Standby,
         OrderStatus.Pairing,
@@ -417,6 +481,14 @@ describe('订单状态机', () => {
 
     it('TTL 过期回滚：Pairing -> Standby', () => {
       expect(() => assertTransition(OrderStatus.Pairing, OrderStatus.Standby)).not.toThrow();
+    });
+
+    it('执行超时回滚：Executing -> Standby', () => {
+      expect(() => assertTransition(OrderStatus.Executing, OrderStatus.Standby)).not.toThrow();
+    });
+
+    it('选择超时回滚：Selecting -> Standby', () => {
+      expect(() => assertTransition(OrderStatus.Selecting, OrderStatus.Standby)).not.toThrow();
     });
   });
 });

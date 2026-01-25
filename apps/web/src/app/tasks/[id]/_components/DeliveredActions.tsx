@@ -20,6 +20,12 @@ type DeliveryInfo = {
   submittedAt: string;
 };
 
+type DeliveryResponse = {
+  delivery: DeliveryInfo;
+  deliveredAt: string | null;
+  autoAcceptDeadline: string | null;
+};
+
 type AcceptResult = {
   success: boolean;
   newStatus: string;
@@ -52,12 +58,12 @@ export function DeliveredActions({ task, order }: DeliveredActionsProps) {
   useEffect(() => {
     const fetchDelivery = async () => {
       try {
-        const deliveryData = await apiFetch<DeliveryInfo>(`/orders/${order.id}/delivery`, {
+        const response = await apiFetch<DeliveryResponse>(`/orders/${order.id}/delivery`, {
           headers: {
             'x-user-id': task.creatorId,
           },
         });
-        setDelivery(deliveryData);
+        setDelivery(response.delivery);
       } catch (err) {
         console.error('Failed to fetch delivery:', err);
       }
