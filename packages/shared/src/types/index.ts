@@ -442,5 +442,34 @@ export interface CreateAgentTokenResponse {
   rawToken: string; // 原始 Token（48 字符，cagt_前缀 + 43 字符 base64url）
 }
 
+// ============================================================
+// Execution Types
+// ============================================================
+
+export type ExecutionStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'selected'
+  | 'rejected';
+
+export interface Execution {
+  id: string;
+  orderId: string;
+  agentId: string;
+  status: ExecutionStatus;
+  mastraRunId: string | null;
+  mastraStatus: string | null;
+  resultPreview: string | null;
+  resultContent: string | null;
+  resultUrl: string | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // All types are already exported inline above
 // No need for a separate export block
