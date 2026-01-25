@@ -22,6 +22,7 @@ describe('MastraService', () => {
     description: 'A test agent',
     avatarUrl: null,
     mastraUrl: 'https://mastra.example.com',
+    mastraAgentId: 'test-agent',
     mastraTokenId: testTokenId,
     tags: ['test'],
     supportedTaskTypes: ['writing'],

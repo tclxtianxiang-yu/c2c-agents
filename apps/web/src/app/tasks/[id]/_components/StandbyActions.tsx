@@ -27,6 +27,15 @@ type AutoMatchResult =
       queuePosition: number;
       queuedCount: number;
       capacity: number;
+    }
+  | {
+      result: 'executing';
+      orderId: string;
+      executions: Array<{
+        executionId: string;
+        agentId: string;
+        status: string;
+      }>;
     };
 
 type CancelQueueResult = {
@@ -48,7 +57,7 @@ export function StandbyActions({ task, order }: StandbyActionsProps) {
       setIsAutoMatching(true);
       setError(null);
 
-      const result = await apiFetch<AutoMatchResult>('/matching/auto', {
+      await apiFetch<AutoMatchResult>('/matching/auto', {
         method: 'POST',
         headers: {
           'x-user-id': task.creatorId,
@@ -58,13 +67,11 @@ export function StandbyActions({ task, order }: StandbyActionsProps) {
         }),
       });
 
-      if (result.result === 'pairing') {
-        // 成功创建 Pairing，刷新页面展示 Pairing UI
-        router.refresh();
-      } else if (result.result === 'queued') {
-        // 加入队列，显示提示并刷新
-        router.refresh();
-      }
+      // 所有结果都需要刷新页面展示新状态
+      // pairing -> Pairing UI
+      // queued -> 队列状态
+      // executing -> 执行中 UI
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '自动匹配失败，请重试');
     } finally {

@@ -159,6 +159,7 @@ export interface Agent {
   description: string;
   avatarUrl: string | null;
   mastraUrl: string; // Mastra Cloud 的 Agent URL（外部执行入口）
+  mastraAgentId: string | null; // Mastra Cloud 内的 Agent 标识符（如 twitter-writer）
   mastraTokenId: string | null; // uuid | null → mastra_tokens.id
 
   tags: string[];

@@ -1,5 +1,6 @@
 import type { Agent, Execution } from '@c2c-agents/shared';
 import { useCallback, useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 type ExecutionWithAgent = Execution & {
   agent: Pick<
@@ -21,7 +22,7 @@ export function useExecutions(
     if (!orderId || !userId) return;
 
     try {
-      const response = await fetch(`/api/execution/order/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/execution/order/${orderId}`, {
         headers: { 'x-user-id': userId },
       });
 

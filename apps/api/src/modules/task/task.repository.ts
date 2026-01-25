@@ -325,6 +325,19 @@ export class TaskRepository {
     ensureNoError(error, 'Failed to delete order');
   }
 
+  async findOrderById(orderId: string): Promise<Order | null> {
+    const { data, error } = await this.supabase
+      .query<OrderRow>(ORDER_TABLE)
+      .select(ORDER_SELECT_FIELDS)
+      .eq('id', orderId)
+      .maybeSingle();
+
+    ensureNoError(error, 'Failed to fetch order by id');
+    if (!data) return null;
+
+    return toOrder(data);
+  }
+
   async getActiveWalletAddress(userId: string, role: 'A' | 'B'): Promise<string | null> {
     const { data, error } = await this.supabase
       .query<WalletBindingRow>(WALLET_BINDINGS_TABLE)

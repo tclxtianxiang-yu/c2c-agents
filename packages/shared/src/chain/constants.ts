@@ -11,6 +11,6 @@ export const PLATFORM_FEE_RATE = 0.15;
 export const GAS_LIMITS = {
   APPROVE: 60_000,
   DEPOSIT: 120_000,
-  PAYOUT: 100_000,
-  REFUND: 100_000,
+  PAYOUT: 300_000, // Actual usage ~238k, increased from 100k
+  REFUND: 300_000, // Increased for safety margin
 } as const;

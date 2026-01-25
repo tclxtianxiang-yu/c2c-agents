@@ -97,6 +97,7 @@ type TimelineEvent = {
 };
 
 function getTimelineEvents(order: Order): TimelineEvent[] {
+  // 简化的4步流程：订单创建 → 匹配成功 → 任务交付 → 验收成单
   return [
     {
       label: '订单创建',
@@ -104,14 +105,9 @@ function getTimelineEvents(order: Order): TimelineEvent[] {
       completed: true,
     },
     {
-      label: '支付完成',
-      timestamp: order.paidAt,
-      completed: !!order.paidAt,
-    },
-    {
-      label: '配对成功',
-      timestamp: order.acceptedAt,
-      completed: !!order.acceptedAt,
+      label: '匹配成功',
+      timestamp: order.pairingCreatedAt,
+      completed: !!order.pairingCreatedAt,
     },
     {
       label: '任务交付',
@@ -119,9 +115,9 @@ function getTimelineEvents(order: Order): TimelineEvent[] {
       completed: !!order.deliveredAt,
     },
     {
-      label: '验收完成',
-      timestamp: order.completedAt || order.autoAcceptedAt,
-      completed: !!(order.completedAt || order.autoAcceptedAt),
+      label: '验收成单',
+      timestamp: order.acceptedAt || order.autoAcceptedAt,
+      completed: !!(order.acceptedAt || order.autoAcceptedAt),
     },
   ];
 }

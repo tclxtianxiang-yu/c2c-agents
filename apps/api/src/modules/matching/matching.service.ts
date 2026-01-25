@@ -135,9 +135,9 @@ export class MatchingService {
       validAgents.map((a) => a.id)
     );
 
-    // 6. Update order status -> Executing
+    // 6. Update order status -> Executing (同时设置 pairing_created_at 表示匹配成功)
     assertTransition(OrderStatus.Standby, OrderStatus.Executing);
-    await this.repository.updateOrderStatus(order.id, OrderStatus.Executing);
+    await this.repository.updateOrderMatched(order.id, OrderStatus.Executing);
     await this.repository.updateOrderExecutionPhase(order.id, 'executing');
     await this.repository.updateTaskCurrentStatus(task.id, OrderStatus.Executing);
 
@@ -411,8 +411,8 @@ export class MatchingService {
    * This method does not block the autoMatch return
    */
   private triggerMastraExecutions(
-    task: { id: string; type: string; description?: string },
-    _order: { id: string },
+    task: { id: string; title?: string; type: string; description?: string },
+    order: { id: string },
     executions: Execution[],
     _agents: Array<{ id: string }>
   ): void {
@@ -429,17 +429,26 @@ export class MatchingService {
           // Call Mastra to execute task
           const result = await this.mastraService.executeTask({
             agentId: execution.agentId,
+            taskTitle: task.title,
             taskDescription: task.description ?? '',
             taskType: task.type,
           });
 
-          // Update with Mastra runId
+          // Update with Mastra runId and status
           await this.executionRepository.updateExecution(execution.id, {
             mastraRunId: result.runId,
             mastraStatus: result.status,
           });
 
-          if (result.status === 'failed') {
+          if (result.status === 'completed') {
+            await this.executionRepository.updateExecution(execution.id, {
+              status: 'completed',
+              resultContent: result.content,
+              resultPreview: result.preview,
+              resultUrl: result.url,
+              completedAt: new Date().toISOString(),
+            });
+          } else if (result.status === 'failed') {
             await this.executionRepository.updateExecution(execution.id, {
               status: 'failed',
               errorMessage: result.error,
@@ -455,6 +464,14 @@ export class MatchingService {
           });
         }
       }
+
+      // All executions finished - transition to selecting phase
+      this.logger.log(
+        `All executions completed for order ${order.id}, transitioning to selecting phase`
+      );
+      await this.repository.updateOrderStatus(order.id, OrderStatus.Selecting);
+      await this.repository.updateOrderExecutionPhase(order.id, 'selecting');
+      await this.repository.updateTaskCurrentStatus(task.id, OrderStatus.Selecting);
     })().catch((err) => {
       this.logger.error('Error in triggerMastraExecutions:', err);
     });

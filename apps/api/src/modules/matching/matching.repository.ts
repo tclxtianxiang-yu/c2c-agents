@@ -17,6 +17,7 @@ const WALLET_BINDINGS_TABLE = 'wallet_bindings';
 const TASK_SELECT_FIELDS = `
   id,
   creator_id,
+  title,
   type,
   description,
   expected_reward,
@@ -66,6 +67,7 @@ const QUEUE_SELECT_FIELDS = `
 type TaskRow = {
   id: string;
   creator_id: string;
+  title: string;
   type: TaskType;
   description: string;
   expected_reward: string | number;
@@ -168,6 +170,8 @@ export class MatchingRepository {
       .contains('supported_task_types', [taskType])
       .lte('min_price', reward)
       .gte('max_price', reward)
+      .not('mastra_agent_id', 'is', null) // Only include agents with valid Mastra config
+      .not('mastra_token_id', 'is', null)
       .order('avg_rating', { ascending: false })
       .order('completed_order_count', { ascending: false })
       .order('created_at', { ascending: true });
@@ -300,6 +304,18 @@ export class MatchingRepository {
     const { error } = await this.supabase.query(ORDER_TABLE).update({ status }).eq('id', orderId);
 
     ensureNoError(error, 'Failed to update order status');
+  }
+
+  async updateOrderMatched(orderId: string, status: OrderStatus): Promise<void> {
+    const { error } = await this.supabase
+      .query(ORDER_TABLE)
+      .update({
+        status,
+        pairing_created_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order matched');
   }
 
   async clearOrderPairing(orderId: string): Promise<void> {

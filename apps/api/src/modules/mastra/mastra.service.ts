@@ -4,21 +4,13 @@ import { MastraTokenService } from '../mastra-token/mastra-token.service';
 
 export type MastraExecuteParams = {
   agentId: string;
+  taskTitle?: string;
   taskDescription: string;
   taskType: string;
   attachments?: string[];
 };
 
 export type MastraExecuteResult = {
-  runId: string;
-  status: 'running' | 'completed' | 'failed';
-  preview?: string;
-  content?: string;
-  url?: string;
-  error?: string;
-};
-
-type MastraApiExecuteResponse = {
   runId: string;
   status: 'running' | 'completed' | 'failed';
   preview?: string;
@@ -55,9 +47,13 @@ export class MastraService {
       return { valid: false, error: 'Agent not found' };
     }
 
-    // 2. Check if mastraTokenId and mastraUrl are configured
+    // 2. Check if mastraUrl, mastraAgentId and mastraTokenId are configured
     if (!agent.mastraUrl) {
       return { valid: false, error: 'Agent does not have a Mastra URL configured' };
+    }
+
+    if (!agent.mastraAgentId) {
+      return { valid: false, error: 'Agent does not have a Mastra Agent ID configured' };
     }
 
     if (!agent.mastraTokenId) {
@@ -93,17 +89,25 @@ export class MastraService {
       throw new Error(`Agent ${agentId} does not have a Mastra Token configured`);
     }
 
+    if (!agent.mastraAgentId) {
+      throw new Error(`Agent ${agentId} does not have a Mastra Agent ID configured`);
+    }
+
     const token = await this.tokenService.getTokenForAgent(agent.mastraTokenId);
     if (!token) {
       throw new Error(`Mastra Token not found for agent ${agentId}`);
     }
 
-    // 2. Call Mastra Cloud API: POST {agent.mastraUrl}/api/agents/execute
-    const executeUrl = `${agent.mastraUrl}/api/agents/execute`;
+    // 2. Call Mastra Cloud API: POST {agent.mastraUrl}/api/agents/{mastraAgentId}/generate
+    const executeUrl = `${agent.mastraUrl}/api/agents/${encodeURIComponent(agent.mastraAgentId)}/generate`;
 
     this.logger.log(`Executing task for agent ${agentId} at ${executeUrl}`);
 
     try {
+      // Build prompt from task info
+      const titlePart = params.taskTitle ? `任务标题: ${params.taskTitle}\n\n` : '';
+      const prompt = `${titlePart}任务类型: ${taskType}\n\n任务描述:\n${taskDescription}${attachments?.length ? `\n\n附件: ${attachments.join(', ')}` : ''}`;
+
       const response = await fetch(executeUrl, {
         method: 'POST',
         headers: {
@@ -111,9 +115,7 @@ export class MastraService {
           Authorization: `Bearer ${token.token}`,
         },
         body: JSON.stringify({
-          taskDescription,
-          taskType,
-          attachments: attachments ?? [],
+          messages: [{ role: 'user', content: prompt }],
         }),
       });
 
@@ -129,17 +131,20 @@ export class MastraService {
         };
       }
 
-      const data = (await response.json()) as MastraApiExecuteResponse;
+      // Mastra Cloud's /generate endpoint returns the result synchronously
+      const data = (await response.json()) as { text?: string; content?: string; error?: string };
 
-      this.logger.log(`Task execution started for agent ${agentId}, runId: ${data.runId}`);
+      this.logger.log(`Task execution completed for agent ${agentId}`);
 
-      // 3. Return runId and initial status
+      // Extract content from response (Mastra may return text or content field)
+      const content = data.text ?? data.content ?? '';
+
+      // 3. Return completed status with content (synchronous execution)
       return {
-        runId: data.runId,
-        status: data.status,
-        preview: data.preview,
-        content: data.content,
-        url: data.url,
+        runId: `sync-${Date.now()}`, // Generate a pseudo runId for tracking
+        status: 'completed',
+        content,
+        preview: content.slice(0, 200), // First 200 chars as preview
         error: data.error,
       };
     } catch (error) {

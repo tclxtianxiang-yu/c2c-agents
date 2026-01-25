@@ -2,6 +2,8 @@
 
 import type { Order, Task } from '@c2c-agents/shared';
 import { Card } from '@c2c-agents/ui';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import { ExecutionOrbs } from '@/components/execution';
 import { useExecutions } from '@/hooks/use-executions';
 
@@ -12,12 +14,27 @@ type Props = {
 };
 
 export function ExecutingActions({ task: _task, order, currentUserId }: Props) {
+  const router = useRouter();
   const { executions, isLoading, error } = useExecutions(order.id, currentUserId);
+  const hasRefreshed = useRef(false);
 
   // Check if all executions have finished (condition to enter selection phase)
   const allCompleted =
     executions.length > 0 &&
     executions.every((e) => e.status === 'completed' || e.status === 'failed');
+
+  // Auto-refresh when all executions complete
+  useEffect(() => {
+    if (!allCompleted || hasRefreshed.current) {
+      return;
+    }
+    hasRefreshed.current = true;
+    // Small delay to show the completion message
+    const timer = setTimeout(() => {
+      router.refresh();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [allCompleted, router]);
 
   return (
     <Card className="p-6">

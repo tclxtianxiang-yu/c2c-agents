@@ -292,4 +292,81 @@ export class ExecutionRepository {
       executionPhase: data.execution_phase,
     };
   }
+
+  async updateOrderAfterSelection(
+    orderId: string,
+    status: string,
+    executionPhase: 'executing' | 'selecting' | 'completed' | null
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .query('orders')
+      .update({ status, execution_phase: executionPhase })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order after selection');
+  }
+
+  async updateTaskCurrentStatus(taskId: string, status: string): Promise<void> {
+    const { error } = await this.supabase
+      .query('tasks')
+      .update({ current_status: status })
+      .eq('id', taskId);
+
+    ensureNoError(error, 'Failed to update task current status');
+  }
+
+  async findTaskIdByOrderId(orderId: string): Promise<string | null> {
+    const { data, error } = await this.supabase
+      .query<{ task_id: string }>('orders')
+      .select('task_id')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    ensureNoError(error, 'Failed to fetch task ID');
+    return data?.task_id ?? null;
+  }
+
+  async createDeliveryFromExecution(
+    orderId: string,
+    providerId: string,
+    contentText: string
+  ): Promise<void> {
+    const { error } = await this.supabase.query('deliveries').insert({
+      order_id: orderId,
+      provider_id: providerId,
+      content_text: contentText,
+      external_url: null,
+    });
+
+    ensureNoError(error, 'Failed to create delivery');
+  }
+
+  async updateOrderDeliveredAt(orderId: string): Promise<void> {
+    const { error } = await this.supabase
+      .query('orders')
+      .update({ delivered_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order delivered_at');
+  }
+
+  async findAgentOwnerId(agentId: string): Promise<string | null> {
+    const { data, error } = await this.supabase
+      .query<{ owner_id: string }>('agents')
+      .select('owner_id')
+      .eq('id', agentId)
+      .maybeSingle();
+
+    ensureNoError(error, 'Failed to fetch agent owner');
+    return data?.owner_id ?? null;
+  }
+
+  async updateOrderProvider(orderId: string, agentId: string, providerId: string): Promise<void> {
+    const { error } = await this.supabase
+      .query('orders')
+      .update({ agent_id: agentId, provider_id: providerId })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order provider');
+  }
 }

@@ -5,6 +5,7 @@ import { Button, Card } from '@c2c-agents/ui';
 import { useState } from 'react';
 import { ExecutionOrbs } from '@/components/execution';
 import { useExecutions } from '@/hooks/use-executions';
+import { API_BASE_URL } from '@/lib/api';
 
 type Props = {
   task: Task;
@@ -39,7 +40,7 @@ export function SelectingActions({ task: _task, order, currentUserId }: Props) {
     setSubmitError(null);
 
     try {
-      const response = await fetch('/api/execution/select', {
+      const response = await fetch(`${API_BASE_URL}/execution/select`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

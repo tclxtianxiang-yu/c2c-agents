@@ -140,6 +140,46 @@ export class ExecutionService {
         : Promise.resolve([]),
     ]);
 
+    // Update order status based on selection
+    const taskId = await this.repository.findTaskIdByOrderId(orderId);
+    if (selectedExecutionIds.length > 0) {
+      // User selected at least one execution -> create delivery and mark as Delivered
+      // Agent 已经执行完毕，选择结果就是交付内容，直接进入 Delivered 状态
+
+      // 1. 获取第一个选中执行的 agentId 和对应的 owner_id 作为 providerId
+      const firstSelectedExecution = selectedExecutions[0];
+      const selectedAgentId = firstSelectedExecution.agentId;
+      const agentOwnerId = await this.repository.findAgentOwnerId(selectedAgentId);
+      const providerId = agentOwnerId ?? order.creatorId;
+
+      // 2. 更新订单的 agent_id 和 provider_id
+      await this.repository.updateOrderProvider(orderId, selectedAgentId, providerId);
+
+      // 3. 合并所有选中执行的结果内容作为交付内容
+      const selectedResults = selectedExecutions
+        .map((e) => e.resultContent)
+        .filter((content): content is string => content !== null && content !== undefined);
+      const deliveryContent =
+        selectedResults.length > 0 ? selectedResults.join('\n\n---\n\n') : '执行结果已选择';
+
+      // 4. 创建交付记录
+      await this.repository.createDeliveryFromExecution(orderId, providerId, deliveryContent);
+
+      // 5. 更新订单状态为 Delivered
+      await this.repository.updateOrderAfterSelection(orderId, 'Delivered', 'completed');
+      await this.repository.updateOrderDeliveredAt(orderId);
+
+      if (taskId) {
+        await this.repository.updateTaskCurrentStatus(taskId, 'Delivered');
+      }
+    } else {
+      // User selected nothing -> return to Standby
+      await this.repository.updateOrderAfterSelection(orderId, 'Standby', null);
+      if (taskId) {
+        await this.repository.updateTaskCurrentStatus(taskId, 'Standby');
+      }
+    }
+
     return { selectedExecutions, rejectedExecutions };
   }
 }
