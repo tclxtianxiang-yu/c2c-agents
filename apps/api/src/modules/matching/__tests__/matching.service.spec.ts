@@ -10,6 +10,8 @@ import {
 import { HttpException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { ExecutionRepository } from '../../execution/execution.repository';
+import { MastraService } from '../../mastra/mastra.service';
 import { MatchingRepository } from '../matching.repository';
 import { MatchingService } from '../matching.service';
 
@@ -92,6 +94,14 @@ describe('MatchingService', () => {
           provide: MatchingRepository,
           useValue: mockRepository,
         },
+        {
+          provide: ExecutionRepository,
+          useValue: {},
+        },
+        {
+          provide: MastraService,
+          useValue: {},
+        },
       ],
     }).compile();
 
@@ -112,7 +122,7 @@ describe('MatchingService', () => {
       });
       mockRepository.updateTaskCurrentStatus.mockResolvedValue(undefined);
 
-      const result = await service.autoMatch(testUserId, mockTask.id);
+      const result = await service.autoMatchLegacy(testUserId, mockTask.id);
 
       expect(result).toEqual({
         result: 'pairing',
@@ -156,7 +166,7 @@ describe('MatchingService', () => {
         },
       ]);
 
-      const result = await service.autoMatch(testUserId, mockTask.id);
+      const result = await service.autoMatchLegacy(testUserId, mockTask.id);
 
       expect(result).toEqual({
         result: 'queued',
@@ -179,7 +189,9 @@ describe('MatchingService', () => {
       mockRepository.findOrderById.mockResolvedValue(mockOrder);
       mockRepository.listCandidateAgents.mockResolvedValue([]);
 
-      await expect(service.autoMatch(testUserId, mockTask.id)).rejects.toThrow(ValidationError);
+      await expect(service.autoMatchLegacy(testUserId, mockTask.id)).rejects.toThrow(
+        ValidationError
+      );
     });
 
     it('should throw error when all agents queue is full', async () => {
@@ -188,13 +200,15 @@ describe('MatchingService', () => {
       mockRepository.listCandidateAgents.mockResolvedValue([mockIdleAgent, mockBusyAgent]);
       mockRepository.getQueueCount.mockResolvedValue(QUEUE_MAX_N);
 
-      await expect(service.autoMatch(testUserId, mockTask.id)).rejects.toThrow(ValidationError);
+      await expect(service.autoMatchLegacy(testUserId, mockTask.id)).rejects.toThrow(
+        ValidationError
+      );
     });
 
     it('should throw 404 when task not found', async () => {
       mockRepository.findTaskById.mockResolvedValue(null);
 
-      await expectHttpStatus(service.autoMatch(testUserId, 'missing-task'), 404);
+      await expectHttpStatus(service.autoMatchLegacy(testUserId, 'missing-task'), 404);
     });
 
     it('should throw 403 when task does not belong to user', async () => {
@@ -203,7 +217,7 @@ describe('MatchingService', () => {
         creator_id: 'someone-else',
       });
 
-      await expectHttpStatus(service.autoMatch(testUserId, mockTask.id), 403);
+      await expectHttpStatus(service.autoMatchLegacy(testUserId, mockTask.id), 403);
     });
 
     it('should throw error when task is not published', async () => {
@@ -212,7 +226,9 @@ describe('MatchingService', () => {
         status: TaskStatus.Unpaid,
       });
 
-      await expect(service.autoMatch(testUserId, mockTask.id)).rejects.toThrow(ValidationError);
+      await expect(service.autoMatchLegacy(testUserId, mockTask.id)).rejects.toThrow(
+        ValidationError
+      );
     });
 
     it('should throw error when order is not in standby status', async () => {
@@ -222,7 +238,9 @@ describe('MatchingService', () => {
         status: OrderStatus.Pairing,
       });
 
-      await expect(service.autoMatch(testUserId, mockTask.id)).rejects.toThrow(ValidationError);
+      await expect(service.autoMatchLegacy(testUserId, mockTask.id)).rejects.toThrow(
+        ValidationError
+      );
     });
   });
 
@@ -464,7 +482,7 @@ describe('MatchingService', () => {
       });
       mockRepository.updateTaskCurrentStatus.mockResolvedValue(undefined);
 
-      const result = await service.autoMatch(testUserId, mockTask.id);
+      const result = await service.autoMatchLegacy(testUserId, mockTask.id);
 
       expect(result.result).toBe('pairing');
       expect(result.agentId).toBe(mockIdleAgent2.id);
@@ -478,7 +496,7 @@ describe('MatchingService', () => {
       // Both agents have full queues
       mockRepository.getQueueCount.mockResolvedValue(QUEUE_MAX_N);
 
-      await expect(service.autoMatch(testUserId, mockTask.id)).rejects.toThrow(
+      await expect(service.autoMatchLegacy(testUserId, mockTask.id)).rejects.toThrow(
         'No available agents with queue capacity'
       );
       expect(mockRepository.getQueueCount).toHaveBeenCalledTimes(2);
@@ -489,7 +507,7 @@ describe('MatchingService', () => {
     it('should throw error when userId is null or empty', async () => {
       mockRepository.findTaskById.mockResolvedValue(mockTask);
 
-      await expect(service.autoMatch('', mockTask.id)).rejects.toThrow(
+      await expect(service.autoMatchLegacy('', mockTask.id)).rejects.toThrow(
         'x-user-id header is required'
       );
     });
@@ -509,7 +527,7 @@ describe('MatchingService', () => {
       });
       mockRepository.updateTaskCurrentStatus.mockResolvedValue(undefined);
 
-      const result = await service.autoMatch(uuidUserId, mockTask.id);
+      const result = await service.autoMatchLegacy(uuidUserId, mockTask.id);
 
       expect(result.result).toBe('pairing');
       expect(mockRepository.findActiveUserIdByAddress).not.toHaveBeenCalled();
@@ -533,7 +551,7 @@ describe('MatchingService', () => {
       });
       mockRepository.updateTaskCurrentStatus.mockResolvedValue(undefined);
 
-      const result = await service.autoMatch(walletAddress, mockTask.id);
+      const result = await service.autoMatchLegacy(walletAddress, mockTask.id);
 
       expect(result.result).toBe('pairing');
       expect(mockRepository.findActiveUserIdByAddress).toHaveBeenCalledWith(walletAddress);
