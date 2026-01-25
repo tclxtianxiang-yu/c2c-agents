@@ -14,10 +14,13 @@ import { MatchingRepository } from '../matching.repository';
  * The actual database behavior with FOR UPDATE SKIP LOCKED would require integration tests.
  */
 
+// Helper to create typed mock functions
+const mockFn = () => jest.fn() as jest.Mock<any>;
+
 // Create mock Supabase service - use any to avoid complex typing issues
 const createMockSupabase = (): any => ({
-  query: jest.fn(),
-  rpc: jest.fn(),
+  query: mockFn(),
+  rpc: mockFn(),
 });
 
 describe('Queue Concurrency', () => {
@@ -50,8 +53,8 @@ describe('Queue Concurrency', () => {
 
       // First call: simulate unique constraint violation (PostgreSQL error code 23505)
       const insertMockChain = {
-        select: jest.fn<any>().mockReturnValue({
-          maybeSingle: jest.fn<any>().mockResolvedValue({
+        select: mockFn().mockReturnValue({
+          maybeSingle: mockFn().mockResolvedValue({
             data: null,
             error: { code: '23505', message: 'duplicate key value violates unique constraint' },
           }),
@@ -60,8 +63,8 @@ describe('Queue Concurrency', () => {
 
       // Second call: find existing item (fallback query after 23505)
       const selectMockChain = {
-        eq: jest.fn<any>().mockReturnThis(),
-        maybeSingle: jest.fn<any>().mockResolvedValue({
+        eq: mockFn().mockReturnThis(),
+        maybeSingle: mockFn().mockResolvedValue({
           data: existingItem,
           error: null,
         }),
@@ -69,10 +72,10 @@ describe('Queue Concurrency', () => {
 
       mockSupabase.query
         .mockReturnValueOnce({
-          insert: jest.fn<any>().mockReturnValue(insertMockChain),
+          insert: mockFn().mockReturnValue(insertMockChain),
         })
         .mockReturnValueOnce({
-          select: jest.fn<any>().mockReturnValue(selectMockChain),
+          select: mockFn().mockReturnValue(selectMockChain),
         });
 
       const result = await repository.enqueueQueueItem(agentId, taskId, orderId);
@@ -94,8 +97,8 @@ describe('Queue Concurrency', () => {
       };
 
       const insertMockChain = {
-        select: jest.fn<any>().mockReturnValue({
-          maybeSingle: jest.fn<any>().mockResolvedValue({
+        select: mockFn().mockReturnValue({
+          maybeSingle: mockFn().mockResolvedValue({
             data: newItem,
             error: null,
           }),
@@ -103,7 +106,7 @@ describe('Queue Concurrency', () => {
       };
 
       mockSupabase.query.mockReturnValue({
-        insert: jest.fn<any>().mockReturnValue(insertMockChain),
+        insert: mockFn().mockReturnValue(insertMockChain),
       });
 
       const result = await repository.enqueueQueueItem(agentId, taskId, orderId);
@@ -115,8 +118,8 @@ describe('Queue Concurrency', () => {
 
     it('should throw error for non-23505 database errors', async () => {
       const insertMockChain = {
-        select: jest.fn<any>().mockReturnValue({
-          maybeSingle: jest.fn<any>().mockResolvedValue({
+        select: mockFn().mockReturnValue({
+          maybeSingle: mockFn().mockResolvedValue({
             data: null,
             error: { code: '42P01', message: 'relation "queue_items" does not exist' },
           }),
@@ -124,7 +127,7 @@ describe('Queue Concurrency', () => {
       };
 
       mockSupabase.query.mockReturnValue({
-        insert: jest.fn<any>().mockReturnValue(insertMockChain),
+        insert: mockFn().mockReturnValue(insertMockChain),
       });
 
       await expect(repository.enqueueQueueItem(agentId, taskId, orderId)).rejects.toThrow(
@@ -148,8 +151,8 @@ describe('Queue Concurrency', () => {
 
       // Request A: successful insert
       const insertSuccessMockChain = {
-        select: jest.fn<any>().mockReturnValue({
-          maybeSingle: jest.fn<any>().mockResolvedValue({
+        select: mockFn().mockReturnValue({
+          maybeSingle: mockFn().mockResolvedValue({
             data: firstItem,
             error: null,
           }),
@@ -158,8 +161,8 @@ describe('Queue Concurrency', () => {
 
       // Request B: 23505 violation, then finds existing
       const insertConflictMockChain = {
-        select: jest.fn<any>().mockReturnValue({
-          maybeSingle: jest.fn<any>().mockResolvedValue({
+        select: mockFn().mockReturnValue({
+          maybeSingle: mockFn().mockResolvedValue({
             data: null,
             error: { code: '23505', message: 'duplicate key' },
           }),
@@ -167,8 +170,8 @@ describe('Queue Concurrency', () => {
       };
 
       const selectExistingMockChain = {
-        eq: jest.fn<any>().mockReturnThis(),
-        maybeSingle: jest.fn<any>().mockResolvedValue({
+        eq: mockFn().mockReturnThis(),
+        maybeSingle: mockFn().mockResolvedValue({
           data: firstItem,
           error: null,
         }),
@@ -176,7 +179,7 @@ describe('Queue Concurrency', () => {
 
       // Simulate Request A
       mockSupabase.query.mockReturnValueOnce({
-        insert: jest.fn<any>().mockReturnValue(insertSuccessMockChain),
+        insert: mockFn().mockReturnValue(insertSuccessMockChain),
       });
 
       const resultA = await repository.enqueueQueueItem(agentId, taskId, orderId);
@@ -184,10 +187,10 @@ describe('Queue Concurrency', () => {
       // Reset and simulate Request B
       mockSupabase.query
         .mockReturnValueOnce({
-          insert: jest.fn<any>().mockReturnValue(insertConflictMockChain),
+          insert: mockFn().mockReturnValue(insertConflictMockChain),
         })
         .mockReturnValueOnce({
-          select: jest.fn<any>().mockReturnValue(selectExistingMockChain),
+          select: mockFn().mockReturnValue(selectExistingMockChain),
         });
 
       const resultB = await repository.enqueueQueueItem(agentId, taskId, orderId);
@@ -367,8 +370,8 @@ describe('Queue Concurrency', () => {
 
       // First call: insert succeeds
       const insertSuccessMockChain = {
-        select: jest.fn<any>().mockReturnValue({
-          maybeSingle: jest.fn<any>().mockResolvedValue({
+        select: mockFn().mockReturnValue({
+          maybeSingle: mockFn().mockResolvedValue({
             data: existingItem,
             error: null,
           }),
@@ -376,15 +379,15 @@ describe('Queue Concurrency', () => {
       };
 
       mockSupabase.query.mockReturnValue({
-        insert: jest.fn<any>().mockReturnValue(insertSuccessMockChain),
+        insert: mockFn().mockReturnValue(insertSuccessMockChain),
       });
 
       const result1 = await repository.enqueueQueueItem(agentId, taskId, orderId);
 
       // Reset mock for second call: insert fails with 23505
       const insertConflictMockChain = {
-        select: jest.fn<any>().mockReturnValue({
-          maybeSingle: jest.fn<any>().mockResolvedValue({
+        select: mockFn().mockReturnValue({
+          maybeSingle: mockFn().mockResolvedValue({
             data: null,
             error: { code: '23505', message: 'duplicate key' },
           }),
@@ -392,8 +395,8 @@ describe('Queue Concurrency', () => {
       };
 
       const selectExistingMockChain = {
-        eq: jest.fn<any>().mockReturnThis(),
-        maybeSingle: jest.fn<any>().mockResolvedValue({
+        eq: mockFn().mockReturnThis(),
+        maybeSingle: mockFn().mockResolvedValue({
           data: existingItem,
           error: null,
         }),
@@ -401,10 +404,10 @@ describe('Queue Concurrency', () => {
 
       mockSupabase.query
         .mockReturnValueOnce({
-          insert: jest.fn<any>().mockReturnValue(insertConflictMockChain),
+          insert: mockFn().mockReturnValue(insertConflictMockChain),
         })
         .mockReturnValueOnce({
-          select: jest.fn<any>().mockReturnValue(selectExistingMockChain),
+          select: mockFn().mockReturnValue(selectExistingMockChain),
         });
 
       const result2 = await repository.enqueueQueueItem(agentId, taskId, orderId);
