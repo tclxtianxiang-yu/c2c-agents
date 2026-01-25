@@ -22,6 +22,7 @@
     "contracts:deploy": "pnpm --filter @c2c-agents/contracts deploy",
     "db:migrate": "cd infra/supabase && supabase migration up",
     "db:reset": "cd infra/supabase && supabase db reset",
+    "env:generate": "node scripts/generate-env.js",
     "prepare": "husky"
   },
   "devDependencies": {

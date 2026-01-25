@@ -46,7 +46,9 @@ const AGENT_SELECT_FIELDS = `
   status,
   avg_rating,
   completed_order_count,
-  is_listed
+  queue_size,
+  is_listed,
+  created_at
 `;
 
 const QUEUE_SELECT_FIELDS = `
@@ -89,7 +91,9 @@ type AgentRow = {
   status: AgentStatus;
   avg_rating: number;
   completed_order_count: number;
+  queue_size: number;
   is_listed: boolean;
+  created_at: string;
 };
 
 type QueueItemRow = {
@@ -172,6 +176,17 @@ export class MatchingRepository {
       .eq('status', QueueItemStatus.Queued);
 
     ensureNoError(error, 'Failed to fetch queue count');
+    return count ?? 0;
+  }
+
+  async getInProgressOrderCount(agentId: string): Promise<number> {
+    const { count, error } = await this.supabase
+      .query<OrderRow>(ORDER_TABLE)
+      .select('id', { head: true, count: 'exact' })
+      .eq('agent_id', agentId)
+      .eq('status', OrderStatus.InProgress);
+
+    ensureNoError(error, 'Failed to fetch InProgress order count');
     return count ?? 0;
   }
 
@@ -271,5 +286,127 @@ export class MatchingRepository {
     ensureNoError(error, 'Failed to fetch user id by wallet address');
     if (!data?.length) return null;
     return data[0].user_id ?? null;
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
+    const { error } = await this.supabase.query(ORDER_TABLE).update({ status }).eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order status');
+  }
+
+  async clearOrderPairing(orderId: string): Promise<void> {
+    const { error } = await this.supabase
+      .query(ORDER_TABLE)
+      .update({
+        status: OrderStatus.Standby,
+        agent_id: null,
+        provider_id: null,
+        pairing_created_at: null,
+      })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to clear order pairing');
+  }
+
+  async updateAgentStatus(
+    agentId: string,
+    status: AgentStatus,
+    currentOrderId: string | null
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .query(AGENT_TABLE)
+      .update({
+        status,
+        current_order_id: currentOrderId,
+      })
+      .eq('id', agentId);
+
+    ensureNoError(error, 'Failed to update agent status');
+  }
+
+  async cancelQueueItem(agentId: string, orderId: string): Promise<void> {
+    const { error } = await this.supabase
+      .query(QUEUE_TABLE)
+      .update({
+        status: QueueItemStatus.Canceled,
+        canceled_at: new Date().toISOString(),
+      })
+      .eq('agent_id', agentId)
+      .eq('order_id', orderId)
+      .eq('status', QueueItemStatus.Queued);
+
+    ensureNoError(error, 'Failed to cancel queue item');
+  }
+
+  async findExpiredPairings(expirationThreshold: string): Promise<OrderRow[]> {
+    const { data, error } = await this.supabase
+      .query<OrderRow>(ORDER_TABLE)
+      .select(ORDER_SELECT_FIELDS)
+      .eq('status', OrderStatus.Pairing)
+      .lt('pairing_created_at', expirationThreshold);
+
+    ensureNoError(error, 'Failed to find expired pairings');
+    return data ?? [];
+  }
+
+  /**
+   * 原子抢占队列中的下一个 Order（使用 FOR UPDATE SKIP LOCKED）
+   * @param agentId Agent ID
+   * @returns 消费的 QueueItem，若队列为空则返回 null
+   */
+  async atomicConsumeQueueItem(agentId: string): Promise<QueueItemRow | null> {
+    // 使用 RPC 调用存储过程来执行原子 UPDATE
+    // 注意：这需要在数据库中创建相应的存储过程
+    // 由于 Supabase 客户端不直接支持 FOR UPDATE SKIP LOCKED，
+    // 我们需要通过 RPC 或原生 SQL 来实现
+
+    // 临时方案：使用两步操作（查询 + 更新）
+    // 在生产环境中应该使用 RPC 存储过程来保证原子性
+    const { data: queueItems, error: selectError } = await this.supabase
+      .query<QueueItemRow>(QUEUE_TABLE)
+      .select(QUEUE_SELECT_FIELDS)
+      .eq('agent_id', agentId)
+      .eq('status', QueueItemStatus.Queued)
+      .order('created_at', { ascending: true })
+      .limit(1);
+
+    ensureNoError(selectError, 'Failed to fetch queue item for consumption');
+
+    if (!queueItems?.length) {
+      return null;
+    }
+
+    const queueItem = queueItems[0];
+
+    // 更新状态为 Consumed
+    const { data: updatedItem, error: updateError } = await this.supabase
+      .query<QueueItemRow>(QUEUE_TABLE)
+      .update({
+        status: QueueItemStatus.Consumed,
+        consumed_at: new Date().toISOString(),
+      })
+      .eq('id', queueItem.id)
+      .eq('status', QueueItemStatus.Queued) // 防止重复消费
+      .select(QUEUE_SELECT_FIELDS)
+      .maybeSingle();
+
+    if (updateError) {
+      // 如果更新失败（可能被其他并发请求抢占），返回 null
+      console.warn(`Failed to consume queue item ${queueItem.id}:`, updateError);
+      return null;
+    }
+
+    return updatedItem ?? null;
+  }
+
+  async updateAgentQueueSize(agentId: string, delta: number): Promise<void> {
+    const { error } = await this.supabase
+      .query(AGENT_TABLE)
+      .update({
+        queue_size: delta,
+      })
+      .eq('id', agentId);
+
+    ensureNoError(error, 'Failed to update agent queue size');
   }
 }
