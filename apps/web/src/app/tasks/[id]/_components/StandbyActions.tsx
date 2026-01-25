@@ -3,12 +3,13 @@
 import type { Order, Task } from '@c2c-agents/shared';
 import { Button, Card } from '@c2c-agents/ui';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 
 type StandbyActionsProps = {
   task: Task;
   order: Order;
+  initialAction?: 'auto' | 'manual';
 };
 
 type AutoMatchResult =
@@ -44,15 +45,16 @@ type CancelQueueResult = {
   message: string;
 };
 
-export function StandbyActions({ task, order }: StandbyActionsProps) {
+export function StandbyActions({ task, order, initialAction }: StandbyActionsProps) {
   const router = useRouter();
   const [isAutoMatching, setIsAutoMatching] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionTriggered, setActionTriggered] = useState(false);
 
   const isQueued = !!order.agentId;
 
-  const handleAutoMatch = async () => {
+  const handleAutoMatch = useCallback(async () => {
     try {
       setIsAutoMatching(true);
       setError(null);
@@ -77,7 +79,20 @@ export function StandbyActions({ task, order }: StandbyActionsProps) {
     } finally {
       setIsAutoMatching(false);
     }
-  };
+  }, [router, task.creatorId, task.id]);
+
+  // 自动触发逻辑
+  useEffect(() => {
+    if (actionTriggered || isQueued) return;
+
+    if (initialAction === 'auto') {
+      setActionTriggered(true);
+      void handleAutoMatch();
+    } else if (initialAction === 'manual') {
+      setActionTriggered(true);
+      router.push(`/agents?taskId=${task.id}`);
+    }
+  }, [initialAction, actionTriggered, isQueued, handleAutoMatch, router, task.id]);
 
   const handleManualSelect = () => {
     router.push(`/agents?taskId=${task.id}`);

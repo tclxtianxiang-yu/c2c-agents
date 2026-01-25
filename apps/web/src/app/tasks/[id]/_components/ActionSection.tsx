@@ -15,9 +15,10 @@ import { StandbyActions } from './StandbyActions';
 type ActionSectionProps = {
   task: Task;
   order: Order | null;
+  initialAction?: 'auto' | 'manual';
 };
 
-export function ActionSection({ task, order }: ActionSectionProps) {
+export function ActionSection({ task, order, initialAction }: ActionSectionProps) {
   if (!order) {
     return (
       <Card className="p-6">
@@ -35,7 +36,7 @@ export function ActionSection({ task, order }: ActionSectionProps) {
   const renderActions = () => {
     switch (order.status) {
       case OrderStatus.Standby:
-        return <StandbyActions task={task} order={order} />;
+        return <StandbyActions task={task} order={order} initialAction={initialAction} />;
 
       case OrderStatus.Pairing:
         return <PairingActions task={task} order={order} />;

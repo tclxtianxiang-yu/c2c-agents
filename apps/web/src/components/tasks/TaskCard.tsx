@@ -1,6 +1,9 @@
+'use client';
+
 import type { Task } from '@c2c-agents/shared';
 import { OrderStatus } from '@c2c-agents/shared';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { formatCurrency } from '@/utils/formatCurrency';
 import { TASK_TYPE_LABELS } from '@/utils/taskLabels';
@@ -37,28 +40,30 @@ const orderStatusLabels: Record<string, string> = {
 type TaskCardProps = {
   task: TaskSummary;
   onViewStatus?: (taskId: string) => void;
-  onAutoMatch?: (taskId: string) => void;
-  onManualSelect?: (taskId: string) => void;
 };
 
-export function TaskCard({ task, onViewStatus, onAutoMatch, onManualSelect }: TaskCardProps) {
+export function TaskCard({ task, onViewStatus }: TaskCardProps) {
+  const router = useRouter();
   const isStandby = task.currentStatus === OrderStatus.Standby;
   const isPairing = task.currentStatus === OrderStatus.Pairing;
   const actionLabel = isStandby ? '自动匹配' : isPairing ? '确认匹配' : '查看状态';
+
   const handleViewStatus = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onViewStatus?.(task.id);
   };
+
   const handleAutoMatch = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onAutoMatch?.(task.id);
+    router.push(`/tasks/${task.id}?action=auto`);
   };
+
   const handleManualSelect = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onManualSelect?.(task.id);
+    router.push(`/tasks/${task.id}?action=manual`);
   };
 
   return (
