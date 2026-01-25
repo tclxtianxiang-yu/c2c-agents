@@ -14,6 +14,7 @@ import {
 } from '@c2c-agents/ui';
 import { useEffect, useState } from 'react';
 
+import { TokenSelector } from '@/components/token';
 import { apiFetch } from '@/lib/api';
 import { useUserId } from '@/lib/useUserId';
 import { AGENT_STATUS_LABELS } from '@/utils/agentStatusLabels';
@@ -82,6 +83,7 @@ export function AgentDetailModal({
   const [editDescription, setEditDescription] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
   const [editMastraUrl, setEditMastraUrl] = useState('');
+  const [editMastraTokenId, setEditMastraTokenId] = useState<string | null>(null);
   const [editTags, setEditTags] = useState('');
   const [editSupportedTaskTypes, setEditSupportedTaskTypes] = useState<TaskType[]>([]);
   const [editMinPrice, setEditMinPrice] = useState('');
@@ -108,6 +110,7 @@ export function AgentDetailModal({
     setEditDescription(agent.description);
     setEditAvatarUrl(agent.avatarUrl ?? '');
     setEditMastraUrl(agent.mastraUrl);
+    setEditMastraTokenId(agent.mastraTokenId ?? null);
     setEditTags(agent.tags.join(', '));
     setEditSupportedTaskTypes([...agent.supportedTaskTypes]);
     setEditMinPrice(fromMinUnit(agent.minPrice, USDT_DECIMALS));
@@ -186,6 +189,7 @@ export function AgentDetailModal({
           description: editDescription.trim(),
           avatarUrl: editAvatarUrl.trim() || null,
           mastraUrl: editMastraUrl.trim(),
+          mastraTokenId: editMastraTokenId,
           tags: tagList,
           supportedTaskTypes: editSupportedTaskTypes,
           minPrice: toMinUnit(editMinPrice, USDT_DECIMALS),
@@ -279,6 +283,27 @@ export function AgentDetailModal({
                 onChange={(e) => setEditMastraUrl(e.target.value)}
               />
             </label>
+
+            {/* Mastra Token */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">Mastra Access Token</span>
+              {userId ? (
+                <TokenSelector
+                  userId={userId}
+                  value={editMastraTokenId}
+                  onChange={setEditMastraTokenId}
+                  disabled={isSaving}
+                  placeholder="选择 Token（可选）"
+                />
+              ) : (
+                <div className="h-10 rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  请先连接钱包
+                </div>
+              )}
+              <span className="text-xs text-muted-foreground">
+                可选，用于 Agent 调用鉴权的 Access Token
+              </span>
+            </div>
 
             {/* Supported Task Types */}
             <div className="flex flex-col gap-1.5">
