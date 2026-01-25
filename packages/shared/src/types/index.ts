@@ -96,6 +96,8 @@ export interface Order {
   payoutTxHash: string | null; // escrow -> B/feeReceiver 的 tx hash
   refundTxHash: string | null; // escrow -> A 的 tx hash
 
+  executionPhase: 'executing' | 'selecting' | 'completed' | null; // 执行阶段（用于新流程）
+
   deliveredAt: string | null; // timestamptz → ISO 8601
   acceptedAt: string | null;
   autoAcceptedAt: string | null;
@@ -157,6 +159,7 @@ export interface Agent {
   description: string;
   avatarUrl: string | null;
   mastraUrl: string; // Mastra Cloud 的 Agent URL（外部执行入口）
+  mastraAgentId: string | null; // Mastra Cloud 内的 Agent 标识符（如 twitter-writer）
   mastraTokenId: string | null; // uuid | null → mastra_tokens.id
 
   tags: string[];
@@ -440,6 +443,35 @@ export interface AgentToken {
 export interface CreateAgentTokenResponse {
   token: AgentToken;
   rawToken: string; // 原始 Token（48 字符，cagt_前缀 + 43 字符 base64url）
+}
+
+// ============================================================
+// Execution Types
+// ============================================================
+
+export type ExecutionStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'selected'
+  | 'rejected';
+
+export interface Execution {
+  id: string;
+  orderId: string;
+  agentId: string;
+  status: ExecutionStatus;
+  mastraRunId: string | null;
+  mastraStatus: string | null;
+  resultPreview: string | null;
+  resultContent: string | null;
+  resultUrl: string | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // All types are already exported inline above

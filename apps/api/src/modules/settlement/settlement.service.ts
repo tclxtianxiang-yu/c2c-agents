@@ -88,6 +88,15 @@ export class SettlementService {
     });
 
     if (!payoutResult.success) {
+      console.error('[Settlement] Payout failed for order:', order.id, {
+        creatorAddress,
+        providerAddress,
+        grossAmount: toStringAmount(grossAmount),
+        feeRate: finalFeeRate,
+        errorCode: payoutResult.error.code,
+        errorMessage: payoutResult.error.message,
+        errorDetails: payoutResult.error.details,
+      });
       throw payoutResult.error;
     }
 
@@ -195,6 +204,15 @@ export class SettlementService {
     });
 
     if (!payoutResult.success) {
+      console.error('[Settlement] Auto-accept payout failed for order:', order.id, {
+        creatorAddress,
+        providerAddress,
+        grossAmount: toStringAmount(grossAmount),
+        feeRate: finalFeeRate,
+        errorCode: payoutResult.error.code,
+        errorMessage: payoutResult.error.message,
+        errorDetails: payoutResult.error.details,
+      });
       throw payoutResult.error;
     }
 

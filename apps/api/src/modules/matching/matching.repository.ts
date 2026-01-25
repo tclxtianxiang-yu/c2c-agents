@@ -17,7 +17,9 @@ const WALLET_BINDINGS_TABLE = 'wallet_bindings';
 const TASK_SELECT_FIELDS = `
   id,
   creator_id,
+  title,
   type,
+  description,
   expected_reward,
   status,
   current_order_id,
@@ -54,15 +56,20 @@ const AGENT_SELECT_FIELDS = `
 const QUEUE_SELECT_FIELDS = `
   id,
   agent_id,
+  task_id,
   order_id,
   status,
-  created_at
+  created_at,
+  consumed_at,
+  canceled_at
 `;
 
 type TaskRow = {
   id: string;
   creator_id: string;
+  title: string;
   type: TaskType;
+  description: string;
   expected_reward: string | number;
   status: TaskStatus;
   current_order_id: string | null;
@@ -99,9 +106,12 @@ type AgentRow = {
 type QueueItemRow = {
   id: string;
   agent_id: string;
+  task_id: string;
   order_id: string;
   status: QueueItemStatus;
   created_at: string;
+  consumed_at?: string;
+  canceled_at?: string;
 };
 
 type WalletBindingUserRow = {
@@ -160,6 +170,8 @@ export class MatchingRepository {
       .contains('supported_task_types', [taskType])
       .lte('min_price', reward)
       .gte('max_price', reward)
+      .not('mastra_agent_id', 'is', null) // Only include agents with valid Mastra config
+      .not('mastra_token_id', 'is', null)
       .order('avg_rating', { ascending: false })
       .order('completed_order_count', { ascending: false })
       .order('created_at', { ascending: true });
@@ -294,6 +306,18 @@ export class MatchingRepository {
     ensureNoError(error, 'Failed to update order status');
   }
 
+  async updateOrderMatched(orderId: string, status: OrderStatus): Promise<void> {
+    const { error } = await this.supabase
+      .query(ORDER_TABLE)
+      .update({
+        status,
+        pairing_created_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order matched');
+  }
+
   async clearOrderPairing(orderId: string): Promise<void> {
     const { error } = await this.supabase
       .query(ORDER_TABLE)
@@ -355,48 +379,29 @@ export class MatchingRepository {
    * @returns 消费的 QueueItem，若队列为空则返回 null
    */
   async atomicConsumeQueueItem(agentId: string): Promise<QueueItemRow | null> {
-    // 使用 RPC 调用存储过程来执行原子 UPDATE
-    // 注意：这需要在数据库中创建相应的存储过程
-    // 由于 Supabase 客户端不直接支持 FOR UPDATE SKIP LOCKED，
-    // 我们需要通过 RPC 或原生 SQL 来实现
+    const { data, error } = await this.supabase.rpc('consume_next_queue_item', {
+      p_agent_id: agentId,
+    });
 
-    // 临时方案：使用两步操作（查询 + 更新）
-    // 在生产环境中应该使用 RPC 存储过程来保证原子性
-    const { data: queueItems, error: selectError } = await this.supabase
-      .query<QueueItemRow>(QUEUE_TABLE)
-      .select(QUEUE_SELECT_FIELDS)
-      .eq('agent_id', agentId)
-      .eq('status', QueueItemStatus.Queued)
-      .order('created_at', { ascending: true })
-      .limit(1);
-
-    ensureNoError(selectError, 'Failed to fetch queue item for consumption');
-
-    if (!queueItems?.length) {
+    if (error) {
+      console.warn(`Failed to consume queue item for agent ${agentId}:`, error);
       return null;
     }
 
-    const queueItem = queueItems[0];
-
-    // 更新状态为 Consumed
-    const { data: updatedItem, error: updateError } = await this.supabase
-      .query<QueueItemRow>(QUEUE_TABLE)
-      .update({
-        status: QueueItemStatus.Consumed,
-        consumed_at: new Date().toISOString(),
-      })
-      .eq('id', queueItem.id)
-      .eq('status', QueueItemStatus.Queued) // 防止重复消费
-      .select(QUEUE_SELECT_FIELDS)
-      .maybeSingle();
-
-    if (updateError) {
-      // 如果更新失败（可能被其他并发请求抢占），返回 null
-      console.warn(`Failed to consume queue item ${queueItem.id}:`, updateError);
+    if (!data || data.length === 0) {
       return null;
     }
 
-    return updatedItem ?? null;
+    const row = data[0];
+    return {
+      id: row.id,
+      agent_id: row.agent_id,
+      task_id: row.task_id,
+      order_id: row.order_id,
+      status: row.status as QueueItemStatus,
+      created_at: row.created_at,
+      consumed_at: row.consumed_at,
+    };
   }
 
   async updateAgentQueueSize(agentId: string, delta: number): Promise<void> {
@@ -408,5 +413,17 @@ export class MatchingRepository {
       .eq('id', agentId);
 
     ensureNoError(error, 'Failed to update agent queue size');
+  }
+
+  async updateOrderExecutionPhase(
+    orderId: string,
+    phase: 'executing' | 'selecting' | 'completed' | null
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .query(ORDER_TABLE)
+      .update({ execution_phase: phase })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order execution phase');
   }
 }

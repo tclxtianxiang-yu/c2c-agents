@@ -20,6 +20,7 @@ const AGENT_SELECT_FIELDS = `
   description,
   avatar_url,
   mastra_url,
+  mastra_agent_id,
   mastra_token_id,
   tags,
   supported_task_types,
@@ -43,6 +44,7 @@ type AgentRow = {
   description: string;
   avatar_url: string | null;
   mastra_url: string;
+  mastra_agent_id: string | null;
   mastra_token_id: string | null;
   tags: string[];
   supported_task_types: TaskType[];
@@ -95,6 +97,7 @@ function toAgent(row: AgentRow): Agent {
     description: row.description,
     avatarUrl: row.avatar_url,
     mastraUrl: row.mastra_url,
+    mastraAgentId: row.mastra_agent_id,
     mastraTokenId: row.mastra_token_id,
     tags: row.tags ?? [],
     supportedTaskTypes: row.supported_task_types ?? [],

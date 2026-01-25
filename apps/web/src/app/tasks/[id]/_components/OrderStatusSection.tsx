@@ -18,6 +18,16 @@ const ORDER_STATUS_CONFIG: Record<
     className: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
     dotColor: 'bg-gray-500',
   },
+  [OrderStatus.Executing]: {
+    label: '执行中',
+    className: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
+    dotColor: 'bg-cyan-500',
+  },
+  [OrderStatus.Selecting]: {
+    label: '选择中',
+    className: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+    dotColor: 'bg-indigo-500',
+  },
   [OrderStatus.Pairing]: {
     label: '配对中',
     className: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
@@ -32,6 +42,16 @@ const ORDER_STATUS_CONFIG: Record<
     label: '已交付',
     className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
     dotColor: 'bg-purple-500',
+  },
+  [OrderStatus.Accepted]: {
+    label: '已验收',
+    className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    dotColor: 'bg-emerald-500',
+  },
+  [OrderStatus.AutoAccepted]: {
+    label: '自动验收',
+    className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    dotColor: 'bg-emerald-500',
   },
   [OrderStatus.RefundRequested]: {
     label: '退款申请中',
@@ -53,20 +73,20 @@ const ORDER_STATUS_CONFIG: Record<
     className: 'bg-red-500/10 text-red-600 border-red-500/20',
     dotColor: 'bg-red-500',
   },
-  [OrderStatus.Completed]: {
-    label: '已完成',
-    className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-    dotColor: 'bg-emerald-500',
-  },
   [OrderStatus.Refunded]: {
     label: '已退款',
     className: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
     dotColor: 'bg-gray-500',
   },
-  [OrderStatus.Cancelled]: {
-    label: '已取消',
-    className: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-    dotColor: 'bg-gray-500',
+  [OrderStatus.Paid]: {
+    label: '已支付',
+    className: 'bg-green-500/10 text-green-600 border-green-500/20',
+    dotColor: 'bg-green-500',
+  },
+  [OrderStatus.Completed]: {
+    label: '已完成',
+    className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    dotColor: 'bg-emerald-500',
   },
 };
 
@@ -77,6 +97,7 @@ type TimelineEvent = {
 };
 
 function getTimelineEvents(order: Order): TimelineEvent[] {
+  // 简化的4步流程：订单创建 → 匹配成功 → 任务交付 → 验收成单
   return [
     {
       label: '订单创建',
@@ -84,14 +105,9 @@ function getTimelineEvents(order: Order): TimelineEvent[] {
       completed: true,
     },
     {
-      label: '支付完成',
-      timestamp: order.paidAt,
-      completed: !!order.paidAt,
-    },
-    {
-      label: '配对成功',
-      timestamp: order.acceptedAt,
-      completed: !!order.acceptedAt,
+      label: '匹配成功',
+      timestamp: order.pairingCreatedAt,
+      completed: !!order.pairingCreatedAt,
     },
     {
       label: '任务交付',
@@ -99,9 +115,9 @@ function getTimelineEvents(order: Order): TimelineEvent[] {
       completed: !!order.deliveredAt,
     },
     {
-      label: '验收完成',
-      timestamp: order.completedAt || order.autoAcceptedAt,
-      completed: !!(order.completedAt || order.autoAcceptedAt),
+      label: '验收成单',
+      timestamp: order.acceptedAt || order.autoAcceptedAt,
+      completed: !!(order.acceptedAt || order.autoAcceptedAt),
     },
   ];
 }

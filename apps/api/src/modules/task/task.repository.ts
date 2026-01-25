@@ -40,6 +40,7 @@ const ORDER_SELECT_FIELDS = `
   escrow_amount,
   payout_tx_hash,
   refund_tx_hash,
+  execution_phase,
   delivered_at,
   accepted_at,
   auto_accepted_at,
@@ -84,6 +85,7 @@ type OrderRow = {
   escrow_amount: string | number | null;
   payout_tx_hash: string | null;
   refund_tx_hash: string | null;
+  execution_phase: 'executing' | 'selecting' | 'completed' | null;
   delivered_at: string | null;
   accepted_at: string | null;
   auto_accepted_at: string | null;
@@ -168,6 +170,7 @@ function toOrder(row: OrderRow): Order {
     escrowAmount: row.escrow_amount !== null ? String(row.escrow_amount) : null,
     payoutTxHash: row.payout_tx_hash,
     refundTxHash: row.refund_tx_hash,
+    executionPhase: row.execution_phase,
     deliveredAt: row.delivered_at,
     acceptedAt: row.accepted_at,
     autoAcceptedAt: row.auto_accepted_at,
@@ -320,6 +323,19 @@ export class TaskRepository {
   async deleteOrder(orderId: string): Promise<void> {
     const { error } = await this.supabase.query(ORDER_TABLE).delete().eq('id', orderId);
     ensureNoError(error, 'Failed to delete order');
+  }
+
+  async findOrderById(orderId: string): Promise<Order | null> {
+    const { data, error } = await this.supabase
+      .query<OrderRow>(ORDER_TABLE)
+      .select(ORDER_SELECT_FIELDS)
+      .eq('id', orderId)
+      .maybeSingle();
+
+    ensureNoError(error, 'Failed to fetch order by id');
+    if (!data) return null;
+
+    return toOrder(data);
   }
 
   async getActiveWalletAddress(userId: string, role: 'A' | 'B'): Promise<string | null> {

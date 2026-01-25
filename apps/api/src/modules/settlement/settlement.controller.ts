@@ -2,7 +2,7 @@ import { ValidationError } from '@c2c-agents/shared';
 import { Controller, Headers, Inject, Param, Post } from '@nestjs/common';
 import { SettlementService } from './settlement.service';
 
-@Controller()
+@Controller('settlement')
 export class SettlementController {
   constructor(@Inject(SettlementService) private readonly settlementService: SettlementService) {}
 
@@ -14,7 +14,7 @@ export class SettlementController {
     return this.settlementService.acceptOrder(userId, orderId);
   }
 
-  @Post('settlement/auto-accept')
+  @Post('auto-accept')
   runAutoAccept() {
     return this.settlementService.runAutoAccept();
   }

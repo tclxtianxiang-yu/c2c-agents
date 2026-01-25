@@ -83,8 +83,8 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
             首页
           </Link>
           <span>/</span>
-          <Link href="/tasks" className="hover:text-foreground">
-            任务列表
+          <Link href="/task" className="hover:text-foreground">
+            我的任务
           </Link>
           <span>/</span>
           <span className="text-foreground">{task.title}</span>
