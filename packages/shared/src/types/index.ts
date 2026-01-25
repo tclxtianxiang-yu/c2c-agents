@@ -96,6 +96,8 @@ export interface Order {
   payoutTxHash: string | null; // escrow -> B/feeReceiver 的 tx hash
   refundTxHash: string | null; // escrow -> A 的 tx hash
 
+  executionPhase: 'executing' | 'selecting' | 'completed' | null; // 执行阶段（用于新流程）
+
   deliveredAt: string | null; // timestamptz → ISO 8601
   acceptedAt: string | null;
   autoAcceptedAt: string | null;

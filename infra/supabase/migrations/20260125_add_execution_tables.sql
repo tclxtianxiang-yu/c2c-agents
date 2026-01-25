@@ -42,16 +42,9 @@ CREATE INDEX IF NOT EXISTS idx_executions_agent_id ON executions(agent_id);
 CREATE INDEX IF NOT EXISTS idx_executions_status ON executions(status);
 CREATE INDEX IF NOT EXISTS idx_orders_execution_phase ON orders(execution_phase) WHERE execution_phase IS NOT NULL;
 
--- 4. 触发器：自动更新 updated_at
-CREATE OR REPLACE FUNCTION update_executions_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER executions_updated_at_trigger
+-- 4. 触发器：自动更新 updated_at（使用已有的 public.set_updated_at 函数）
+DROP TRIGGER IF EXISTS trg_executions_updated_at ON executions;
+CREATE TRIGGER trg_executions_updated_at
   BEFORE UPDATE ON executions
   FOR EACH ROW
-  EXECUTE FUNCTION update_executions_updated_at();
+  EXECUTE FUNCTION public.set_updated_at();
