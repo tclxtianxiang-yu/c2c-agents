@@ -18,6 +18,7 @@ const TASK_SELECT_FIELDS = `
   id,
   creator_id,
   type,
+  description,
   expected_reward,
   status,
   current_order_id,
@@ -66,6 +67,7 @@ type TaskRow = {
   id: string;
   creator_id: string;
   type: TaskType;
+  description: string;
   expected_reward: string | number;
   status: TaskStatus;
   current_order_id: string | null;
@@ -395,5 +397,17 @@ export class MatchingRepository {
       .eq('id', agentId);
 
     ensureNoError(error, 'Failed to update agent queue size');
+  }
+
+  async updateOrderExecutionPhase(
+    orderId: string,
+    phase: 'executing' | 'selecting' | 'completed' | null
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .query(ORDER_TABLE)
+      .update({ execution_phase: phase })
+      .eq('id', orderId);
+
+    ensureNoError(error, 'Failed to update order execution phase');
   }
 }

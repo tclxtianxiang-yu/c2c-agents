@@ -3,12 +3,15 @@ import {
   AgentStatus,
   assertTransition,
   ErrorCode,
+  type Execution,
   IdempotencyViolationError,
   OrderStatus,
   TaskStatus,
   ValidationError,
 } from '@c2c-agents/shared';
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
+import { ExecutionRepository } from '../execution/execution.repository';
+import { MastraService } from '../mastra/mastra.service';
 import { MatchingRepository } from './matching.repository';
 import { sortAgents } from './sorting';
 
@@ -29,6 +32,19 @@ type MatchResult =
       queuedCount: number;
       capacity: number;
     };
+
+/**
+ * New parallel execution result type
+ */
+export type ParallelMatchResult = {
+  result: 'executing';
+  orderId: string;
+  executions: Array<{
+    executionId: string;
+    agentId: string;
+    status: string;
+  }>;
+};
 
 type CandidateAgent = {
   agentId: string;
@@ -51,9 +67,99 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 @Injectable()
 export class MatchingService {
-  constructor(@Inject(MatchingRepository) private readonly repository: MatchingRepository) {}
+  private readonly logger = new Logger(MatchingService.name);
 
-  async autoMatch(userId: string, taskId: string): Promise<MatchResult> {
+  constructor(
+    @Inject(MatchingRepository) private readonly repository: MatchingRepository,
+    @Inject(ExecutionRepository) private readonly executionRepository: ExecutionRepository,
+    @Inject(MastraService) private readonly mastraService: MastraService
+  ) {}
+
+  /**
+   * New parallel execution flow:
+   * 1. Find candidate agents matching task type and reward
+   * 2. Sort and take top 15, then shuffle and pick 3
+   * 3. Validate Mastra tokens for selected agents
+   * 4. Create execution records and trigger Mastra execution
+   * 5. Update order status to Executing
+   */
+  async autoMatch(userId: string, taskId: string): Promise<ParallelMatchResult> {
+    const { task, order } = await this.loadTaskAndOrder(userId, taskId);
+
+    // 1. Get candidate agents
+    const rawCandidates = await this.repository.listCandidateAgents(
+      task.type,
+      String(task.expected_reward)
+    );
+
+    if (rawCandidates.length < 3) {
+      throw new ValidationError(`候选 Agent 不足（需要 3 个，找到 ${rawCandidates.length} 个）`);
+    }
+
+    // 2. Sort candidates and take top 15
+    const sortedCandidates = sortAgents(
+      rawCandidates.map((agent) => ({
+        id: agent.id,
+        name: agent.name,
+        status: agent.status,
+        avgRating: agent.avg_rating,
+        completedOrderCount: agent.completed_order_count,
+        queueSize: agent.queue_size,
+        createdAt: agent.created_at,
+      }))
+    );
+    const topCandidates = sortedCandidates.slice(0, Math.min(15, sortedCandidates.length));
+
+    // 3. Fisher-Yates shuffle and pick 3
+    const shuffled = this.shuffleArray([...topCandidates]);
+    const selectedAgents = shuffled.slice(0, 3);
+
+    // 4. Validate Mastra tokens
+    const validAgents: typeof selectedAgents = [];
+    for (const agent of selectedAgents) {
+      const validation = await this.mastraService.validateAgentToken(agent.id);
+      if (validation.valid) {
+        validAgents.push(agent);
+      } else {
+        this.logger.warn(`Agent ${agent.id} token invalid: ${validation.error}`);
+      }
+    }
+
+    if (validAgents.length === 0) {
+      throw new ValidationError('没有有效 Mastra Token 的 Agent');
+    }
+
+    // 5. Create execution records
+    const executions = await this.executionRepository.createExecutionsBatch(
+      order.id,
+      validAgents.map((a) => a.id)
+    );
+
+    // 6. Update order status -> Executing
+    assertTransition(OrderStatus.Standby, OrderStatus.Executing);
+    await this.repository.updateOrderStatus(order.id, OrderStatus.Executing);
+    await this.repository.updateOrderExecutionPhase(order.id, 'executing');
+    await this.repository.updateTaskCurrentStatus(task.id, OrderStatus.Executing);
+
+    // 7. Async trigger Mastra executions (non-blocking)
+    this.triggerMastraExecutions(task, order, executions, validAgents);
+
+    return {
+      result: 'executing',
+      orderId: order.id,
+      executions: executions.map((e) => ({
+        executionId: e.id,
+        agentId: e.agentId,
+        status: e.status,
+      })),
+    };
+  }
+
+  /**
+   * @deprecated Use autoMatch for parallel execution. This method is kept for backward compatibility.
+   * Legacy auto-match that uses Pairing flow
+   */
+  async autoMatchLegacy(userId: string, taskId: string): Promise<MatchResult> {
     const { task, order } = await this.loadTaskAndOrder(userId, taskId);
 
     const rawCandidates = await this.repository.listCandidateAgents(
@@ -287,5 +393,70 @@ export class MatchingService {
     if (!userId) return null;
     if (UUID_RE.test(userId)) return userId;
     return this.repository.findActiveUserIdByAddress(userId);
+  }
+
+  /**
+   * Fisher-Yates shuffle algorithm for fair random selection
+   */
+  private shuffleArray<T>(array: T[]): T[] {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  /**
+   * Asynchronously trigger Mastra executions for selected agents
+   * This method does not block the autoMatch return
+   */
+  private triggerMastraExecutions(
+    task: { id: string; type: string; description?: string },
+    _order: { id: string },
+    executions: Execution[],
+    _agents: Array<{ id: string }>
+  ): void {
+    // Fire and forget - execute in background
+    (async () => {
+      for (const execution of executions) {
+        try {
+          // Update execution status to running
+          await this.executionRepository.updateExecution(execution.id, {
+            status: 'running',
+            startedAt: new Date().toISOString(),
+          });
+
+          // Call Mastra to execute task
+          const result = await this.mastraService.executeTask({
+            agentId: execution.agentId,
+            taskDescription: task.description ?? '',
+            taskType: task.type,
+          });
+
+          // Update with Mastra runId
+          await this.executionRepository.updateExecution(execution.id, {
+            mastraRunId: result.runId,
+            mastraStatus: result.status,
+          });
+
+          if (result.status === 'failed') {
+            await this.executionRepository.updateExecution(execution.id, {
+              status: 'failed',
+              errorMessage: result.error,
+              completedAt: new Date().toISOString(),
+            });
+          }
+        } catch (error) {
+          this.logger.error(`Failed to trigger Mastra execution for ${execution.id}:`, error);
+          await this.executionRepository.updateExecution(execution.id, {
+            status: 'failed',
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            completedAt: new Date().toISOString(),
+          });
+        }
+      }
+    })().catch((err) => {
+      this.logger.error('Error in triggerMastraExecutions:', err);
+    });
   }
 }
