@@ -87,6 +87,12 @@ export function TopNav() {
           </div>
         </div>
         <div className="flex items-center gap-3 lg:justify-end">
+          <Link
+            href="/admin"
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/40 hover:text-primary"
+          >
+            我是管理员
+          </Link>
           <ConnectButton.Custom>
             {({ account, chain, mounted, openAccountModal, openConnectModal }) => {
               const ready = mounted;

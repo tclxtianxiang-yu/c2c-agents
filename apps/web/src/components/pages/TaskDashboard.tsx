@@ -514,6 +514,7 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [modalAction, setModalAction] = useState<'view' | 'auto' | 'manual'>('view');
+  const [refundConfirmTaskId, setRefundConfirmTaskId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -590,6 +591,10 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
   const handleManualSelect = (taskId: string) => {
     setSelectedTaskId(taskId);
     setModalAction('manual');
+  };
+
+  const handleRefundRequest = (taskId: string) => {
+    setRefundConfirmTaskId(taskId);
   };
 
   return (
@@ -688,6 +693,7 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
               onViewStatus={handleViewDetail}
               onAutoMatch={handleAutoMatch}
               onManualSelect={handleManualSelect}
+              onRefundRequest={handleRefundRequest}
             />
           ))}
         </section>
@@ -700,6 +706,41 @@ export function TaskDashboard({ scope }: TaskDashboardProps) {
             onSuccess={handleTaskPublished}
             onViewDetail={handleViewDetail}
           />
+        </Modal>
+      )}
+
+      {refundConfirmTaskId && (
+        <Modal onClose={() => setRefundConfirmTaskId(null)} maxWidthClassName="max-w-md">
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">退款确认</p>
+              <h2 className="mt-2 text-lg font-semibold">确认要发起退款申请吗？</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                发起后将进入退款流程，等待对方响应或平台仲裁。
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setRefundConfirmTaskId(null)}
+                className="flex-1 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!refundConfirmTaskId) return;
+                  setRefundConfirmTaskId(null);
+                  setSelectedTaskId(refundConfirmTaskId);
+                  setModalAction('view');
+                }}
+                className="flex-1 rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive"
+              >
+                确认退款
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
 
