@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
 import { ExecutionModule } from './modules/execution/execution.module';
+import { MastraModule } from './modules/mastra/mastra.module';
 import { MastraTokenModule } from './modules/mastra-token/mastra-token.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { QueueModule } from './modules/queue/queue.module';
@@ -30,6 +31,7 @@ import { WorkbenchModule } from './modules/workbench/workbench.module';
     DeliveryModule,
     ExecutionModule,
     MastraTokenModule,
+    MastraModule,
     MatchingModule,
     QueueModule,
     SettlementModule,
