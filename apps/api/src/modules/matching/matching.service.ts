@@ -451,7 +451,10 @@ export class MatchingService {
         });
       }
     } catch (error) {
-      this.logger.error(`Failed to trigger Mastra execution for ${execution.id}:`, error);
+      this.logger.error(
+        `Failed to trigger Mastra execution for execution ${execution.id}, agent ${execution.agentId}:`,
+        error
+      );
       await this.executionRepository.updateExecution(execution.id, {
         status: 'failed',
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
@@ -470,6 +473,11 @@ export class MatchingService {
     executions: Execution[],
     _agents: Array<{ id: string }>
   ): void {
+    if (executions.length === 0) {
+      this.logger.warn(`No executions to trigger for order ${order.id}`);
+      return;
+    }
+
     // Fire and forget - execute in background
     (async () => {
       // Execute all agents IN PARALLEL
@@ -485,11 +493,13 @@ export class MatchingService {
       this.logger.log(
         `All executions completed for order ${order.id}, transitioning to selecting phase`
       );
-      await this.repository.updateOrderStatus(order.id, OrderStatus.Selecting);
-      await this.repository.updateOrderExecutionPhase(order.id, 'selecting');
-      await this.repository.updateTaskCurrentStatus(task.id, OrderStatus.Selecting);
+      await Promise.all([
+        this.repository.updateOrderStatus(order.id, OrderStatus.Selecting),
+        this.repository.updateOrderExecutionPhase(order.id, 'selecting'),
+        this.repository.updateTaskCurrentStatus(task.id, OrderStatus.Selecting),
+      ]);
     })().catch((err) => {
-      this.logger.error('Error in triggerMastraExecutions:', err);
+      this.logger.error(`Error in triggerMastraExecutions for order ${order.id}:`, err);
     });
   }
 }
