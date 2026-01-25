@@ -263,7 +263,9 @@ describe('Queue Concurrency', () => {
     });
 
     it('should return null and log warning on RPC error', async () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {
+        /* noop */
+      });
 
       mockSupabase.rpc.mockResolvedValue({
         data: null,
